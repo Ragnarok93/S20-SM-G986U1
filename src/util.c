@@ -62,7 +62,7 @@ void setup_kernelsnitch(void) {
   int cpu_count = (int)sysconf(_SC_NPROCESSORS_ONLN);
   detect_memory();
   ks = kernelsnitch_setup(
-      MM_STRUCT_SZ, MM_ORDER, cpu_count, KSNITCH_COLLISIONS, 0, 0);
+      MM_STRUCT_SZ, MM_ORDER, cpu_count, KSNITCH_COLLISIONS, 1, 0);  /* verbose diagnostics for on-device debug */
   ks->identity_end = (size_t)g_direct_map_end;
   ks->ram_bytes = g_ram_bytes;
 }
@@ -648,7 +648,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
   int cpu_count = (int)sysconf(_SC_NPROCESSORS_ONLN);
   detect_memory();
   ks = kernelsnitch_setup(
-      MM_STRUCT_SZ, MM_ORDER, cpu_count, KSNITCH_COLLISIONS, 0, 0);
+      MM_STRUCT_SZ, MM_ORDER, cpu_count, KSNITCH_COLLISIONS, 1, 0);  /* verbose diagnostics for on-device debug */
   ks->identity_end = (size_t)g_direct_map_end;
   ks->ram_bytes = g_ram_bytes;
 
