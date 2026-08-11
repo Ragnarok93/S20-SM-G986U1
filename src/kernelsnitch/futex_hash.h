@@ -200,9 +200,48 @@ uint32_t __futex_hash(futex_key_t *key, uint32_t futex_hashsize)
 }
 
 unsigned long futex_hashsize = (unsigned long)-1;
+static unsigned long read_possible_cpus(void)
+{
+    unsigned long n = 0;
+    FILE *f = fopen("/sys/devices/system/cpu/possible", "r");
+    if (f) {
+        char line[128];
+        if (fgets(line, sizeof(line), f)) {
+            char *p = line;
+            while (*p) {
+                unsigned long a = 0, b = 0;
+                if (*p >= '0' && *p <= '9') {
+                    a = strtoul(p, &p, 10);
+                    b = a;
+                    if (*p == '-') {
+                        p++;
+                        b = strtoul(p, &p, 10);
+                    }
+                    n += b - a + 1;
+                } else {
+                    p++;
+                }
+            }
+        }
+        fclose(f);
+    }
+    return n;
+}
 void futex_init(void)
 {
-    futex_hashsize = SYSCHK(sysconf(_SC_NPROCESSORS_ONLN) * 256);
+    unsigned long cpus = read_possible_cpus();
+    if (!cpus) {
+        cpus = (unsigned long)sysconf(_SC_NPROCESSORS_ONLN);
+    }
+    /* kernel: futex_hashsize = 256 * num_possible_cpus(), then used as
+     * hash & (futex_hashsize - 1) => must round up to a power of two */
+    unsigned long sz = cpus * 256;
+    unsigned long p = 1;
+    while (p < sz) {
+        p <<= 1;
+    }
+    futex_hashsize = p;
+    pr_info("futex_init hashsize=0x%lx (cpus=%lu)\n", futex_hashsize, cpus);
 }
 uint32_t futex_hash(size_t addr, size_t mm)
 {
