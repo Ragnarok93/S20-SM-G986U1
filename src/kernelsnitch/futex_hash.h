@@ -170,7 +170,7 @@ typedef union {
     } shared;
     struct {
         union {
-            // struct mm_struct *mm;
+            // struct mm_struct *mm;  (kernel 4.19 private: mm @0, address @8)
             void *mm;
             uint64_t __tmp;
         };
@@ -197,6 +197,48 @@ uint32_t __futex_hash(futex_key_t *key, uint32_t futex_hashsize)
     uint32_t hash = futex_hash_no_trunc(key);
 
     return hash & (futex_hashsize-1);
+}
+
+/* variant-tolerant jhash2: probe likely disasm-transcription errors */
+static inline uint32_t jhash2_variant(const uint32_t *k, uint32_t initval, size_t variant)
+{
+    uint32_t a, b, c;
+    a = b = c = 0xdeadbeef;
+    if (variant != 2)
+        a = b = c = 0xdeadbeef + (4u << 2);
+    a = b = c = a + initval;
+    if (variant == 1) {
+        /* swapped word order: k2,k3,k0 then k1 to a */
+        a += k[2]; b += k[3]; c += k[0];
+    } else {
+        a += k[0]; b += k[1]; c += k[2];
+    }
+    __jhash_mix(a, b, c);
+    if (variant == 1)
+        a += k[1];
+    else
+        a += k[3];
+    __jhash_final(a, b, c);
+    if (variant == 3)
+        return a;
+    return c;
+}
+
+static inline uint32_t futex_hash_v(size_t addr, size_t mm, size_t variant)
+{
+    uint32_t w[4];
+    if (variant == 1) {
+        w[0] = (uint32_t)((addr & ~KS_PAGE_MASK) >> 0);
+        w[1] = (uint32_t)((addr & ~KS_PAGE_MASK) >> 32);
+        w[2] = (uint32_t)(mm >> 0);
+        w[3] = (uint32_t)(mm >> 32);
+    } else {
+        w[0] = (uint32_t)(mm >> 0);
+        w[1] = (uint32_t)(mm >> 32);
+        w[2] = (uint32_t)((addr & ~KS_PAGE_MASK) >> 0);
+        w[3] = (uint32_t)((addr & ~KS_PAGE_MASK) >> 32);
+    }
+    return jhash2_variant(w, (uint32_t)(addr & KS_PAGE_MASK), variant) & 2047;
 }
 
 unsigned long futex_hashsize = (unsigned long)-1;
@@ -247,8 +289,16 @@ uint32_t futex_hash(size_t addr, size_t mm)
 {
     ASSERT_pr((futex_hashsize != (unsigned long)-1), "need to call futex_init() first\n");
     futex_key_t key;
-    key.private.mm = (void *)mm;
-    key.private.address = addr & ~KS_PAGE_MASK;
+    size_t page = addr & ~KS_PAGE_MASK;
+    if (mm & 1) {
+        /* variant 1: {addr, mm} word order in the key */
+        key.private.mm = (void *)page;
+        key.private.address = mm & ~(size_t)1;
+    } else {
+        /* variant 0: {mm, addr} word order (kernel 4.19 default) */
+        key.private.mm = (void *)mm;
+        key.private.address = page;
+    }
     key.private.offset = addr & KS_PAGE_MASK;
     return __futex_hash(&key, futex_hashsize);
 }

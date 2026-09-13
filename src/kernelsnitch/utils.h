@@ -139,14 +139,17 @@ static inline void pin_to_core(size_t core)
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     CPU_SET(core, &cpuset);
-    SYSCHK(sched_setaffinity(0, sizeof(cpu_set_t), &cpuset));
+    /* shell domain may lack CAP for affinity; degradation is non-fatal */
+    if (sched_setaffinity(0, sizeof(cpu_set_t), &cpuset) != 0)
+        pr_warning("sched_setaffinity failed (non-fatal)\n");
 }
 
 static inline void reset_cpu_pin(void)
 {
     cpu_set_t cpuset;
     memset(&cpuset, 0xff, sizeof(cpu_set_t));
-    SYSCHK(sched_setaffinity(0, sizeof(cpu_set_t), &cpuset));
+    if (sched_setaffinity(0, sizeof(cpu_set_t), &cpuset) != 0)
+        pr_warning("sched_setaffinity reset failed (non-fatal)\n");
 }
 
 static inline void set_limit(void)

