@@ -31,6 +31,23 @@ KernelSnitch mm 泄露 (PC-hybrid) -> prepare FOPS 页 -> punch (PI walk 在假 
 - 下一步优先：等 8B 扫描结果；若仍无解，做双桶/对照 pile 交叉验证，
   进一步压掉 timing 误报。
 
+### 2026-09-14 关键问题记录：PC 端哈希字序反了
+
+设备端 `futex_hash()` 使用的 `futex_key_t.private` 布局是
+`address @0`、`mm @8`，因此 `jhash2` 的 4 个 word 顺序应为：
+
+```c
+w[0] = address_low;
+w[1] = address_high;
+w[2] = mm_low;
+w[3] = mm_high;
+```
+
+但此前 PC 侧多个求解器按 `mm` 在前、`address` 在后计算，导致一直在
+错误的哈希空间里搜索，这是长期找不到 7/7 或 16/16 精确解的直接原因。
+已确认需要修正 `pc_candidate_solver` / `pc_mm_slab_solver` 的
+`futex_hash()` 后再重跑，否则所有候选集求解结果都不可信。
+
 ## 工作配置 (固化)
 
 - target.h: `src/targets/alioth-4.19.157-perf/target.h` (KIMAGE_TEXT_BASE=0xffffff8008080000,

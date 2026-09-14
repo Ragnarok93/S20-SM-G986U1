@@ -27,11 +27,11 @@ static void jhash_final(uint32_t *a, uint32_t *b, uint32_t *c) {
 static uint32_t futex_hash(uint64_t addr, uint64_t mm, uint32_t mask) {
   uint32_t a = 0xdeadbeef + (4u << 2) + (uint32_t)(addr & 0xfff);
   uint32_t b = a, c = a;
-  a += (uint32_t)mm;
-  b += (uint32_t)(mm >> 32);
   c += (uint32_t)(addr & ~0xfffULL);
-  jhash_mix(&a, &b, &c);
   a += (uint32_t)((addr & ~0xfffULL) >> 32);
+  b += (uint32_t)mm;
+  jhash_mix(&a, &b, &c);
+  c += (uint32_t)(mm >> 32);
   jhash_final(&a, &b, &c);
   return c & mask;
 }

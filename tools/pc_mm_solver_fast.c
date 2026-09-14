@@ -28,11 +28,11 @@ static uint32_t futex_hash(uint64_t addr, uint64_t mm, uint32_t mask) {
   /* alioth 4.19.157 vendor source: private.mm first, address second. */
   uint32_t a = 0xdeadbeef + (4u << 2) + (uint32_t)(addr & 0xfff);
   uint32_t b = a, c = a;
-  a += (uint32_t)mm;
-  b += (uint32_t)(mm >> 32);
   c += (uint32_t)(addr & ~0xfffULL);
-  jhash_mix(&a, &b, &c);
   a += (uint32_t)((addr & ~0xfffULL) >> 32);
+  b += (uint32_t)mm;
+  jhash_mix(&a, &b, &c);
+  c += (uint32_t)(mm >> 32);
   jhash_final(&a, &b, &c);
   return c & mask;
 }
