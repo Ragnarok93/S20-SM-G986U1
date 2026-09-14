@@ -169,12 +169,10 @@ typedef union {
         unsigned int offset;
     } shared;
     struct {
-        union {
-            // struct mm_struct *mm;  (kernel 4.19 private: mm @0, address @8)
-            void *mm;
-            uint64_t __tmp;
-        };
+        /* Linux 4.19: private.address @0, private.mm @8.  both.word aliases
+         * address and both.ptr aliases mm. */
         unsigned long address;
+        void *mm;
         unsigned int offset;
     } private;
     struct {
@@ -290,15 +288,8 @@ uint32_t futex_hash(size_t addr, size_t mm)
     ASSERT_pr((futex_hashsize != (unsigned long)-1), "need to call futex_init() first\n");
     futex_key_t key;
     size_t page = addr & ~KS_PAGE_MASK;
-    if (mm & 1) {
-        /* variant 1: {addr, mm} word order in the key */
-        key.private.mm = (void *)page;
-        key.private.address = mm & ~(size_t)1;
-    } else {
-        /* variant 0: {mm, addr} word order (kernel 4.19 default) */
-        key.private.mm = (void *)mm;
-        key.private.address = page;
-    }
+    key.private.address = page;
+    key.private.mm = (void *)mm;
     key.private.offset = addr & KS_PAGE_MASK;
     return __futex_hash(&key, futex_hashsize);
 }

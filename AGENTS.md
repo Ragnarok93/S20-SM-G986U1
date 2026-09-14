@@ -15,6 +15,22 @@ KernelSnitch mm 泄露 (PC-hybrid) -> prepare FOPS 页 -> punch (PI walk 在假 
 -> 线性映射校准 (memstart_addr) -> pipe physrw -> root
 ```
 
+## 2026-09-14 KernelSnitch 进展
+
+- 设备保持在线，无 bootloop。前两个 5-hit 候选
+  `0xffffffe585065e00` / `0xffffffd5b5c69380` 被设备端拒绝。
+- 候选 `0xffffffc02cd1ea00` 能通过 5/5 哈希一致，主链启动后内核 panic，
+  判定为误报，**不要复用**。
+- `KSNITCH_COLLISIONS` 从 8 提到 16 后能稳定采到 16 个碰撞，
+  导出 134 个候选、262142 行 timing。信号比 8 碰撞时强得多。
+- `tools/pc_candidate_solver.c` 已改为打印全部命中；
+  新增 `tools/pc_mm_slab_solver.c`，按 0x388 / order-3 slab 模型扫描。
+- 目前在 64B 对齐、0x388/order-3 slab 模型下均未找到
+  16/16、15/15、14/14、13/13 或 12/12 解。
+  全域 8B 步进 `min_hits=12` 扫描仍在跑。
+- 下一步优先：等 8B 扫描结果；若仍无解，做双桶/对照 pile 交叉验证，
+  进一步压掉 timing 误报。
+
 ## 工作配置 (固化)
 
 - target.h: `src/targets/alioth-4.19.157-perf/target.h` (KIMAGE_TEXT_BASE=0xffffff8008080000,

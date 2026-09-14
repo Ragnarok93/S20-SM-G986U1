@@ -151,11 +151,13 @@ void prepare_slide_select_fdsets(fd_set *in, fd_set *out, fd_set *ex) {
   slide_waiter_out_words[3] = (uint64_t)FAKE_WAITER_PRIO; /* prio */
   slide_waiter_out_words[4] = 0;                       /* deadline */
 
-  /* The input masks gate which res bits do_select may set: input bit
-   * must be 1 wherever the encoded res bit is 1 (and may be 0 elsewhere,
-   * which leaves the res bit at the zero_fd_set value). */
+  /* The input masks gate which res bits do_select may set.  Since the
+   * stale waiter is built from the OUTPUT buffers (res_in/res_out), every
+   * output bit must also be present in the input mask; otherwise
+   * core_sys_select never writes task/lock/prio into the stale waiter. */
   for (int w = 0; w < 5; w++) {
-    fdset_put_word(in, w, slide_waiter_in_words[w]);
+    fdset_put_word(in, w,
+                   slide_waiter_in_words[w] | slide_waiter_out_words[w]);
     fdset_put_word(out, w, slide_waiter_out_words[w]);
   }
 }
