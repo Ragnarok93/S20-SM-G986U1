@@ -272,6 +272,31 @@ mm 物理地址只能落在 8GB RAM 内 => memstart_addr 随机化范围 >= 160G
    碰撞 futex, punch 前逐假设探测 -> 命中的 delta 即真值, 一次跑机测完, 零重启。
 3. 仅探测命中的 delta 才进 walk。walk 从"测试手段"变成"验证过的执行"。
 
+## 2026-09-14 08:3x 离线验证 II: 破案 — 4.19 线性映射无随机化, delta 恒为 0
+
+源码铁证 (android_kernel_xiaomi_alioth/arch/arm64/include/asm/memory.h:280):
+`__phys_to_virt(x) = (x - PHYS_OFFSET) | PAGE_OFFSET` — 4.19 arm64 的线性映射
+转换**不含 memstart_addr** (线性映射基址随机化是 5.4+ 才有的特性)。
+PAGE_OFFSET 为编译期常量 (memory.h:62), PHYS_OFFSET=0x80000000 固定。
+
+推论 (全部可离线复核):
+1. **delta 恒为 0**: data_addr(ASHMEM) = alias = 0xffffffc002f52c60, 无需任何
+   候选枚举。整个 delta 扫描的前提 (线性映射随机化) 是错的, 该结论源自
+   AGENTS 早期对 mm_va 偏移的误读。
+2. **mm 合法性过滤器**: 线性映射固定 [ffffffc000000000, +8GB), mm 偏移必须
+   < 8GB。回查全部日志: 17:23 轮 mm=ffffffc1b1cfb840 偏移 6.77GB ✓ (mm_phys
+   9.55GB 在 RAM 内, 真命中); 19:16/19:41/20:33/23:09/07:36 各轮 mm 偏移
+   128GB/160GB/160GB/74GB/12.6GB — 全部超界, **均为探测假阳性**。
+3. 完整因果链: 假阳性 mm -> PC 算出垃圾 delta -> 假页 write_right 指向野地址
+   -> walk 踩野指针 -> 自旋拖死。之前所有"walk 死循环"都是这个机制。
+4. 探测通道可靠性问题: dbg_any_match 显示宽松判据有 1.4M-3.4M 个候选,
+   严格判据 (7/8 碰撞一致) 仍会假阳性 — mm 泄露需加偏移 <8GB 硬校验。
+
+### 下一步 (验证驱动, 单次跑机)
+1. delta 固定为 0 (删掉 g_linear_map_delta 枚举路径)。
+2. mm 泄露加硬校验: (mm_va & ~PAGE_OFFSET) 必须 < 8GB, 否则视为假阳性重扫。
+3. 跑机验证: 若 walk_touched=1 且 CFI step=4 通过, 即确认整套模型。
+
 ## 仓库 (2026-09-14)
 
 - 代码仓库: https://github.com/ccp-p/ghostlock-cve-2026-43499-4.19-k40
