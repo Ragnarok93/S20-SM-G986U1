@@ -235,6 +235,33 @@ adb exec-out screencap -p > build\k40_ui.png     # 保存后用 view_image 工�
 (wait_lock word + fake_task pi 区域), 打进日志: 内容非预期 (wait_lock!=0) 即
 页被回收/改写 -> 修页保活/每 attempt 重建; 内容正确则再查 bitmap 重写窗口
 (punch 应只打在 pselect 返回后的间隙, 或停止 route 循环重跑 pselect)。
+
+## 2026-09-13/14 delta 候选盲扫进度 (机制修正 + 扫描状态)
+
+**机制修正 (重要)**: 之前"delta 只影响劫持后校准"的说法是错的。delta 直接决定
+假 waiter pi_tree_entry 的 right = data_addr(ASHMEM_MISC_FOPS) 是否指向真实
+ashmem fops; 而 4.19 的劫持写入就发生在 walk 的 rb 操作里
+(rt_mutex_dequeue_pi 沿假节点遍历时把内核指针写进 fops 表)。
+**delta 错 = walk 踩进野地址/循环遍历 = 自旋拖死; delta 对 = 写入落位 = 劫持**。
+二者是同一件事, 盲扫 8 个候选是唯一路径, 已排除 5 个, 剩 3 个。
+
+扫描结果 (shell 域直跑, 每轮: 清 answer/cache -> 设 ks_delta_index ->
+LD_PRELOAD one-shot -> 60s 窗口回填 -> 盯 punch):
+- 候选 0 (17:2x) / 1 (19:16) / 2 (19:41, 旧二进制): punch 卡死
+- 候选 3 (23:09, D8D10160+subagent 22:28 重建 202088B): mm 命中与 PC 端一致
+  (ffffffd1628c7bc0), delta 3 生效, punch 触发后自旋 (load 39), adb reboot 止损
+- 候选 4 (07:36): mm 命中 (ffffffc31a5f7bc0), delta 4 生效, punch 触发后自旋
+  (load 44), 重启止损
+- **剩余候选: 5/6/7**。成功判定: `pselect returned ... walk_touched=1` ->
+  try_cfi_stage step=4 -> uid=0(root)。
+- 注意: /data/local/tmp 会被重启清掉, 每轮跑前确认 preload_wakefix.so 存在。
+
+## 仓库 (2026-09-14)
+
+- 代码仓库: https://github.com/ccp-p/ghostlock-cve-2026-43499-4.19-k40
+  (main=3e1d6db, 含全部修复+AGENTS.md; yijiacloud 上游无推送权限, 本地
+  partial clone 缺对象不能直推, 用完整克隆+fetch 本地提交的方式推送)。
+- 部署仓库: ccp-p/myroot (Pages), so ?v=7 / D8D10160 系已上线。
 - 20:53 shell 域直跑 (LD_PRELOAD=/data/local/tmp/preload_wakefix.so, 参照
   yijiacloud README 用法, 无需 Firefox): uid=2000 u:r:shell:s0 Seccomp=0,
   mm 泄露/采纳照常, **consumer punch enter 首次出现** (untrusted_app 域从未
