@@ -311,3 +311,13 @@ PAGE_OFFSET 为编译期常量 (memory.h:62), PHYS_OFFSET=0x80000000 固定。
   剩余唯一卡点是 punch 内部 PI walk 在 4.19 假节点上死循环 — 与域无关,
   是假节点字段内容问题 (等 4.19 vs 6.6 walk 语义分析结论)。注意: 20:53 这轮
   忘了清 ks_mm_answer.txt, 采纳的是 20:33 的旧 mm (碰巧同值), 下轮必须清。
+
+## 2026-09-14 08:4x 最新状态 (delta=0 修复已落地)
+
+- src/util.c select_linear_map_delta 重写: delta 强制 0 (4.19 无线性随机化) +
+  mm 偏移 >=8GB 硬拒绝 (假阳性过滤)。编译产物 preload.so 202072B (08:39)。
+- 代码仓 ccp-p/ghostlock-cve-2026-43499-4.19-k40 main=22fbaa9。
+- 部署: myroot Pages so/ghostlock_alioth_v13.so (版本化文件名, 规避 CDN
+  query 缓存), manifest 已 bump, push af186a0。
+- 待办: 一次跑机验证 (shell 域直跑, 回填时执行 mm 偏移校验, 期望
+  walk_touched=1 -> CFI step=4 -> root)。
