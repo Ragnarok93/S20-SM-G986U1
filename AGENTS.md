@@ -256,6 +256,22 @@ LD_PRELOAD one-shot -> 60s 窗口回填 -> 盯 punch):
   try_cfi_stage step=4 -> uid=0(root)。
 - 注意: /data/local/tmp 会被重启清掉, 每轮跑前确认 preload_wakefix.so 存在。
 
+## 2026-09-14 08:0x 离线验证: 8 候选枚举被证伪 (盲扫终止的原因找到)
+
+用已有实跑日志做离线验证 (mm_va 为设备端扫描实测值, 非猜测):
+mm_va - PAGE_OFFSET 跨轮变化: 128GB / 160GB / 160GB / 74GB / 12.6GB。
+mm 物理地址只能落在 8GB RAM 内 => memstart_addr 随机化范围 >= 160GB,
+而 delta 候选枚举只覆盖 8GB 窗口 (1GB 步进 x 8)。
+**结论: 真 delta 几乎从不在候选列表里, 5 次盲扫失败是必然, 不是运气。**
+
+### 验证驱动的新方案 (替代盲扫)
+1. 离线: 从 alioth 内核镜像反汇编读 linear region 大小常量 (vmalloc/linear
+   边界为编译期常量), 确定 memstart 真实枚举范围。
+2. 单次跑机内验证 delta: KernelSnitch 的 futex 哈希桶碰撞探测是纯计时侧信道
+   (已验证安全, 与 walk 无关), 对每个 delta 假设 data_va_k 预先构造用户侧
+   碰撞 futex, punch 前逐假设探测 -> 命中的 delta 即真值, 一次跑机测完, 零重启。
+3. 仅探测命中的 delta 才进 walk。walk 从"测试手段"变成"验证过的执行"。
+
 ## 仓库 (2026-09-14)
 
 - 代码仓库: https://github.com/ccp-p/ghostlock-cve-2026-43499-4.19-k40
