@@ -730,3 +730,46 @@ paths are not invoked.
 - Static checks: all required `H1A-S2` markers are present; the binary has no
   `pselect`/active-CFI strings. `cfi=disabled` is the required header marker.
 - No device command was issued and no device run is approved.
+
+### 2026-09-16 H1A-S2 QA offline fix and rebuild
+
+QA found and fixed four offline issues in the first S2 implementation. The
+superseded artifact above is not a valid S2 build manifest result.
+
+- Added a one-way `s2_requeue_complete` latch. The main thread now issues
+  `FUTEX_CMP_REQUEUE_PI`, stores the result, and only then sets `s2_go`.
+  The victim cannot proceed to the sendmsg carrier before requeue returns.
+- Corrected W0 evidence: lock-tree reads `W0+0x00..0x10`; PI-tree reads
+  `W0+0x18..0x28`. The old code read the PI-tree slot twice.
+- Hardened carrier validation to require `msg_name == name`, the exact
+  32-byte name payload, the exact iov shape, and the exact total length
+  `0x10005`. The check is `noinline` because r26b/clang -O2 inlining
+  constant-folded it to failure and dead-stripped the sendmsg path.
+- Aligned `SKB_FRAG_BIAS` handling across prepare, S2 payload contract, and
+  readback. S2 pages are emitted only when a complete biased order-3 chunk
+  fits.
+- Added `src/slide_s2.c` to the common preload build and H1A rsp; the prior
+  build recipe omitted it, leaving `slide_h1a_s2_test` undefined. The S2
+  entry still exits before the normal fops/CFI/root/full-chain path.
+
+Final offline artifact:
+
+```text
+build/alioth/bin/preload_slide_h1a_s2.so
+size=206384
+sha256=015F6230145362F55BEB0FA3952917111BA0CA7C2386C8D7AFFD84C8C4ECC90C
+```
+
+NDK r26b API 34 static checks pass:
+
+- ELF: shared object, AArch64.
+- Required symbol: `slide_h1a_s2_test`.
+- Required markers: header/page/tcp/gate/armed/sendmsg returned/punch
+  enter/first/done/readback/evidence/watchdog are present.
+- `active-CFI=0` and `uid_after=0=0`. Other fops/full-chain strings are only
+  residual linked code and remain unreachable behind the early
+  `KS_H1A_S2_TEST` exit.
+- Build warning remains the pre-existing unused `ks` in
+  `kernelsnitch.h`; no S2 warning was introduced.
+
+No adb/device command was issued and no device run is approved.

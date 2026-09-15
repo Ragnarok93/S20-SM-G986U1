@@ -22,6 +22,7 @@ CORE_SRCS := \
   $(call pick_src,main.c) \
   $(call pick_src,util.c) \
   $(call pick_src,slide.c) \
+  src/slide_s2.c \
   $(call pick_src,fops.c) \
   $(call pick_src,pipe.c) \
   src/root.c

