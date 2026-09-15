@@ -201,3 +201,21 @@ device responsiveness. Do not delete or edit the local saved log.
 The first action after recovery is evidence review and offline diagnosis.
 There is no automatic second S2 attempt and no escalation to any downstream
 kernel stage.
+
+## Linker startup blocker
+
+The real S2 binary is currently blocked before exploit execution by a
+linker-startup crash. Current evidence is process return code `139`,
+`SEGV_ACCERR`, logcat fault address `0x769aee9000`, PC at offset `0x1000` in
+the `.so`, and entry point `0x0`. This signature means the observed S2 launch
+did not produce usable evidence about the S2 chain.
+
+Before scheduling another real S2 device attempt, first build and run a
+minimal linker-startup hello DSO through `/system/bin/linker64`. That probe
+must print its expected nonempty marker to the captured log and exit with
+`rc=0`. If it fails, fix only the packaging/linker startup path offline and
+repeat the hello probe on a new boot.
+
+Do not retry the real S2 probe until the minimal hello DSO passes cleanly.
+The hello probe is also one attempt per boot; a failed hello probe requires
+evidence capture and reboot before any further device action.
