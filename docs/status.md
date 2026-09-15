@@ -774,6 +774,28 @@ NDK r26b API 34 static checks pass:
 
 No adb/device command was issued and no device run is approved.
 
+### 2026-09-16 H1A-S2 single-shot run plan
+
+Offline run/safety plan added as
+`docs/specs/h1a-s2-run-plan.md`. It defines the minimum-risk SOP for one
+future device attempt using the current S2 artifact:
+
+```text
+build/alioth/bin/preload_slide_h1a_s2.so
+size=181944
+sha256=63526FD7FE697A5F5C9A5254DBA44703701900B185EBCB47B7CD4A731AFEE606
+```
+
+The plan enforces a fresh boot, low load, fixed mode-666 log, atomic answer
+and binary push, device-side hash verification, `KS_H1A_S2_TEST=1` only,
+foreground launch, the 45-second watchdog, log preservation, exact evidence
+markers, and reboot after any FAIL or watchdog. It explicitly prohibits
+CFI, fops mutation, pipe-physrw, root, full-chain, retries, nonzero delta,
+and other H1A gates.
+
+This is still planning only. No device command was issued and no device run
+is approved by this update.
+
 ### 2026-09-16 H1A-S2 second QA re-audit and rebuild
 
 A deeper r26b static IR check found that the prior S2 build still lost the
