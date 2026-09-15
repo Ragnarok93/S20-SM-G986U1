@@ -670,3 +670,23 @@ run. New spec:
 - Verdict: design-only GO for a separate `KS_H1A_S2_TEST` implementation
   after static audit. NO-GO for device use, CFI, full chain, retries, or the
   original `fake_lock.waiters = SW` direct form.
+
+### 2026-09-16 sendmsg PI-shape adversarial audit
+
+Offline audit complete; see
+`docs/specs/sendmsg-pi-shape-adversarial-audit.md`. No device access, build,
+run, or exploit-code change.
+
+- Verdict: **PASS** for the exact terminal-root contract, with one contract
+  correction.
+- 4.19 source order, ELF compiled immediates, terminal-root rbtree operations,
+  non-NULL owner wake suppression, and fake-task scheduler early return are
+  consistent.
+- Correction: the chain reads `fake_task->dl.deadline` at `FT+0x420` before
+  `rt_mutex_setprio()` early-returns. This offset must be mapped and
+  initialized; zero is sufficient for the non-DL walk. The original claim that
+  no `task_struct.dl` offset is required is wrong.
+- The existing order-3 controlled page covers `payload_base+0x3620`, so this
+  does not change the PASS verdict.
+- All listed rbtree, owner, PI-pointer, scheduler-field, refcount, and
+  concurrency violations remain NO-GO crash/hang conditions.
