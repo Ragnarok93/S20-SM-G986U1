@@ -690,3 +690,28 @@ run, or exploit-code change.
   does not change the PASS verdict.
 - All listed rbtree, owner, PI-pointer, scheduler-field, refcount, and
   concurrency violations remain NO-GO crash/hang conditions.
+
+### 2026-09-16 H1A-S2 proxy-root adversarial audit
+
+Offline audit complete; see
+`docs/specs/h1a-s2-proxy-root-audit.md`. No device access, build, run, or
+exploit-code change.
+
+- Verdict: **PASS** for the exact W0 proxy-root sequence as an offline
+  contract. It is not approval for implementation testing, CFI, fops,
+  pipe-physrw, root, or the full chain.
+- FL starts with W0 as a terminal black lock root. The SW lock-tree dequeue is
+  a detached childless red-node erase that clears FL's W0 root as a side
+  effect; SW then becomes the sole black root. This is bounded only because
+  `FL.wait_lock` is held and no tree read occurs between erase and enqueue.
+- SW's three zeroed words are safe for both rb entries in this exact order:
+  zero is not `RB_EMPTY_NODE()` when SW is nonzero, and SW's PI fields remain
+  untouched until after W0 is cleared from FT's PI tree.
+- The PI tree performs a normal W0 terminal-root erase, then inserts SW as
+  FT's sole PI root. W0 becomes the required `RB_CLEAR_NODE()` self shape.
+- Contract correction: the S2 payload contract must explicitly include
+  `FT+0x420` (`dl.deadline`), initialized; zero is sufficient on the non-DL
+  early-return path.
+- The terminal-root audit remains compatible only with the detached-SW erase
+  caveat above and with `FT.pi_blocked_on = NULL`; using W0 as a second
+  `pi_blocked_on` is outside the audit envelope.
