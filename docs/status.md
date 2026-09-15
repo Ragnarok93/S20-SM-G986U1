@@ -774,6 +774,54 @@ NDK r26b API 34 static checks pass:
 
 No adb/device command was issued and no device run is approved.
 
+### 2026-09-16 H1A-S2 isolated source-set relink
+
+The checked-in S2 artifact had drifted away from its documented offline
+source boundary: dynamic inspection showed `fake_fops` and utility state in
+the image while `run_exploit`, `memfd_leak`, main-route/punch state, and
+other full-chain globals remained unresolved. That mixture made the preload
+fail dynamic loading with `cannot locate symbol "memfd_leak"`.
+
+The S2 source set is now fixed and explicit:
+
+```text
+src/s2_main.c
+src/slide_s2.c
+src/util.c
+src/s2_support.c
+```
+
+`src/s2_support.c` only defines the isolated `memfd_leak`, `kaslr_base`,
+and `kaslr_done` state required by `util.c`; it does not link `preload.c`,
+`fops.c`, `root.c`, `pipe.c`, `main.c`, or `run_exploit()`. The isolated
+`s2_main.c` gate remains the only entry point and still requires
+`KS_H1A_S2_TEST=1`.
+
+Added `build_s2.rsp` and a Makefile `s2` target pinned to NDK r26b API 34.
+The linker script exports only `main`; `slide_h1a_s2_test` stays local.
+Rebuilt with NDK r26b `aarch64-linux-android34-clang.cmd`.
+
+New offline artifact:
+
+```text
+build/alioth/bin/preload_slide_h1a_s2.so
+size=71832
+sha256=B12FB37D7BBD7C5E218A36C4B65D54188AB43CEF0ECC871EB019B717780E2A06
+```
+
+Verification with `llvm-nm -D --undefined-only` reports no non-libc
+undefined symbols. `llvm-readelf -Ws` shows dynamic `sendmsg`, local
+`slide_h1a_s2_test`, and no `run_exploit` or `pselect` reference. The
+binary retains the S2 gate, page/TCP preparation, armed sendmsg, punch,
+readback, evidence, and watchdog markers; it contains no
+`active-CFI=1`, `uid_after=0=1`, `fops hijack`, `full-chain`, or
+`KS_H1A_TEST=1` marker. The only build warning is the pre-existing unused
+`ks` in `kernelsnitch.h`.
+
+This supersedes the prior S2 artifact hash for any future explicitly
+approved single-shot plan. No adb/device command was issued and no device
+run is approved by this update.
+
 ### 2026-09-16 H1A-S2 final audit and rebuild
 
 The final offline audit found four blocking defects in the prior S2

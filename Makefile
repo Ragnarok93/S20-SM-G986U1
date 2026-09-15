@@ -27,6 +27,12 @@ CORE_SRCS := \
   $(call pick_src,pipe.c) \
   src/root.c
 PRELOAD_SRCS := $(CORE_SRCS) src/preload.c src/su_blob.S src/wallpaper_blob.S
+S2_SRCS := src/s2_main.c src/slide_s2.c src/util.c src/s2_support.c
+S2_OUTDIR := build/alioth/bin
+S2_PRELOAD := $(S2_OUTDIR)/preload_slide_h1a_s2.so
+S2_EXPORT_MAP := src/s2_export.map
+S2_NDK_ROOT ?= D:/codeTool/ndk/android-ndk-r26b/toolchains/llvm/prebuilt/windows-x86_64
+S2_CC ?= $(S2_NDK_ROOT)/bin/aarch64-linux-android34-clang.cmd
 
 .DEFAULT_GOAL := preload
 
@@ -84,13 +90,18 @@ SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
 TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
 
-.PHONY: all preload clean info list-projects
+.PHONY: all preload s2 clean info list-projects
 
 all: preload
 
 preload: $(PRELOAD)
 
+s2: $(S2_PRELOAD)
+
 $(OUTDIR):
+	mkdir -p $@
+
+$(S2_OUTDIR):
 	mkdir -p $@
 
 $(EMBEDDIR):
@@ -105,6 +116,10 @@ $(PRELOAD): $(PRELOAD_SRCS) $(EMBED_SU) $(WALLPAPER) $(TARGET_HEADER) src/offset
 	  $(PRELOAD_SRCS) $(TARGET_COMMON_LDFLAGS) \
 	  -shared -o $@ -pthread
 	sha256sum $@
+
+$(S2_PRELOAD): $(S2_SRCS) $(S2_EXPORT_MAP) build_s2.rsp $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h | $(S2_OUTDIR)
+	cmd /c "$(S2_CC) @build_s2.rsp"
+	certutil -hashfile $@ SHA256
 
 info:
 	@echo "PROJECT=$(PROJECT)"
