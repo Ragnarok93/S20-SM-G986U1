@@ -454,3 +454,15 @@ Milestones:
 Next: offline core_sys_select frame-layout math against
 materials/kernelsrc/sm8250-a13-stable (nfds=320 stack_fds path), then one
 more single-shot H1A-D with corrected offsets.
+
+### 2026-09-15 slide/H1A independent evidence audit
+
+Completed an independent evidence-only audit (no device action, no exploit
+code change, no new conclusions beyond cited logs/docs). Produced
+`docs/specs/slide-evidence-matrix.md` with CONFIRMED / CONTRADICTED /
+INSUFFICIENT verdicts covering current reproducible failure modes, success
+markers, fd-protect effect, residual process hygiene, placement/model
+findings, and the current blocking question. Key audit confirmations:
+fd-protect fix works; mm answer and collision stages are not the blocker;
+stale-waiter/fake-page linkage remains the open blocker; slide pselect
+route is not disproven (EDEADLK gate passed and punch reached PI walk).
