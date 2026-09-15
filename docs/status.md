@@ -614,3 +614,31 @@ exploit-code change.
 - This supports only a bounded fake-task PI walk under the full
   waiter/task/lock contract. It does not validate CFI, pipe-physrw, root, or
   scheduler-specific fake-task fields.
+
+### 2026-09-16 sendmsg PI-shape design
+
+Offline design only; no device access, build, or exploit-code change.
+New contract: `docs/specs/sendmsg-pi-shape-design.md`.
+
+- Defines a bounded one-hop shape for the sendmsg 0x50 placement:
+  `victim.pi_blocked_on -> stale waiter -> fake_lock -> fake_task -> stop`.
+- Uses terminal-root rb nodes: the stale waiter is the sole node in both
+  `fake_lock.waiters` and `fake_task.pi_waiters`, so the walk's
+  dequeue/requeue operations stay inside the stale waiter and controlled page.
+- Requires `fake_lock.owner = fake_task|1` and `fake_task.pi_blocked_on = 0`,
+  preventing both the ownerless wake path and any longer owner/CFI chain.
+- Requires `fake_task.pi_top_task = fake_task`, `prio = normal_prio = 120`,
+  and `waiter.prio = 130`; `rt_mutex_setprio()` then early-returns before
+  touching scheduler internals.
+- Answers the `iov_base` question affirmatively for this shape: user-only
+  `iov_base` can encode terminal roots (`1`, null children). It cannot encode
+  kernel-range rb parents/children or `RB_EMPTY_NODE()` self-pointers, so any
+  multi-node tree design remains NO-GO with sendmsg alone.
+- Cleanup invariant: after one walk, `waiter.prio` becomes the victim's current
+  prio, so a later same-priority `rt_mutex_adjust_pi()` returns without
+  dereferencing the fake lock. No victim priority change is allowed after the
+  punch.
+
+This is still a design/contract only. It does not validate the frame on device,
+does not approve CFI, pipe-physrw, root, or any full-chain run, and requires the
+static gates in the spec before implementation or testing.
