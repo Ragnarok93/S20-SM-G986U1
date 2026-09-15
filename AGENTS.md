@@ -39,9 +39,24 @@ cmd /c "D:\project\my_py_project\ghostlock-cve-2026-43499-4.19-k40\ghostlock-app
 
 All external reference material (kernel source trees, ROM trees, rootfs
 dumps) lives under `materials/` (git-ignored; may be a junction to the real
-tree elsewhere on disk). When the user provides a source, place it there and
-record its provenance in `docs/adr/0004-material-source-locations.md` so no
-one has to ask for the location twice. Current entries:
+tree elsewhere on disk). Do not put source trees under `kernelsrc/`.
+
+Before requesting source material, check ADR-0004. If the material is already
+registered, use that path. If it is missing, request it with an explicit target
+path and kind (kernel tree / ROM tree / rootfs dump / other artifact). When the
+user provides it, the receiving agent places it under the conventional
+`materials/` path below, verifies that the checkout is complete enough for the
+claim being audited, records provenance in
+`docs/adr/0004-material-source-locations.md`, then updates the task record.
+
+Conventional paths:
+
+- Kernel trees: `materials/kernelsrc/<vendor>-<soc>-<android>-<variant>`.
+- ROM / boot images: `materials/rom/<device>-<build>`.
+- Rootfs / userspace dumps: `materials/rootfs/<device>-<build>`.
+- Other external artifacts: `materials/external/<name>`.
+
+Current entries:
 
 - Kernel source for alioth (Xiaomi SM8250, 4.19.157):
   `materials/kernelsrc/sm8250-a13-stable` (junction to

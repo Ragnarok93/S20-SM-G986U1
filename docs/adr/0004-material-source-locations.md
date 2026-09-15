@@ -18,6 +18,21 @@ agent had to ask the user where the source lives.
    this ADR before using it. This file is the single registry.
 3. Kernel-code claims are verified against the registered tree only.
 
+## Layout And Intake
+
+Use stable material paths so agents do not need to rediscover locations:
+
+| Kind | Path |
+|---|---|
+| Kernel tree | `materials/kernelsrc/<vendor>-<soc>-<android>-<variant>` |
+| ROM / boot images | `materials/rom/<device>-<build>` |
+| Rootfs / userspace dump | `materials/rootfs/<device>-<build>` |
+| Other external artifact | `materials/external/<name>` |
+
+Intake flow: check this registry first; if absent, state the required material
+kind and proposed target path to the user; after delivery, place it at the
+proposed path, verify the tree/artifact is usable, and append a registry row.
+
 ## Registry
 
 | Material | Path | Provenance | Fit |
