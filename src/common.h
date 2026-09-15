@@ -387,6 +387,7 @@ uintptr_t canon_addr(uintptr_t image_addr);
 void put64(unsigned char *p, size_t off, uint64_t value);
 void put32(unsigned char *p, size_t off, uint32_t value);
 void put_fake_fops_table(unsigned char *p, size_t off);
+void ks_leak_diff_dump(void);
 int try_put_blob_no_zeros(int fd, const unsigned char *blob, size_t len);
 int try_put_blob_zero_at(int fd, const unsigned char *blob, size_t pos);
 int try_set_ashmem_name_blob(int fd, const unsigned char *blob, size_t len);

@@ -786,6 +786,8 @@ int slide_h1a_punch_test(void) {
   pthread_join(consumer, NULL);
   slide_h1a_finish_watchdog(watchdog_pid, watchdog_pipe);
 
+  ks_leak_diff_dump();
+
   result = (atomic_load(&h1a_punch_calls) == 1 &&
             atomic_load(&h1a_punch_success) == 1) ? 0 : 3;
   pr_info("H1A %s calls=%d success=%d\n",

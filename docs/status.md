@@ -252,3 +252,140 @@ Offline fix and audit:
 - Artifact string checks pass for `consumer punch enter`, `pselect returned`,
   `main route done`, and `H1A punch returned`.
 - Device validation is still pending.
+
+### 2026-09-15 H1A run4 hash-model fit
+
+离线模型鉴别完成，未上机、未部署、未回填 answer。
+
+- 数据集：`build/ks_collisions_h1a_run4_pass.txt`，
+  16 个 accepted collision 地址。
+- 工具：新增 `tools/pc_model_fit.c`，
+  可执行文件 `build/pc_model_fit.exe`。
+- 扫描域：`0xffffffc000000000-0xffffffc200000000`，`step=8`，
+  `mask=0x7ff`，阈值 `>=14/16`。
+- 模型枚举：`jhash2`/`jhash`/`jhash3` × 4/5/6 words ×
+  `addr_mm`/`mm_addr` × `page`/`raw` ×
+  `offset`/`0`/`0xdeadbeef`/固定 initval，共 144 个变体。
+- 结果：16 地址全集、去掉 pile1 target 的 15 地址子集、
+  仅双 pile 交集的 14 地址子集，全变体均为 0 命中。
+- `0xffffffc1b1cfb840` 在上述模型下对 run4 地址不再形成集中桶；
+  精确模型 `jhash2-4w-mm_addr-page-init_offset` 也是
+  16 个独立桶。
+- 反汇编复核修正了 ADR-0001：private futex key 实际是
+  `mm@0/address@8`，不是 `address@0/mm@8`。
+
+证据目录：`build/model_fit_20260915/`。
+关键文件：`scan_summary_16.txt`、
+`scan_summary_15_excl_target.txt`、
+`scan_summary_14_intersection.txt`、
+`historical_mm_16.tsv`、
+`kernel_futex_wake.dis`、
+`kernel_get_futex_key.dis`。
+
+### 2026-09-15 H1A fd-protect device round
+
+Result: FAIL (single attempt only).
+
+The fd-protect artifact was rebuilt, rebooted, pushed, and hash-verified as
+`5551CA81683AD28DE7932FA9308C5AC75E9D71E50B3BF3EF832F9BED0949AD00`.
+`KS_H1A_TEST=1` was triggered once and stopped after the observation window;
+the process exited with `rc=137` after being killed.
+
+The log reached startup and the H1A route, then stayed in the collision
+search. It did not record `H1A punch enter`, `H1A punch returned`, or
+`H1A success calls=1 success=1`.
+
+Preserved evidence:
+
+```text
+build/ks_log_h1a_fdprotect_run1.txt
+```
+
+### 2026-09-15 H1A diff probe (runs 5-9): chain never enters the fake page
+
+NDK r26b (API 34) builds; device verified by sha256 each round.
+
+- run5: discovered `KS_H1A_TEST` did not skip the mm phase; the run sat in the
+  full 8 GB kernelsnitch scan. One incident: an earlier run left ~1400 `id`
+  clone children; all were killed, device stayed online. Root causes fixed:
+  `prepare_kernel_page` now preloads a plausible `ks_mm_answer.txt` value as
+  `cached_leaked_mm` (after `detect_memory()`, which previously rejected the
+  answer because `g_ram_bytes` was still 0), and the skipped-spray memfds are
+  set to `-1` before the close loops (calloc zeros hit closed stdio fds and
+  tripped `SYSCHK(close)` EBADF abort).
+- run9 (`build/ks_log_h1a_leakprobe_run9_diff.txt`, pid 19375): end-to-end in
+  ~8 s at load ~1.5. `KS_PC answer preloaded mm=ffffffc1b1cfb840`, page
+  prepared at `ffffffc1b1cf8000` (lock ...9350, w0 ...a220, fops ...9000),
+  `H1A punch enter -> first ret=0 -> done -> returned ret=86 calls=1
+  success=1`, then `ks_leak_diff_dump()` compared every qword of all 4 SKB
+  readbacks (32448 bytes each) against `skb_buf`: `diffs=0` on all four.
+
+Conclusion (replaces the run3 "window/timing" hypothesis): the PI chain does
+not write anywhere in the controlled page on alioth. `walk_touched=0` is not a
+readback-window artifact. Leading hypothesis: the stale pselect rt_waiter is
+not landing in the groomed page on this kernel (SLUB cache/order or
+`SKB_DATA_DELTA` layout mismatch), so the walk dereferences real heap memory.
+Do NOT run the full chain until the stale-waiter placement is verified offline
+or with a safe probe (the full chain rebooted on this exact symptom).
+
+Preserved evidence:
+
+```text
+build/ks_log_h1a_leakprobe_run5_diff_only.txt
+build/ks_log_h1a_leakprobe_run6_preload_pc.txt
+build/ks_log_h1a_leakprobe_run7_pc_fixed.txt
+build/ks_log_h1a_leakprobe_run8_fdguard.txt
+build/ks_log_h1a_leakprobe_run9_diff.txt
+```
+
+### 2026-09-15 fd-protect validation and full-chain reboot
+
+Result: fd-protect PASS; full-chain FAIL (device reboot).
+
+Two clean observations closed the earlier ambiguity:
+
+- The second low-load `KS_H1A_TEST=1` round stayed in the collision search
+  longer than the first observation window, then reached the 44 GB device scan
+  because no mm answer was supplied. This confirmed that the first `rc=137`
+  round was an insufficient observation window rather than a startup failure.
+- The third low-load punch-only round with the M5 answer accepted
+  `mm=ffffffc1b1cfb840`, completed both piles, and reached the previously
+  missing chain:
+  `H1A punch enter -> H1A punch done -> H1A punch returned -> H1A success
+  calls=1 success=1`. This validates the fd-protect fix.
+
+The first full-chain attempt with the same artifact also accepted the mm
+answer and entered `consumer punch`. It then showed:
+
+```text
+punch completion wait timeout calls=1 inflight=1
+consumer punch first ret=0 errno=0
+consumer punch done tid=24770 ret=0 errno=0
+KS_LEAK skb[*] prio=0x00000082 orig=0x00000082 same
+pselect returned attempt=1 ret=86 calls=1 success=1 walk_touched=0 leak=00000000
+pselect walk probe miss attempt=1/24; refusing cfi probe
+```
+
+The device rebooted immediately after this point (`uptime 0 min`). Therefore
+fd protection is no longer the cause of the missing punch logs, but the
+full-chain walk/CFI stage remains unsafe or semantically wrong. No further
+device retry should be made until the `walk_touched=0` reboot is audited
+offline.
+
+Offline next step: `src/slide.c` now has a test-only H1A readback probe after
+the punch watchdog finishes. It calls `ks_leak_readback()` and logs
+`H1A leak=... walk_touched=...`, so the next clean H1A round can distinguish
+"punch returned" from "the PI chain actually touched the fake page". The local
+host lacks `make` and an Android NDK toolchain, so this probe is source-only
+and has not been rebuilt or deployed.
+
+Preserved evidence:
+
+```text
+build/ks_log_h1a_fdprotect_run2.txt
+build/ks_log_h1a_fdprotect_run3.txt
+build/ks_log_fullchain_m5_fdprotect_run1.txt
+build/ks_collisions_fullchain_m5_fdprotect_run1.txt
+build/ks_cache_fullchain_m5_fdprotect_run1.txt
+build/ks_mm_answer_fullchain_m5_fdprotect_run1.txt
+```
