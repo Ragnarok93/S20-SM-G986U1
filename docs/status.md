@@ -455,6 +455,18 @@ Next: offline core_sys_select frame-layout math against
 materials/kernelsrc/sm8250-a13-stable (nfds=320 stack_fds path), then one
 more single-shot H1A-D with corrected offsets.
 
+### 2026-09-15 pselect word-0 fallback audit
+
+- Verdict: **NO-GO**; crash risk **HIGH**. See
+  `docs/specs/pselect-word0-fallback-audit.md`.
+- In the alioth frame, `res_in` word 0 lands at waiter offset `+0x00`
+  (`tree_entry.__rb_parent_color`), not `waiter->lock` at `+0x38`
+  (`res_out` word 2). The ELF confirms both mappings.
+- A word-0-only shape leaves `waiter->lock=NULL`; `sched_setattr` ->
+  `rt_mutex_adjust_pi()` -> `rt_mutex_adjust_prio_chain()` would dereference
+  NULL in `raw_spin_trylock(&lock->wait_lock)`.
+- This is offline-only. No device run and no exploit-code change were made.
+
 ### 2026-09-15 slide/H1A independent evidence audit
 
 Completed an independent evidence-only audit (no device action, no exploit
@@ -466,3 +478,20 @@ findings, and the current blocking question. Key audit confirmations:
 fd-protect fix works; mm answer and collision stages are not the blocker;
 stale-waiter/fake-page linkage remains the open blocker; slide pselect
 route is not disproven (EDEADLK gate passed and punch reached PI walk).
+
+### 2026-09-15 sendmsg-family replacement audit: NO-GO
+
+Offline ELF/source audit of native blocking `sendmsg`, `sendmmsg`, and
+`recvmmsg` is complete in `docs/specs/sendmsg-frame-audit.md`; no device
+action and no exploit-code change.
+
+- `sendmsg.address` is at `T-0x168` and covers only the upper `0x20`
+  bytes of the `T-0x198..T-0x148` waiter window.
+- `sendmmsg.address` is at `T-0x238`, entirely below the window;
+  `used_address` is above it.
+- `recvmmsg.addr` is at `T-0x2c8` and is written by the protocol, not raw
+  copied from user.
+- The maximum continuous user-controlled coverage is `0x20`, not the
+  required `0x50`; control bytes are not contiguous.
+
+**Verdict: NO-GO. Do not implement a sendmsg-family replacement encoder.**
