@@ -11,8 +11,8 @@ No device command was issued while creating this plan.
 
 ```text
 build/alioth/bin/preload_slide_h1a_s2.so
-size=201648
-sha256=1CB81B113442415246F34C0D6106F0A844117B55364944103857AD74FF043605
+size=71832
+sha256=B12FB37D7BBD7C5E218A36C4B65D54188AB43CEF0ECC871EB019B717780E2A06
 ```
 
 The current artifact is the final-audit S2 build described in
@@ -97,9 +97,9 @@ Stop unless:
 
 - The answer is exactly `22` bytes, ends with LF, and contains
   `mm=0xffffffc1b1cfb840`.
-- The device file size is `201648`.
+- The device file size is `71832`.
 - The device SHA256 is
-  `1cb81b113442415246f34c0d6106f0a844117b55364944103857ad74ff043605`.
+  `b12fb37d7bbd7c5e218a36c4b65d54188ab43cef0ecc871eb019b717780e2a06`.
 
 ## Environment and launch
 

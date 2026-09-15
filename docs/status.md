@@ -822,6 +822,12 @@ This supersedes the prior S2 artifact hash for any future explicitly
 approved single-shot plan. No adb/device command was issued and no device
 run is approved by this update.
 
+The first S2 launch attempt reached only the Android dynamic loader and
+failed with `cannot locate symbol "memfd_leak"`. It never opened the page,
+created the futex state, armed sendmsg, or issued `sched_setattr`; therefore
+it is classified as a link-fail/setup failure, not a kernel-state-changing
+device round.
+
 ### 2026-09-16 H1A-S2 final audit and rebuild
 
 The final offline audit found four blocking defects in the prior S2
