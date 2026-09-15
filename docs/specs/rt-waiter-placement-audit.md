@@ -313,3 +313,124 @@ bitmap. H1A `diffs=0` says the intended fake-page walk did not happen. The mm
 source now establishes the likely stride mismatch: `0x388` is only the logical
 struct size, while `0x3c0` is the expected SLUB stride and yields 34 objects
 per order-3 slab.
+
+## alioth punch-frame layout math
+
+Date: 2026-09-15 (post H1A-D spin audit). Scope: native arm64 pselect6,
+materials tree `sm8250-a13-stable` (4.19.157), `build/.config`.
+
+### Frame derivation
+
+- `CONFIG_ARM64_PAGE_SHIFT=12`; `CONFIG_VMAP_STACK=y`; no KASAN. With
+  `MIN_THREAD_SHIFT=14`, `THREAD_SHIFT=14`, so `THREAD_SIZE=0x4000`. The same
+  kernel-stack top `T` applies to each native syscall entered by the victim
+  thread.
+- Native `do_pselect6()` calls `core_sys_select()`
+  (`materials/kernelsrc/sm8250-a13-stable/fs/select.c:727`, `:597`).
+- For nfds 257..320, `FDS_BYTES(n)=5*8=40`. `SELECT_STACK_ALLOC` is
+  `FRONTEND_STACK_ALLOC=256`
+  (`materials/kernelsrc/sm8250-a13-stable/include/linux/poll.h:17-22`), so
+  `6*40=240 <= 256` and the stack path is selected.
+- `core_sys_select()` orders the six 40-byte regions exactly as
+  `in|out|ex|res_in|res_out|res_ex`
+  (`materials/kernelsrc/sm8250-a13-stable/fs/select.c:640-646`).
+- The disassembly evidence remains: `core_sys_select` stack_fds base is
+  `T-0x210`; the earlier `futex_wait_requeue_pi` stale rt_waiter is
+  `T-0x198`. No corrected hex offsets are required.
+
+```text
+region   T-relative             buffer offset
+in       T-0x210 .. T-0x1e9     stack_fds +   0.. 39
+out      T-0x1e8 .. T-0x1c1     stack_fds +  40.. 79
+ex       T-0x1c0 .. T-0x199     stack_fds +  80..119
+res_in   T-0x198 .. T-0x171     stack_fds + 120..159
+res_out  T-0x170 .. T-0x149     stack_fds + 160..199
+res_ex   T-0x148 .. T-0x121     stack_fds + 200..239
+```
+
+The native 4.19 waiter layout is 0x50 bytes
+(`materials/kernelsrc/sm8250-a13-stable/kernel/locking/rtmutex_common.h:27-45`):
+
+```text
+waiter field      waiter offset   T-relative       pselect region
+tree_entry.pc     +0x00           T-0x198          res_in word 0
+tree_entry.right  +0x08           T-0x190          res_in word 1
+tree_entry.left   +0x10           T-0x188          res_in word 2
+pi_entry.pc       +0x18           T-0x180          res_in word 3
+pi_entry.right    +0x20           T-0x178          res_in word 4
+pi_entry.left     +0x28           T-0x170          res_out word 0
+task              +0x30           T-0x168          res_out word 1
+lock              +0x38           T-0x160          res_out word 2
+prio              +0x40           T-0x158          res_out word 3
+deadline          +0x48           T-0x150          res_out word 4
+```
+
+Thus the assumed `T-0x198` stale waiter is exactly the first byte of
+`res_in`, and all 0x50 bytes exactly span `res_in + res_out`. The v12
+field-to-region mapping in `src/slide.c:107-176` is byte-for-byte correct.
+
+### Why the v12 encoder still cannot shape this waiter
+
+The encoder assumed that every desired readiness output bit is written.
+`do_select()` proves otherwise
+(`materials/kernelsrc/sm8250-a13-stable/fs/select.c:451-578`):
+
+1. It scans words in increasing order.
+2. `res_in`, `res_out`, and `res_ex` words are only written at the end of the
+   current 64-fd word.
+3. If any ready fd was found in that word, `retval > 0`; immediately after the
+   current word the outer loop executes `if (retval || ...) break;`.
+
+Consequence: after the first word containing a ready bit, words 1..4 are never
+polled or written. The v12 desired `res_in` word 0 is `1`, so the walk can at
+most encode `tree_entry.pc=1`. `tree_entry.rb_right/left`, both pi-node
+nonzero fields, `task`, and especially `lock` remain at the values left by
+`zero_fd_set()` (zero). A punch after that pass therefore reads
+`waiter->lock=NULL` and does not run the carefully planned fake-page chain.
+This is the single most likely reason the H1A-D PI walk spins/faults.
+
+A secondary encoder inconsistency is fd 0..2: `open_slide_selected_fds()`
+initially maps those fds by their encoded types, but then restores the original
+stdio fds over them (`src/slide.c:207-232`). Their readiness is therefore not
+the encoded bit pattern. This alone makes the intended word-0 output
+unreliable even before considering the early break.
+
+The upstream route is not a counterexample. Its shifted encoder writes the
+waiter into the three input-mask regions (`in/out/ex`), not the result regions
+(`D:\project\my_py_project\CVE-2026-43499-root-KernelSU\src\fops.c:87-179`).
+Those bytes are copied by `get_fd_set()` before polling, so the do_select
+early-break behavior does not prevent a full multi-word shape. Upstream targets
+have different frame deltas and do not use the alioth 4.19
+`res_in+res_out` placement. The alioth constants are frame-derived, not device
+magic; the missing piece is the 4.19 result-region write rule.
+
+### Possible corrected shaping and verdict
+
+The only mathematically feasible single-pass pselect shape using this exact
+frame is a one-word shape: keep every input word zero through word 1, encode
+the complete fake-lock pointer only in `out` word 2, and leave words 3..4 and
+all `in/ex` words zero. `do_select` then skips words 0..1 as `all_bits==0`,
+writes `res_out` word 2, and stops. The resulting waiter is:
+
+```text
+tree_entry.pc    = 0 (unlinked/red, parent NULL)
+tree_entry.rb_*  = 0
+pi_entry.pc      = 0
+pi_entry.rb_*    = 0
+task             = 0
+lock             = fake_lock
+prio/deadline    = 0
+```
+
+This shape reaches `waiter->lock=fake_lock`, and `task->prio != 0` still
+passes the initial `rt_mutex_waiter_equal()` check. The 4.19 rbtree operations
+are safe for a red parentless empty-child node, but the fake-page contract must
+also be re-audited for `task=0` and `rt_mutex_setprio(fake_task,NULL)` before
+any punch. Without that audit, this is not yet GO.
+
+**Verdict:** frame offsets `stack_fds=T-0x210` and stale waiter `T-0x198` are
+confirmed; no offset correction. The v12 encoder is fundamentally incompatible
+with 4.19 `do_select()` early break and the stdio-restore rule. Do not run the
+existing v12 H1A-D again. NO-GO for another single-shot punch until either the
+one-word encoder plus fake-page setprio contract is audited, or a syscall/frame
+that lets the stale waiter overlap copied input regions is identified.
