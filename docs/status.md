@@ -389,3 +389,34 @@ build/ks_collisions_fullchain_m5_fdprotect_run1.txt
 build/ks_cache_fullchain_m5_fdprotect_run1.txt
 build/ks_mm_answer_fullchain_m5_fdprotect_run1.txt
 ```
+
+### 2026-09-15 (later) H1A-W placement probe + stride fix: still diffs=0
+
+Materials convention: ADR-0004. Kernel source for citation checks is now
+`materials/kernelsrc/sm8250-a13-stable` (full 4.19.157 Xiaomi SM8250 tree).
+
+Offline verdict (Linnaeus, verified against the materials tree):
+- stale rt_waiter is the stack-local in `futex_wait_requeue_pi()`
+  (`materials/.../kernel/futex.c`; also `build/linux-4.19-futex.c:3105-3147`);
+  NOT an SLUB object. kmalloc-96/mm-page hypotheses are dead.
+- mm cache: request 0x388+8=0x390 (`fork.c:2595`, CONFIG_NR_CPUS=8), HWCACHE_ALIGN
+  to 64B -> stride 0x3c0 -> 34 objs/slab (not 36). 4K pages confirmed
+  (CONFIG_ARM64_PAGE_SHIFT=12), so ORDER3_SIZE=0x8000 stands.
+- device coherency_line_size sysfs is not exposed; 0x3c0 remains the standard
+  SM8250 expectation (A77/A55 64B L1).
+
+Device runs:
+- H1A-W run1 (`build/ks_log_h1a_w_run1.txt`): owner thread never set
+  `h1a_w_owner_chain_done` -> deadlock -> watchdog kill. Fixed; also the
+  pselect-enter wait now outlasts SLIDE_WAIT_SECONDS.
+- H1A-W run2 (`build/ks_log_h1a_w_run2.txt`): clean, no crash. Evidence:
+  kstkesp=0, /proc/stack EACCES, ptrace EPERM. Userspace cannot observe the
+  kernel-stack SP on this kernel -> verdict PLACEMENT-UNKNOWN by design.
+- H1A run10 with stride 34 (`build/ks_log_h1a_leakprobe_run10_stride34.txt`):
+  punch still calls=1 success=1, all 4 SKB diffs=0. Spray count is NOT the
+  blocker; consistent with the chain never being entered.
+
+Decisive open question (next): does THIS kernel's `futex_wait_requeue_pi()`
+timed path still leave the dangling rt_waiter / pi_blocked_on that the CVE
+premise needs, or was the cleanup fix backported (android13-4.19 base)? If the
+fix is present, the slide pselect route is a confirmed dead end on alioth.

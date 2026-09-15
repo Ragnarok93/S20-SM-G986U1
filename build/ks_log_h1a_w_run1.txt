@@ -1,0 +1,15 @@
+[+] exlog open path=/data/local/tmp/ks_log.txt pid=23863 uid=2000
+[+] preload starting pid=23863 log=/data/local/tmp/ks_log.txt
+[+] startup context pid=23863 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[+] startup limits pid=23863 NoNewPrivs=0 Seccomp=0 Seccomp_filters=?
+[+] build config pid=23863 label=alioth_4.19.157_perf_a13 slide=pselect main=pselect
+[+] p0 profile pid=23863 phys_offset=0000000080000000 kernel_phys_load=0000000080080000 delta=0000000000080000 slide_logger=ffffffc002e122e0 bootid_data=ffffffc002eb3f68 init_task=ffffffc002e1bfc0 root_tg=ffffffc0030c3d80 sysctl_bootid=ffffffc00335e2c4
+[*] H1A-W route: placement probe, no page preparation, no punch, no CFI/full chain
+[*] H1A-W watchdog started pid=23864 parent=23863 timeout_ms=60000
+[*] H1A-W requeue issued
+[-] H1A-W verdict=PROBE-DENIED reason=pselect-not-entered
+[*] H1A-W waiter futex_requeue_pi ret=-1 errno=110
+[*] H1A-W pselect enter nfds=320 timeout=10 blocked-pipe=1
+[*] H1A-W pselect returned ret=0 errno=0
+[-] H1A-W watchdog timeout parent=23863 status=stuck
+Killed 

