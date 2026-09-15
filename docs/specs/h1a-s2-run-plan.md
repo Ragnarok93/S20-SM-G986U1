@@ -219,3 +219,33 @@ repeat the hello probe on a new boot.
 Do not retry the real S2 probe until the minimal hello DSO passes cleanly.
 The hello probe is also one attempt per boot; a failed hello probe requires
 evidence capture and reboot before any further device action.
+
+## TCP blocking blocker
+
+**BLOCKED: do not schedule another real S2 device attempt.**
+
+Device H1A-S2 run 4, after the arm-ordering fix, failed with:
+
+```text
+H1A-S2 sendmsg returned ret=65540 errno=0
+S2 consumer sendmsg returned early armed=1 allowed=1 ret=65540 route_done=1
+H1A-S2 verdict=FAIL reason=punch-gate
+```
+
+The return value `65540` is exactly `0x10004`, the full carrier length.
+This is direct evidence that `sendmsg` completed the whole write instead of
+remaining blocked in the send path until the consumer's one-shot punch.
+Consequently, the existing fill plus `SIOCOUTQ` TCP gate does not guarantee
+blocking; a passing gate is not sufficient to preserve the sendmsg stack
+window through the punch.
+
+The failure was contained: the device stayed responsive and no panic was
+observed. Preserve this as evidence for the blocker, but do not retry the
+carrier on the same boot and do not advance to CFI, fops, root, or the full
+chain.
+
+Another real S2 attempt must wait for an offline, deterministic sendmsg
+blocking redesign. The redesigned gate must have a falsifiable contract that
+proves the victim's carrier is still blocked at the intended send path when
+the one-shot punch occurs. Until that design is reviewed and a new artifact is
+produced, this plan remains blocked.

@@ -980,3 +980,24 @@ entry=0xE7A4
 
 NDK r26b API 34 offline rebuild and marker checks pass. No adb/device
 command was issued and no device run is approved.
+
+### 2026-09-16 H1A-S2 run 4 TCP blocking failure
+
+Device H1A-S2 run 4, after the arm-ordering fix, failed at the blocking
+carrier semantics:
+
+```text
+H1A-S2 sendmsg returned ret=65540 errno=0
+S2 consumer sendmsg returned early armed=1 allowed=1 ret=65540 route_done=1
+H1A-S2 verdict=FAIL reason=punch-gate
+```
+
+`65540 = 0x10004` is the full carrier length, so `sendmsg` completed before
+the consumer could issue its one-shot punch. This proves that the current
+fill-plus-`SIOCOUTQ` TCP gate does not guarantee blocking and is not
+sufficient to preserve the sendmsg stack window through the punch.
+
+The round stayed contained: the device remained responsive and no panic was
+observed. S2 is now blocked pending an offline deterministic sendmsg blocking
+redesign. Do not schedule another real S2 attempt, carrier retry, CFI, fops,
+root, or full-chain run until that redesign is specified and reviewed.
