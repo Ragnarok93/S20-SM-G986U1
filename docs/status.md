@@ -125,3 +125,130 @@ waiter 前校验/记录 anchor id、范围、4 字节对齐和当前值
   测试载体。
 - 审计范围声明: 本线程仅审计；开发派发给独立 agent 会话，任务书
   `docs/specs/slide-h1a-dev-spec.md`；审计员复审通过前不排上机。
+
+### 2026-09-15 v15 QA 复核 / M2 重试就绪
+
+commit `d978b30` 的 EINVAL 修复已由 QA 离线复核通过：候选索引为 futex 字节
+偏移，pile2 锚点做范围/4 字节对齐/值校验，且 pile2 与 pile1 使用相同的
+`FUTEX_WAIT_PRIVATE, 0`。selfcheck 正向两个 solver 均 `8/8 FOUND=1`，4 个
+异桶负样本在 8GB 扫描中均 `HITS=0/4 FOUND=0`。mmap/munmap 配对与锚点归零
+写入也复核通过。
+
+`preload.so` 为 209640 字节，SHA256
+`EF97DF4EA9BAD76C350B12E0C493A49BC350B7CE6310F4B6200131CE41430214`。
+工作树中的 M5 slide 改动未进入该 M2 产物的可观察符号/字符串；v15 仍为
+本地未发布状态。
+
+结论：M2 重试的离线前置条件已全部就绪，仅剩安全上机轮次排期；本轮 QA
+未触碰设备。
+
+### 2026-09-15 M2 v15 device round and v16 offline rebuild
+
+v15 was published to myroot as `so/ghostlock_alioth_v15.so` with manifest
+version 13, commit `9c987ba`, and the online cache-busted so hash matched the
+local artifact (`209640B`,
+`EF97DF4EA9BAD76C350B12E0C493A49BC350B7CE6310F4B6200131CE41430214`).
+Device `8c08f79` stayed online throughout.
+
+The important M2 precondition passed on device: pile2 ran normally and logged
+
+```text
+pile2 anchor id=6574632 addr=0000006f5e445228 align=0 value=0
+```
+
+It then reached `found 16 accepted collisions (pile1=128 pile2=128)`.
+However, `ks_collisions.txt` remained 0 bytes and the process terminated with
+SIGSEGV in `ks_export_collisions`. Evidence:
+`build/ks_log_m2_v15_run1.txt`,
+`build/ks_collisions_m2_v15_run1.txt`, and
+`build/m2_v15_run1_crashlog.txt`. A parallel H1A `id` process (PID 17004)
+contaminated the same log and was stopped; M2 PID 31647 was left untouched.
+
+Root cause of the export crash: the deployed v15 artifact was built from an
+isolated HEAD tree, but the candidate-export fix in `src/util.c` was still
+uncommitted in the working tree. The old binary used `candidate_idx[i]` as a
+direct `t_before[]` index, while the current source correctly divides the byte
+offset by `KS_PAGE_SIZE` first. v16 fixes this by rebuilding with the working
+`src/util.c` fix.
+
+Because the accepted-collision rows were never written, no solver was run and
+there is no mm candidate to record. M2 stopped here: no answer backfill, no
+punch/fops, and no additional device retry.
+
+Offline v16 artifact (not deployed):
+
+```text
+build/alioth/bin/preload_v16.so
+size=209688
+sha256=E58CA62E1803D2E23280B8C3216AEF801D206DD7D149B045A0213BEF2BD7D749
+```
+
+### 2026-09-15 M5 H1A full-chain device round
+
+Result: UNKNOWN.
+
+Device `8c08f79` remained online. PID `24364` ran H1A `id` in the slide
+configuration (`pselect`, mm answer `0xffffffc1b1cfb840`) and produced:
+
+```text
+preload starting pid=24364
+collision threshold approx=9
+pile2 anchor id=15796352 addr=0000007d6d110880 align=0 value=0
+```
+
+During the observation window it did not reach `F_SETPIPE_SZ accepted`,
+`pipe physrw summary`, `uid_after=0`, or a final `rc=0`. PID `24364` was
+still alive at the last check (`19:41:47 CST`). No cleanup, reboot, or
+second full-chain attempt was performed.
+
+Full log saved to:
+
+```text
+build/ks_log_fullchain_m5_20260915T114127Z.txt
+```
+
+### 2026-09-15 M5 H1A full-chain completion
+
+Result: FAIL.
+
+The earlier UNKNOWN round later continued normally through pile2 and the
+answer-file path:
+
+```text
+found 16 accepted collisions (pile1=111 pile2=111)
+KS_PC answer accepted mm=ffffffc1b1cfb840 (skipping device scan)
+KS_DELTA delta=0 default
+KSLAB_BASE_CANDIDATE mm=ffffffc1b1cfb840 base=ffffffc1b1cf8000 idx=0
+main route requeue issued
+waiter futex returned ret=-1 errno=110
+```
+
+PID `24364` then exited. It never reached `F_SETPIPE_SZ accepted`,
+`pipe physrw summary`, or `uid_after=0`, so this round is a punch-stage
+failure rather than a KernelSnitch or mm-answer failure.
+
+Preserved evidence:
+
+```text
+build/ks_log_fullchain_m5_20260915T115200Z.txt
+build/ks_collisions_fullchain_m5_20260915T115200Z.txt
+```
+
+### 2026-09-15 M5 fd-protect offline audit
+
+Root cause candidate for the missing punch logs: `open_slide_selected_fds()`
+reuses fds `0..319`; `g_exlog_fd` and the punch-watchdog parent pipe can live
+below that boundary, so both are overwritten before punch completion.
+
+Offline fix and audit:
+
+- `g_exlog_fd` and both punch-watchdog parent write fds now relocate above
+  `PSELECT_ROUTE_NFDS + 64` before the fd sweep.
+- No change to the v12 pselect fd-bitmap encoding, consumer timing, CFI
+  write path, or KernelSnitch collision semantics.
+- New offline artifact:
+  `build/alioth/bin/preload_slide_h1a.so`, `217456` bytes, SHA256
+  `5551CA81683AD28DE7932FA9308C5AC75E9D71E50B3BF3EF832F9BED0949AD00`.
+- Artifact string checks pass for `consumer punch enter`, `pselect returned`,
+  `main route done`, and `H1A punch returned`.
+- Device validation is still pending.

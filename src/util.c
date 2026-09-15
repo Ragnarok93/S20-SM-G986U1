@@ -206,7 +206,7 @@ void select_linear_map_delta(uintptr_t mm_va) {
     return;
   }
   pr_info("KS_DELTA delta=0 default (mm offset=%016zx)\n",
-          mm_va - P0_PAGE_OFFSET);
+          (size_t)(mm_va - P0_PAGE_OFFSET));
   g_linear_map_delta = 0;
 }
 
@@ -343,17 +343,43 @@ static void ks_export_collisions(const char *boot_id) {
   }
   fprintf(f, "boot_id=%s\n", boot_id);
   fprintf(f, "futex_hashsize=0x%lx\n", (unsigned long)futex_hashsize);
-  fprintf(f, "collisions=%zu\n", ks->collisions);
-  for (size_t i = 0; i < ks->collisions; ++i) {
-    fprintf(f, "futex_addr=0x%016zx\n", (size_t)ks->futex_addrs[i]);
+  fprintf(f, "configured_collisions=%zu\n", ks->collisions);
+  fprintf(f, "accepted_collisions=%zu\n", (size_t)ks->accepted_count);
+  fprintf(f, "candidate_count=%zu\n",
+          (size_t)ks->candidate1_count + (size_t)ks->candidate2_count);
+  for (size_t i = 0; i < ks->accepted_count; ++i) {
+    size_t idx = (size_t)ks->accepted_idx[i];
+    size_t slot = idx / KS_PAGE_SIZE;
+    if (i == 0) {
+      fprintf(f, "collision_addr=0x%016zx t_before=%zu t_after=%zu\n",
+              (size_t)ks->futex_addrs[i], (size_t)ks->t_before[0],
+              (size_t)ks->times[0]);
+    } else {
+      fprintf(f, "collision_addr=0x%016zx t_before=%zu t_after=%zu\n",
+              (size_t)ks->futex_addrs[i], (size_t)ks->t_before[slot],
+              (size_t)ks->times[slot]);
+    }
   }
-  for (size_t i = 0; i < ks->candidate_count; ++i) {
-    fprintf(f, "futex_addr=0x%016zx\n", (size_t)ks->candidate_addrs[i]);
+  for (size_t i = 0; i < ks->candidate1_count; ++i) {
+    size_t idx = (size_t)ks->candidate1_idx[i];
+    size_t slot = idx / KS_PAGE_SIZE;
+    fprintf(f,
+            "candidate_addr=0x%016zx pile=1 t_before=%zu t_after=%zu\n",
+            (size_t)&ks->futexes[idx], (size_t)ks->t_before[slot],
+            (size_t)ks->times[slot]);
+  }
+  for (size_t i = 0; i < ks->candidate2_count; ++i) {
+    size_t idx = (size_t)ks->candidate2_idx[i];
+    size_t slot = idx / KS_PAGE_SIZE;
+    fprintf(f,
+            "candidate_addr=0x%016zx pile=2 t_before=%zu t_after=%zu\n",
+            (size_t)&ks->futexes[idx], (size_t)ks->t_before2[slot],
+            (size_t)ks->times2[slot]);
   }
   fclose(f);
-  pr_info("KS_PC export path=%s addrs=%zu candidates=%zu hashsize=0x%lx\n",
-          path, ks->collisions, ks->candidate_count,
-          (unsigned long)futex_hashsize);
+  pr_info("KS_PC export path=%s accepted=%zu candidates=%zu/%zu hashsize=0x%lx\n",
+          path, (size_t)ks->accepted_count, (size_t)ks->candidate1_count,
+          (size_t)ks->candidate2_count, (unsigned long)futex_hashsize);
 
   timings_path = getenv("KS_TIMINGS");
   if (timings_path && *timings_path) {
@@ -1426,6 +1452,22 @@ ssize_t kernel_read_data(int fd, uintptr_t target, void *data, size_t len) {
 /* ================= round-2: forced real-time disk logging ================= */
 int g_exlog_fd = -1;
 char g_exlog_path[256] = {0};
+
+void ks_relocate_fd_min(int *fd, int min_fd) {
+  int high;
+  if (fd == NULL || *fd < 0 || *fd >= min_fd) {
+    return;
+  }
+  high = fcntl(*fd, F_DUPFD, min_fd);
+  if (high >= 0) {
+    close(*fd);
+    *fd = high;
+  }
+}
+
+void exlog_protect_fd(void) {
+  ks_relocate_fd_min(&g_exlog_fd, KS_FD_PROTECT_MIN);
+}
 
 void exlog_open(void) {
   if (g_exlog_fd >= 0) {

@@ -139,6 +139,10 @@
 #define CONSUMER_CORE (CORE + 1)
 #define CONSUMER_MAX_CALLS 1
 #define PSELECT_ROUTE_NFDS 320
+/* fd >= this value survive the slide dup2(0..NFDS-1) sweep. */
+#define KS_FD_PROTECT_MIN (PSELECT_ROUTE_NFDS + 64)
+void ks_relocate_fd_min(int *fd, int min_fd);
+void exlog_protect_fd(void);
 /* Nice 1 -> prio 121 < FAKE_WAITER_PRIO 130: the PI-tree insert takes
  * the rb_left branch and stays inside the fake page.  Nice >= 10 walks
  * rb_right = ASHMEM_MISC_FOPS into real kernel memory (livelock). */

