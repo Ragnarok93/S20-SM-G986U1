@@ -10,9 +10,11 @@
 -Wno-unused-function
 -Isrc
 -DTARGET_CONFIG_H=targets/alioth-4.19.157-perf/target.h
+-Wl,-e,_start
 -Wl,--version-script=src/s2_export.map
 -o build/alioth/bin/preload_slide_h1a_s2.so
 src/s2_main.c
 src/slide_s2.c
 src/util.c
 src/s2_support.c
+src/dso_start.S

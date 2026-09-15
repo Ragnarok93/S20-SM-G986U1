@@ -929,3 +929,32 @@ NDK r26b API 34 static checks pass:
   `kernelsnitch.h`.
 
 No adb/device command was issued and no device run is approved.
+
+### 2026-09-16 H1A-S2 executable DSO entry
+
+The isolated S2 DSO previously had `e_entry=0`, so `/system/bin/linker64`
+could not enter its userland startup path. Added the minimal AArch64 DSO
+`_start`, which reads the Linux process stack, passes argc/argv/envp to
+`main()`, and returns through `exit()`. The S2 link now uses
+`-Wl,-e,_start`; the S2 source set otherwise remains unchanged.
+
+Added `src/hello_dso.c` as a minimal DSO using the same `main` export map
+and entry flag. It is a build probe only and is not an S2 route.
+
+```text
+build/alioth/bin/preload_slide_h1a_s2.so
+size=71952
+sha256=2C703A1901076CE3736BFD1FFBA930BE786153AC889DA4325D419C381F47306D
+entry=0xE7A4
+load=R E [0x65E0,0xEDA0)
+
+build/alioth/bin/hello_dso.so
+size=5664
+sha256=D732024BB1354E8C0C54F7C8FB28F029BC0E37AEB42A294C5A2636175A9AF07C
+entry=0x1694
+load=R E [0x1608,0x1730)
+```
+
+`llvm-readelf` confirms both entries are nonzero and lie inside the
+executable LOAD segment. No adb/device command was issued and no device
+run is approved.
