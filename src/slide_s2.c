@@ -178,9 +178,12 @@ static int s2_tcp_gate(void) {
   info_len = sizeof(sender_info);
   memset(&sender_info, 0, sizeof(sender_info));
   memset(&peer_info, 0, sizeof(peer_info));
+  const socklen_t min_info_len =
+      offsetof(struct tcp_info, tcpi_state) +
+      sizeof(sender_info.tcpi_state);
   if (getsockopt(fds[0], IPPROTO_TCP, TCP_INFO,
                  &sender_info, &info_len) != 0 ||
-      info_len < sizeof(sender_info) ||
+      info_len < min_info_len ||
       sender_info.tcpi_state != TCP_ESTABLISHED) {
     pr_error("S2 tcp sender state errno=%d state=%u\n",
             errno, sender_info.tcpi_state);
@@ -190,7 +193,7 @@ static int s2_tcp_gate(void) {
   info_len = sizeof(peer_info);
   if (getsockopt(fds[1], IPPROTO_TCP, TCP_INFO,
                  &peer_info, &info_len) != 0 ||
-      info_len < sizeof(peer_info) ||
+      info_len < min_info_len ||
       peer_info.tcpi_state != TCP_ESTABLISHED) {
     pr_error("S2 tcp peer state errno=%d state=%u\n",
             errno, peer_info.tcpi_state);

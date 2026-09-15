@@ -774,6 +774,27 @@ NDK r26b API 34 static checks pass:
 
 No adb/device command was issued and no device run is approved.
 
+### 2026-09-16 H1A-S2 short TCP_INFO compatibility
+
+Device run 5 stopped at the new TCP gate because Android/4.19 can return a
+shorter `TCP_INFO` payload even when `tcpi_state` is present and equals
+`TCP_ESTABLISHED`. The sender and peer checks now require only the bytes
+needed for `tcpi_state`; they no longer require the host header's full
+`struct tcp_info` size. Every other TCP gate condition remains unchanged and
+fail-closed.
+
+```text
+build/alioth/bin/preload_slide_h1a_s2.so
+size=72384
+sha256=E394F647BA609A4E1F3B47E15AE8D883A693DFD5C111352DAF5A485F8D0CF6D4
+entry=0xE994
+load=R E [0x6648,0xEF90)
+```
+
+NDK r26b API 34 offline rebuild passes. The only build warning remains the
+pre-existing unused `ks` in `kernelsnitch.h`. No adb/device command was
+issued and no device run is approved.
+
 ### 2026-09-16 H1A-S2 isolated source-set relink
 
 The checked-in S2 artifact had drifted away from its documented offline
