@@ -558,3 +558,26 @@ so the PI walk cannot reach a coherent `waiter->lock`. The kernel
 instead predicts an immediate fault/hard wedge. The log lacks a post-trylock
 PC, so it cannot separate those two NO-GO outcomes. No further H1A-D punch or
 full-chain device run is approved.
+
+### 2026-09-16 kernel frame placement enumeration: one GO
+
+Offline ELF/source enumeration is complete in
+`docs/specs/kernel-frame-placement-enumeration.md`; no device access and no
+exploit-code change were made.
+
+- Corrects the prior blanket sendmsg NO-GO for native blocking TCP `sendmsg`:
+  the adjacent `iovstack[5..7]` and first 32 bytes of `address` form one
+  continuous, user-controlled 0x50 region over `T-0x198..T-0x149`.
+- Frame chain: wrapper `0xffffff80091f4268` (`sub sp,#0x90`) ->
+  `___sys_sendmsg` `0xffffff80091f3f98` (`sub sp,#0x190`) -> protocol call
+  `0xffffff80091f4188`. At the block, `iovstack=C+0x38` and
+  `address=C+0xb8`, where `C=T-0x220`.
+- For a connected established TCP socket, TCP ignores normal `msg_name` and
+  waits in `sk_stream_wait_memory()`, leaving the copied iov/address bytes
+  intact.
+- All audited other network, fs/poll/select, timer/nanosleep, and
+  futex/requeue/wait/timeout entries remain NO-GO. SysV msg is unavailable
+  because `CONFIG_SYSVIPC=n` and its native wrappers return `ENOSYS`.
+
+**Placement verdict: GO for the raw 0x50 stack placement only; downstream
+fake task/lock safety is not validated by this audit.**
