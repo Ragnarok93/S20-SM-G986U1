@@ -90,14 +90,50 @@ static long s2_sched_setattr_tid(int tid, int nice_value) {
 
 static int s2_tcp_gate(void) {
   int fds[2] = {-1, -1};
+  int listen_fd = -1;
   uint32_t sndbuf = 0;
   socklen_t optlen = sizeof(sndbuf);
   int enabled = 1;
 
-  if (socketpair(AF_INET, SOCK_STREAM, 0, fds) != 0) {
-    pr_error("S2 tcp socketpair errno=%d\n", errno);
-    return 0;
+  struct sockaddr_in addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+  listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (listen_fd < 0) {
+    pr_error("S2 tcp listen socket errno=%d\n", errno);
+    goto fail;
   }
+  int reuse = 1;
+  setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR,
+             &reuse, sizeof(reuse));
+  if (bind(listen_fd, (struct sockaddr *)&addr, sizeof(addr)) != 0 ||
+      listen(listen_fd, 1) != 0) {
+    pr_error("S2 tcp bind/listen errno=%d\n", errno);
+    goto fail;
+  }
+  socklen_t addr_len = sizeof(addr);
+  if (getsockname(listen_fd, (struct sockaddr *)&addr, &addr_len) != 0) {
+    pr_error("S2 tcp getsockname errno=%d\n", errno);
+    goto fail;
+  }
+  fds[1] = socket(AF_INET, SOCK_STREAM, 0);
+  if (fds[1] < 0) {
+    pr_error("S2 tcp client socket errno=%d\n", errno);
+    goto fail;
+  }
+  if (connect(fds[1], (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+    pr_error("S2 tcp connect errno=%d\n", errno);
+    goto fail;
+  }
+  fds[0] = accept(listen_fd, NULL, NULL);
+  if (fds[0] < 0) {
+    pr_error("S2 tcp accept errno=%d\n", errno);
+    goto fail;
+  }
+  close(listen_fd);
+  listen_fd = -1;
 
   uint32_t want_sndbuf = 262144;
   if (setsockopt(fds[0], SOL_SOCKET, SO_SNDBUF,
@@ -166,6 +202,7 @@ static int s2_tcp_gate(void) {
 fail:
   if (fds[0] >= 0) close(fds[0]);
   if (fds[1] >= 0) close(fds[1]);
+  if (listen_fd >= 0) close(listen_fd);
   return 0;
 }
 
@@ -219,7 +256,7 @@ static void s2_finish_watchdog(pid_t pid, int parent_fd) {
   waitpid(pid, &status, 0);
 }
 
-static void s2_readback_evidence(void) {
+static int s2_readback_evidence(void) {
   static unsigned char rbuf[SKB_SEND_SIZE];
   struct iovec iov = { rbuf, sizeof(rbuf) };
   struct msghdr msg;
@@ -274,9 +311,10 @@ static void s2_readback_evidence(void) {
             (unsigned long long)lock_wait_lock,
             (unsigned long long)lock_owner,
             (ft_root & 0xffff000000000000ULL) == 0xffff000000000000ULL);
-    return;
+    return 1;
   }
   pr_warning("H1A-S2 readback missing\n");
+  return 0;
 }
 
 static void *s2_waiter_thread(void *arg __attribute__((unused))) {
@@ -557,9 +595,10 @@ int slide_h1a_s2_test(void) {
                 futex_ret == -1 && futex_errno == ETIMEDOUT;
   int punch_ok = atomic_load(&s2_punch_calls) == 1 &&
                  atomic_load(&s2_punch_success) == 1;
+  int evidence_ok = 0;
   if (gate_ok && punch_ok) {
-    s2_readback_evidence();
-    result = 0;
+    evidence_ok = s2_readback_evidence();
+    result = evidence_ok ? 0 : 3;
   } else {
     result = 3;
   }
@@ -579,6 +618,7 @@ int slide_h1a_s2_test(void) {
   s2_finish_watchdog(watchdog_pid, watchdog_pipe);
   s2_log_verdict(result == 0,
                  result == 0 ? "gate-pass" :
-                 (!gate_ok ? "stale-gate" : "punch-gate"));
+                (!gate_ok ? "stale-gate" :
+                  (!punch_ok ? "punch-gate" : "evidence-missing")));
   return result;
 }

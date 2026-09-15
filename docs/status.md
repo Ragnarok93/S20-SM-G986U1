@@ -774,6 +774,42 @@ NDK r26b API 34 static checks pass:
 
 No adb/device command was issued and no device run is approved.
 
+### 2026-09-16 H1A-S2 final audit and rebuild
+
+The final offline audit found four blocking defects in the prior S2
+artifact and fixed them:
+
+- The old complete-`ORDER3_SIZE` write/check loop was vacuous because
+  `0x8000 > SKB_SEND_SIZE=0x7ec0`. S2 now prepares and validates one
+  bounded controlled prefix ending at `payload_base+0x3ae0`, including
+  all FL/W0/FT fields, `FT+0x420`, and the zeroed fops range.
+- S2 page preparation is one-shot; it no longer refreshes into a second
+  page attempt after failure.
+- Replaced the invalid `socketpair(AF_INET)` TCP gate with a real IPv4
+  loopback listener/connect/accept pair before the nonblocking fill and
+  `SIOCOUTQ` gate.
+- Missing readback evidence now fails the verdict with
+  `reason=evidence-missing` instead of allowing a PASS.
+
+NDK r26b API 34 static checks confirm that the victim path retains
+`s2_carrier_contract_ok` at `0x23a78`, release stores at `0x23af8/23afc`,
+and `sendmsg` at `0x23b08`. All required S2 markers are present. Pselect
+and CFI/full-chain helper code remains linked but is unreachable from the
+isolated `s2_main.c` gate; the S2 disassembly has no pselect, fops, root,
+or full-chain call.
+
+Final offline artifact:
+
+```text
+build/alioth/bin/preload_slide_h1a_s2.so
+size=201648
+sha256=1CB81B113442415246F34C0D6106F0A844117B55364944103857AD74FF043605
+```
+
+Final report: `docs/specs/h1a-s2-final-audit.md`. The single-shot plan
+was updated to the new artifact. No adb/device command was issued and no
+device run is approved.
+
 ### 2026-09-16 H1A-S2 single-shot run plan
 
 Offline run/safety plan added as
