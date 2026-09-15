@@ -582,6 +582,20 @@ exploit-code change were made.
 **Placement verdict: GO for the raw 0x50 stack placement only; downstream
 fake task/lock safety is not validated by this audit.**
 
+### 2026-09-16 sendmsg placement cross-audit
+
+Offline cross-audit complete; see
+`docs/specs/sendmsg-placement-cross-audit.md`. No device access and no
+exploit-code change.
+
+- Verdict: **PASS** for the blocking TCP `sendmsg` raw placement.
+- `iovstack[5..7]` plus the first 32 bytes of `address` form one continuous
+  0x50-byte region over the stale `rt_waiter`.
+- ELF frame offsets and the materials source agree:
+  `iovstack=C+0x38`, `address=C+0xb8`, `C=T-0x220`.
+- Zero-length iov entries and the connected-TCP blocking path are stable, and
+  the required `iov_base` values pass `access_ok()`.
+
 ### 2026-09-16 task-pointer acquisition audit
 
 Offline audit complete; see
