@@ -495,3 +495,27 @@ action and no exploit-code change.
   `rt_mutex_adjust_pi()` -> `rt_mutex_adjust_prio_chain()` would dereference
   NULL in `raw_spin_trylock(&lock->wait_lock)`.
 - This is offline-only. No device run and no exploit-code change were made.
+
+### 2026-09-15 safe placement probe design (SP-1)
+
+Offline design only: no device command, no exploit-code change, and no build.
+New spec: `docs/specs/safe-placement-probe-design.md`.
+
+SP-1 is designed to distinguish, in one controlled shot:
+
+- `NO-LIVE-DANGLING`: `sched_setattr` returns 0 and the probe lock is empty.
+- `WALKED-WRONG-PLACEMENT`: `sched_setattr` returns `EDEADLK` and the probe
+  lock is empty.
+- `PLACEMENT-CONFIRMED`: `sched_setattr` returns 0 and the SKB readback shows
+  a nonzero `probe_lock.waiters.rb_root`.
+
+The mechanism uses a fail-closed one-word pselect marker at
+`waiter->lock` (`T-0x160`). The marker points to a new empty-owner probe
+lock, not the CFI fake lock. If the PI walk reads it, it leaves the stack
+waiter pointer in `probe_lock.waiters.rb_root`; if it misses the marker, the
+real H1A-D PI cycle exits with `EDEADLK`. The probe never reaches CFI or the
+full chain, and any gate/readback/reboot anomaly is fail-closed.
+
+Do not implement or schedule this until the static checklist in the new spec
+is audited. The design explicitly rejects arbitrary sub-qword placement
+hypotheses as unsafe and out of scope.
