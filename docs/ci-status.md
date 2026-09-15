@@ -58,7 +58,7 @@ candidate_only_negative=0 collision_only=4
 - `kernelsnitch.h` writes the target into `futex_addrs[0]`, the second-pile
   anchor into `futex_addrs[1]`, then appends only first-pile candidates that
   are also present in the second-pile candidate set
-  (`src/kernelsnitch/kernelsnitch.h:492-512`).
+  (`src/kernelsnitch/kernelsnitch.h:541-562`).
 - `accepted_idx[0]` is the target sentinel `(size_t)-1`; indices 1 and later
   identify futex slots for anchor and intersection entries
   (`src/kernelsnitch/kernelsnitch.h:494-511`).
@@ -75,11 +75,11 @@ All newly added setup allocations have matching cleanup paths:
 
 | Setup | Cleanup |
 |---|---|
-| `times2` (`kernelsnitch.h:346`) | `munmap` at `kernelsnitch.h:583-584` |
-| `t_before2` (`kernelsnitch.h:347`) | `munmap` at `kernelsnitch.h:585-586` |
-| `candidate1_idx` (`kernelsnitch.h:348`) | `munmap` at `kernelsnitch.h:587-588` |
-| `candidate2_idx` (`kernelsnitch.h:349`) | `munmap` at `kernelsnitch.h:589-590` |
-| `accepted_idx` (`kernelsnitch.h:350`) | `munmap` at `kernelsnitch.h:591-592` |
+| `times2` (`kernelsnitch.h:361`) | `munmap` at `kernelsnitch.h:632-633` |
+| `t_before2` (`kernelsnitch.h:362`) | `munmap` at `kernelsnitch.h:634-635` |
+| `candidate1_idx` (`kernelsnitch.h:363`) | `munmap` at `kernelsnitch.h:636-637` |
+| `candidate2_idx` (`kernelsnitch.h:364`) | `munmap` at `kernelsnitch.h:638-639` |
+| `accepted_idx` (`kernelsnitch.h:365`) | `munmap` at `kernelsnitch.h:640-641` |
 
 `pile2_anchor` and `pile2_anchor_id` are scalar state, not separate mappings.
 The temporary first-pile baseline buffer is freed at
@@ -90,6 +90,7 @@ The temporary first-pile baseline buffer is freed at
 | Evidence | Size | SHA256 |
 |---|---:|---|
 | `build/alioth/bin/preload.so` | 208856 | `9BE36F9E8C0E54C221294DE5BBC2C8B21B956636B8531CE905F9BDD4B0486011` |
+| `build/alioth/bin/preload.so` (v15 corrected) | 209640 | `EF97DF4EA9BAD76C350B12E0C493A49BC350B7CE6310F4B6200131CE41430214` |
 | `build/dualpile_selfcheck_dataset.txt` | 1307 | `F820B3450DC6247A2EB7A65E8A832681A5DCB75380EEE26773E381B6D4C4F8AE` |
 | `build/dualpile_selfcheck_negative.txt` | 232 | `FA3EB581B3A59236AB895AADC09ECE82D56D327445F1E671DD71025A86F47175` |
 | `build/qa_dualpile_candidate.txt` | 223 | `44CE1A957A330FB3DFE1C390FD64D58C15BDB4FCC3787B011090D527E89B1CB8` |
@@ -152,3 +153,29 @@ SYSCHK(__futex(inc_arg->uaddr, FUTEX_WAIT_PRIVATE, 0, NULL, NULL, 0)): Invalid a
 
 M2 remains blocked. The next device round is not justified until the
 second-pile anchor preconditions are checked offline.
+
+## 2026-09-15 second-pile EINVAL audit and v15 build (offline)
+
+Scope: source audit, minimal pile2 hardening, and NDK rebuild. No deployment,
+no device round, and no image-file access.
+
+| # | Check | Result | Evidence |
+|---|---|---|---|
+| 1 | Kernel semantics | PASS | 4.19 source: value mismatch is `-EWOULDBLOCK` (`build/linux-4.19-futex.c:2584-2603`); `FUTEX_WAIT` forces bitset ANY (`:3523-3528`) |
+| 2 | Device kernel semantics | PASS | `kernel.elf`: `get_futex_key` misalignment returns `-22` at `0xffffff8008198454`; `futex_wait` zero bitset returns `-22` at `0xffffff8008194cfc`; `futex_wait_setup` value mismatch returns `-11` at `0xffffff8008197c9c` |
+| 3 | v14 root cause | PASS | v14 disassembly stores the loop counter into `candidate1_idx` at `0x1a16c-0x1a188`, then uses `candidate1_idx[0]` as a `ks->futexes[]` byte offset at `0x1a25c-0x1a284`. This produces a misaligned anchor such as `base+167` |
+| 4 | Corrected candidate indexing | PASS | v15 stores the futex byte offset `id` into `candidate1_idx` (`src/kernelsnitch/kernelsnitch.h:450-452`), so every pile2 anchor remains 8-byte aligned |
+| 5 | Anchor preconditions | PASS | v15 validates candidate range, 4-byte pointer alignment, and zero value before pile2 (`src/kernelsnitch/kernelsnitch.h:475-504`) |
+| 6 | Pile2 operation preservation | PASS | after root-causing the alignment bug, pile2 is restored to the same `FUTEX_WAIT_PRIVATE, 0` operation as pile1 (`src/kernelsnitch/kernelsnitch.h:189-192`, `:513-515`) |
+| 7 | NDK rebuild | PASS | NDK r26b android34 clang with `@build_wakefix_dualpile.rsp`, built in an isolated HEAD-based M2 source tree to exclude concurrent M5 slide changes |
+
+New artifact:
+
+```text
+build/alioth/bin/preload.so
+size=209640
+sha256=EF97DF4EA9BAD76C350B12E0C493A49BC350B7CE6310F4B6200131CE41430214
+```
+
+The corrected v15 artifact is local-only. M2 safe-device validation remains
+blocked until this build is deliberately scheduled for a new round.

