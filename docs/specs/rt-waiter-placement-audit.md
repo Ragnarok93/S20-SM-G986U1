@@ -13,6 +13,70 @@ Citation policy:
 - `build/.config` and `build/linux-4.19-futex.c` remain useful device-build
   evidence.
 
+## Dangling-waiter verdict (materials tree)
+
+Date: 2026-09-15 (Architect decisive audit, offline)
+
+**VERDICT: VULNERABLE-PATH-PRESENT.** The Xiaomi SM8250
+`materials/kernelsrc/sm8250-a13-stable` 4.19.157 tree does **not** contain
+the upstream fix `3bfdc63936dd` ("rtmutex: Use waiter::task instead of
+current in remove_waiter()"), so the CVE-2026-43499 slide/pselect premise
+is still valid on this kernel: a `FUTEX_CMP_REQUEUE_PI` proxy-lock rollback
+can leave the waiting task's `current->pi_blocked_on` dangling at its
+stack-local `rt_waiter`.
+
+Evidence:
+
+1. `kernel/locking/rtmutex.c:1788-1801` (`rt_mutex_start_proxy_lock()`):
+   on any failure from `__rt_mutex_start_proxy_lock()` it calls
+   `remove_waiter(lock, waiter)` where `waiter->task` is the requeued
+   victim (`this->task`), not the requeue-calling thread.
+2. `kernel/locking/rtmutex.c:1068-1090` (`remove_waiter()`): the rollback
+   path takes `current->pi_lock`, dequeues, and clears
+   `current->pi_blocked_on = NULL` (line 1079) — it operates on `current`,
+   exactly the pre-`3bfdc63936dd` defect. The waiter is dequeued from the
+   rt_mutex tree, but the **victim's** `pi_blocked_on` is never cleared.
+3. `kernel/locking/rtmutex.c:964` + `1782-1786`: `task_blocks_on_rt_mutex()`
+   sets `task->pi_blocked_on = waiter` first; `__rt_mutex_start_proxy_lock()`
+   then returns the `-EDEADLK` full-chainwalk failure, so the dangling state
+   is real, not hypothetical.
+4. The upstream `3bfdc63936dd` commit message matches this tree
+   code-for-code: remove_waiter is used for proxy-lock rollback from
+   futex_requeue(), `waiter::task` is not current, and the waiter task's
+   `pi_blocked_on` is not cleared, "which leaves a dangling pointer primed
+   for UAF."
+5. `rt_mutex_cleanup_proxy_lock()` (`kernel/locking/rtmutex.c:1890-1922`)
+   is irrelevant to this defect: it runs in `futex_wait_requeue_pi()`'s own
+   timeout path (`kernel/futex.c:3425`) after the victim reacquired control
+   of its syscall. The dangling state is created by the *other* thread's
+   `FUTEX_CMP_REQUEUE_PI` rollback before the victim reaches that path.
+6. `build/linux-4.19-futex.c` is not decisive for this fix because
+   `3bfdc63936dd` lives in `kernel/locking/rtmutex.c`, which is not copied
+   into `build/`. The futex.c-side requeue loop
+   (`materials/kernelsrc/sm8250-a13-stable/kernel/futex.c:2242-2266`) shows
+   the trigger: `rt_mutex_start_proxy_lock()` returns `ret < 0`, the loop
+   clears `this->pi_state`, and breaks **without waking the victim**.
+
+Device-observable prediction for H1A:
+
+- The dangling waiter only exists if the requeue's
+  `rt_mutex_start_proxy_lock()` **fails** with `-EDEADLK` (PI futex owner
+  chain resolves back to the victim). The `FUTEX_CMP_REQUEUE_PI` syscall
+  then returns a negative errno (`-EDEADLK`) to userspace.
+- If the requeue returns `0`/`1` (waiter legitimately enqueued, or
+  proxy-acquired and woken), there is **no** stale `pi_blocked_on`; punch
+  ret=0 with zero fake-page writes is exactly expected because the PI chain
+  walks a live, cleaned-up state.
+
+Recommended next probe (safe, userland-first): log the exact
+`FUTEX_CMP_REQUEUE_PI` return value in the H1A run. Required signature for
+the slide premise: a negative requeue return (expected `-EDEADLK`) while the
+victim's `FUTEX_WAIT_REQUEUE_PI` is still blocked. If the requeue returns
+non-negative, the shape is wrong: fix the uaddr2 owner-TID /
+`FUTEX_WAITERS` shaping or the victim/requeue ordering before any further
+punch. Only after that negative return is observed should the H1A-W
+stack-placement probe run.
+
 ## Verdict
 
 The stale object used by the pselect route is **not an SLUB/kmalloc

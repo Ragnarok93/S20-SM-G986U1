@@ -439,6 +439,8 @@ int hex_value(char c);
 uint64_t slide_read_stext(void);
 uint64_t slide_child_leak_stext(void);
 int slide_leak_kernel_base(void);
+int slide_h1a_w_test(void);
+int slide_h1a_d_test(void);
 
 ssize_t configfs_write_once(
     int fd, uintptr_t target, const void *data, size_t len);
