@@ -354,3 +354,126 @@ PAGE_OFFSET 为编译期常量 (memory.h:62), PHYS_OFFSET=0x80000000 固定。
   query 缓存), manifest 已 bump, push af186a0。
 - 待办: 一次跑机验证 (shell 域直跑, 回填时执行 mm 偏移校验, 期望
   walk_touched=1 -> CFI step=4 -> root)。
+
+## 2026-09-15 静态复核: fd-bitmap 掩码收紧 (纯静态, 未上机)
+
+对照 4.19 `do_select()` 的输出位语义复核 v12 填法, 发现并修复一个
+残留不一致: `prepare_slide_select_fdsets()` 之前把 `res_in` 的输入掩码
+写成 `slide_waiter_in_words | slide_waiter_out_words`。这会让只应
+write-ready 的 fd 也进入 read-ready 集合, 从而把 `res_out` 的位也写进
+`res_in`。由于假 waiter 的树节点字段直接由这两个输出区编码, 这会污染
+`tree_entry` / `pi_tree_entry` 的 pc/right/left, 属于可以静态证伪的
+自旋/野指针诱因。
+
+修复: `res_in` 输入掩码保持严格等于 `slide_waiter_in_words`,
+`res_out` 输入掩码保持严格等于 `slide_waiter_out_words`。这样:
+
+1. `res_in` 的就绪位只反映 read-ready fd, 不会混入 `res_out` 位。
+2. 树节点 pc/right/left 不会被无关就绪位污染, 终止形态 (pc=1, child=0)
+   能保持字节精确。
+3. `rt_mutex_adjust_prio_chain()` 的 rb/requeue 消费仍只在假页内闭环,
+   避免沿未知内核内存父链/右子树走。
+
+该改动只影响 `src/slide.c` 的 fd-bitmap 掩码, 未改变 fake page 布局。
+上机验证时仍按 v13 流程走 shell 域直跑 + mm 偏移硬校验。
+
+## 2026-09-15 PC 端哈希字序修复与重跑 (纯静态, 未上机)
+
+已按设备端 `futex_key_t.private` 布局修正
+`tools/pc_candidate_solver.c` 与 `tools/pc_mm_slab_solver.c` 的
+`futex_hash()`:
+
+```c
+w[0] = (uint32_t)(addr & ~0xfffULL);
+w[1] = (uint32_t)((addr & ~0xfffULL) >> 32);
+w[2] = (uint32_t)mm;
+w[3] = (uint32_t)(mm >> 32);
+initval = (uint32_t)(addr & 0xfffULL);
+```
+
+并且 PC 侧现在复用与 4.19 一致的 `jhash2()`:
+`a=b=c=0xdeadbeef + (length<<2) + initval`, 4 词时先 `mix` 前 3 词,
+再把第 4 词加到 `a` 后 `final`, 不再保留自造变体。
+
+重新编译产物 (本机 gcc -O3 -fopenmp):
+
+- `build/pc_candidate_solver_fixed_order.exe`
+- `build/pc_mm_slab_solver_fixed_order.exe`
+
+用 `0xffffffc000000000-0xffffffc020000000`, `mask=0x7ff`,
+`min_hits=7` 重跑现有 `ks_collisions_*.txt` (等价覆盖 7..16,
+因为 min7 无解则更高阈值也无解), `ks_timings_more.txt`
+另用已正确字序的 `ks_timing_solver.exe` 做了 top16/top64 对照。
+结果:
+
+- 64B 对齐 / 0x388 order-3 slab 两种扫描均无 7+ 命中。
+- `ks_timings_more.txt` top16 最高 4/16, top64 最高 5/64。
+- 命中/汇总文件均在 `build/pc_fixed_order_*_2026-09-15*`,
+  未覆盖旧记录。
+
+当前结论: 修正字序后, 既有离线数据仍未给出可信 mm 候选;
+需要新的更干净碰撞数据, 或者重新审视碰撞筛选阈值。
+
+### 2026-09-15 全范围补扫 (8GB, step=8 / slab388)
+
+按审核意见补扫 `0xffffffc000000000-0xffffffc200000000`,
+`mask=0x7ff`, 数据集仍用 `ks_collisions_run5_coll16.txt`:
+
+- 64B 全范围 step=8: min_hits=12 / 10 均 0 命中。
+- 0x388 / order-3 slab 全范围: min_hits=12 / 10 均 0 命中。
+- align8 每轮耗时约 3m04s, slab 每轮约 2s。
+- 结果文件: `build/pc_fixed_order_fullscan_2026-09-15_*.txt`。
+
+补扫后结论不变: 8GB 线性映射内没有 12+/16 或 10+/16 的 mm 候选。
+
+## 2026-09-15 futex_hash 二进制实锤 (纯静态)
+
+用 `k40rom/boot/kernel.elf` + `llvm-objdump` 定位到
+`do_futex` / `futex_wake` 内联的 `futex_hash`:
+
+- `jhash2` length 固定为 **4 words** (16 bytes), 即只哈希
+  `address@0` + `mm@8`。
+- `key->both.offset` 是 `initval`, 不参与被哈希的 16 bytes。
+- 没有看到 `futex_hash_seed` / per-boot 随机 seed。
+  `futex_init` 只初始化 hashsize 和 hash queues, 不初始化 seed。
+- `futex_hash_mask` = `futex_hashsize - 1`, 来自
+  `futex_init` 写入的 `__futex_data.1`。
+
+因此当前求解器字序/长度/initval 是对的, 只更新了注释。
+
+### 2026-09-15 实锤后重跑 (run5_coll16, 8GB, step=8)
+
+- `min_hits=8`: 0 命中。
+- 因 `min_hits=12/10` 已无解, 这轮 `min_hits=8` 等价覆盖 8..12。
+- 结果: `build/pc_disasm_order_fullscan_2026-09-15_align8_min8.txt`.
+
+## 2026-09-15 second-pile 采集与求解器语义修复 (纯静态, 未上机)
+
+- 按 ADR-0001 拆分导出语义: `collision_addr=` 带 `t_before=` / `t_after=`;
+  `candidate_addr=` 同样带计时并标 `pile=1|2`。`candidate_addr=` 不再进入求解。
+- `src/kernelsnitch/kernelsnitch.h` 增加第二轮独立 pile: 第二 anchor 取第一轮
+  candidate 首项; 两轮候选交集加上两个 anchor 后必须达到 `KSNITCH_COLLISIONS`
+  才 accepted。22 字节 `ks_mm_answer.txt` 协议与原子回填未改。
+- `pc_candidate_solver` / `pc_mm_slab_solver` 只解析 `collision_addr=`;
+  `candidate_addr=` 只输出 unique/intersection/负样本统计。
+- 新 PC 产物: `build/pc_candidate_solver_dualpile.exe`,
+  `build/pc_mm_slab_solver_dualpile.exe`。
+- 新 preload: `build/alioth/bin/preload.so` 208856B,
+  SHA256 `9BE36F9E8C0E54C221294DE5BBC2C8B21B956636B8531CE905F9BDD4B0486011`。
+  用 NDK r26b android34 clang 和 `build_wakefix_dualpile.rsp` 重建。
+- 合成自检: 已知 mm `0xffffffc002000000`, 8 个同桶 + 4 个异桶 candidate。
+  align8/slab388 均 `8/8` 命中; 异桶地址按 collision 输入且 `min_hits=4`
+  时 `FOUND=0`。汇总: `build/dualpile_selfcheck_summary.txt`。
+- 未碰设备, 未部署。
+
+### 2026-09-15 v14 上机: second-pile EINVAL
+
+- 已发布 `myroot/so/ghostlock_alioth_v14.so`（manifest version 12，
+  commit `8eaf663`），线上哈希与本地一致。
+- 设备轮加载 208856/208856 字节；第一 pile 有 timing 候选，但
+  second pile 的 `FUTEX_WAIT_PRIVATE` 返回 `EINVAL`。
+- `ks_collisions.txt` 未更新，因此没有 accepted collisions，也没有
+  dual-pile 求解输入。自动重试二次观测同样失败。
+- Firefox 已 force-stop，设备无 panic/reboot。证据见
+  `build/m2_device_20260915_1400_summary.md`。
+- 不要再直接重启重试；先离线检查 second-pile 锚点地址/值前置条件。
