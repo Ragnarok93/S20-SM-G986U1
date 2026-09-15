@@ -795,6 +795,25 @@ NDK r26b API 34 offline rebuild passes. The only build warning remains the
 pre-existing unused `ks` in `kernelsnitch.h`. No adb/device command was
 issued and no device run is approved.
 
+### 2026-09-16 H1A-S2 sndbuf optlen initialization
+
+Device run 6 reported `sndbuf=0` because the `SO_SNDBUF` getsockopt value
+length was read from uninitialized stack storage. `optlen` is now initialized
+to `sizeof(sndbuf)` immediately before that query. No other gate condition or
+S2 logic was changed.
+
+```text
+build/alioth/bin/preload_slide_h1a_s2.so
+size=72400
+sha256=A10D727B42855047145BB330DF1F2DE05A0FC66F7368910BC48CC7EFFD194FE2
+entry=0xE99C
+load=R E [0x6648,0xEFA0)
+```
+
+NDK r26b API 34 offline rebuild passes. The only build warning remains the
+pre-existing unused `ks` in `kernelsnitch.h`. No adb/device command was
+issued and no device run is approved.
+
 ### 2026-09-16 H1A-S2 isolated source-set relink
 
 The checked-in S2 artifact had drifted away from its documented offline

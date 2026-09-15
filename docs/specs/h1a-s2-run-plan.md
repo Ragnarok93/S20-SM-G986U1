@@ -11,8 +11,8 @@ No device command was issued while creating this plan.
 
 ```text
 build/alioth/bin/preload_slide_h1a_s2.so
-size=72384
-sha256=E394F647BA609A4E1F3B47E15AE8D883A693DFD5C111352DAF5A485F8D0CF6D4
+size=72400
+sha256=A10D727B42855047145BB330DF1F2DE05A0FC66F7368910BC48CC7EFFD194FE2
 ```
 
 The current artifact is the deterministic TCP blocking redesign described in
@@ -96,9 +96,9 @@ Stop unless:
 
 - The answer is exactly `22` bytes, ends with LF, and contains
   `mm=0xffffffc1b1cfb840`.
-- The device file size is `72384`.
+- The device file size is `72400`.
 - The device SHA256 is
-  `e394f647ba609a4e1f3b47e15ae8d883a693dfd5c111352daf5a485f8d0cf6d4`.
+  `a10d727b42855047145bb330df1f2de05a0fc66f7368910bc48cc7effd194fe2`.
 
 ## Environment and launch
 

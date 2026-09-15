@@ -159,6 +159,7 @@ static int s2_tcp_gate(void) {
   }
 
   uint32_t want_sndbuf = S2_TCP_SNDBUF;
+  optlen = sizeof(sndbuf);
   if (setsockopt(fds[0], SOL_SOCKET, SO_SNDBUF,
                  &want_sndbuf, sizeof(want_sndbuf)) != 0 ||
       setsockopt(fds[0], IPPROTO_TCP, TCP_NODELAY,
