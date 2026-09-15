@@ -519,3 +519,18 @@ full chain, and any gate/readback/reboot anomaly is fail-closed.
 Do not implement or schedule this until the static checklist in the new spec
 is audited. The design explicitly rejects arbitrary sub-qword placement
 hypotheses as unsafe and out of scope.
+
+### 2026-09-15 H1A-D spin root-cause audit
+
+Offline audit complete; see `docs/specs/h1a-d-spin-root-cause.md`. The
+`-EDEADLK` requeue gate correctly proves the stale victim state, but
+`remove_waiter()` clears the requeue thread's `pi_blocked_on`, not the
+victim's. The victim's timeout path then skips waiter cleanup.
+
+The subsequent pselect zeroes and only partially rewrites the stale waiter,
+so the PI walk cannot reach a coherent `waiter->lock`. The kernel
+`rt_mutex_adjust_prio_chain()` trylock-failure path is an unbounded
+`cpu_relax(); goto retry;` loop; with the nominal partial shape, `lock == 0`
+instead predicts an immediate fault/hard wedge. The log lacks a post-trylock
+PC, so it cannot separate those two NO-GO outcomes. No further H1A-D punch or
+full-chain device run is approved.
