@@ -277,6 +277,12 @@ int run_exploit(int argc, char **argv) {
     fflush(stdout);
     _exit(h1a_ret ? 2 : 0);
   }
+  if (getenv("KS_H1A_S2_TEST") != NULL &&
+      !strcmp(getenv("KS_H1A_S2_TEST"), "1")) {
+    int h1a_s2_ret = slide_h1a_s2_test();
+    fflush(stdout);
+    _exit(h1a_s2_ret ? 2 : 0);
+  }
   if (getenv("KS_H1A_W_TEST") != NULL && !strcmp(getenv("KS_H1A_W_TEST"), "1")) {
     int h1a_w_ret = slide_h1a_w_test();
     fflush(stdout);

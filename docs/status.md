@@ -715,3 +715,18 @@ exploit-code change.
 - The terminal-root audit remains compatible only with the detached-SW erase
   caveat above and with `FT.pi_blocked_on = NULL`; using W0 as a second
   `pi_blocked_on` is outside the audit envelope.
+
+### 2026-09-16 H1A-S2 offline implementation
+
+Implemented the isolated `KS_H1A_S2_TEST=1` entry without device access or
+execution. The sendmsg carrier uses the required blocking TCP gate, exact
+`iov[5..7] = {NULL,0}` values, W0 proxy roots, `FT+0x420=0`, and a one-shot
+`sched_setattr` punch. The watchdog is 45 seconds. CFI/fops/root/full-chain
+paths are not invoked.
+
+- Artifact: `build/alioth/bin/preload_slide_h1a_s2.so`
+- SHA256: `67ad26dc7633e3b2f398624463b61aa3d9fa0c0cbe8c6a3f30a5a60ac68b1c44`
+- Build: NDK r26b `aarch64-linux-android34-clang.cmd`, API 34, alioth target.
+- Static checks: all required `H1A-S2` markers are present; the binary has no
+  `pselect`/active-CFI strings. `cfi=disabled` is the required header marker.
+- No device command was issued and no device run is approved.

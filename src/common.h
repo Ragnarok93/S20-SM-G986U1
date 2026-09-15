@@ -16,6 +16,8 @@
 #include <fcntl.h>
 #include <linux/futex.h>
 #include <linux/memfd.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <pthread.h>
 #include <sched.h>
 #include <signal.h>
@@ -166,6 +168,7 @@ void exlog_protect_fd(void);
 
 #define PAGE_PAYLOAD_FOPS 0
 #define PAGE_PAYLOAD_SLIDE 1
+#define PAGE_PAYLOAD_S2 2
 
 struct kernelsnitch_shared_state;
 
@@ -388,6 +391,8 @@ void put64(unsigned char *p, size_t off, uint64_t value);
 void put32(unsigned char *p, size_t off, uint32_t value);
 void put_fake_fops_table(unsigned char *p, size_t off);
 void ks_leak_diff_dump(void);
+int s2_payload_contract_ok(void);
+int s2_reclaim_fd(void);
 int try_put_blob_no_zeros(int fd, const unsigned char *blob, size_t len);
 int try_put_blob_zero_at(int fd, const unsigned char *blob, size_t pos);
 int try_set_ashmem_name_blob(int fd, const unsigned char *blob, size_t len);
@@ -441,6 +446,7 @@ uint64_t slide_child_leak_stext(void);
 int slide_leak_kernel_base(void);
 int slide_h1a_w_test(void);
 int slide_h1a_d_test(void);
+int slide_h1a_s2_test(void);
 
 ssize_t configfs_write_once(
     int fd, uintptr_t target, const void *data, size_t len);

