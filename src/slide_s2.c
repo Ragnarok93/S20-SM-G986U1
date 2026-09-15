@@ -8,6 +8,10 @@
 #define S2_WATCHDOG_TIMEOUT_MS 45000
 #define S2_IOV_TOTAL 0x10004u
 #define S2_SENDMSG_PENDING (-2)
+#define S2_TCP_RCVBUF 4096u
+#define S2_TCP_WINDOW_CLAMP 1u
+#define S2_TCP_MSS 536u
+#define S2_TCP_SNDBUF 8192u
 
 static uint32_t s2_f_wait;
 static uint32_t s2_f_pi_target;
@@ -92,8 +96,18 @@ static int s2_tcp_gate(void) {
   int fds[2] = {-1, -1};
   int listen_fd = -1;
   uint32_t sndbuf = 0;
-  socklen_t optlen = sizeof(sndbuf);
+  uint32_t mss = 0;
+  uint32_t window_clamp = 0;
+  uint32_t effective = 0;
+  int have_mss = 0;
+  int have_window_clamp = 0;
+  socklen_t optlen;
+  struct tcp_info sender_info;
+  struct tcp_info peer_info;
+  socklen_t info_len;
+  int flags;
   int enabled = 1;
+  int gate = 0;
 
   struct sockaddr_in addr;
   memset(&addr, 0, sizeof(addr));
@@ -108,6 +122,17 @@ static int s2_tcp_gate(void) {
   int reuse = 1;
   setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR,
              &reuse, sizeof(reuse));
+  if (setsockopt(listen_fd, SOL_SOCKET, SO_RCVBUF,
+                 &(uint32_t){S2_TCP_RCVBUF},
+                 sizeof(uint32_t)) != 0 ||
+      setsockopt(listen_fd, IPPROTO_TCP, TCP_WINDOW_CLAMP,
+                 &(uint32_t){S2_TCP_WINDOW_CLAMP},
+                 sizeof(uint32_t)) != 0 ||
+      setsockopt(listen_fd, IPPROTO_TCP, TCP_MAXSEG,
+                 &(uint32_t){S2_TCP_MSS}, sizeof(uint32_t)) != 0) {
+    pr_error("S2 tcp listener limits errno=%d\n", errno);
+    goto fail;
+  }
   if (bind(listen_fd, (struct sockaddr *)&addr, sizeof(addr)) != 0 ||
       listen(listen_fd, 1) != 0) {
     pr_error("S2 tcp bind/listen errno=%d\n", errno);
@@ -132,10 +157,8 @@ static int s2_tcp_gate(void) {
     pr_error("S2 tcp accept errno=%d\n", errno);
     goto fail;
   }
-  close(listen_fd);
-  listen_fd = -1;
 
-  uint32_t want_sndbuf = 262144;
+  uint32_t want_sndbuf = S2_TCP_SNDBUF;
   if (setsockopt(fds[0], SOL_SOCKET, SO_SNDBUF,
                  &want_sndbuf, sizeof(want_sndbuf)) != 0 ||
       setsockopt(fds[0], IPPROTO_TCP, TCP_NODELAY,
@@ -146,55 +169,76 @@ static int s2_tcp_gate(void) {
     goto fail;
   }
 
-  int old_flags = fcntl(fds[0], F_GETFL, 0);
-  if (old_flags < 0 ||
-      fcntl(fds[0], F_SETFL, old_flags | O_NONBLOCK) < 0) {
-    pr_error("S2 tcp nonblock errno=%d\n", errno);
+  flags = fcntl(fds[0], F_GETFL, 0);
+  if (flags < 0) {
+    pr_error("S2 tcp flags errno=%d\n", errno);
     goto fail;
   }
 
-  static unsigned char fill_buf[0x10000];
-  memset(fill_buf, 0x53, sizeof(fill_buf));
-  struct iovec fill_iov = {
-    .iov_base = fill_buf,
-    .iov_len = sizeof(fill_buf),
-  };
-  struct msghdr fill_msg;
-  memset(&fill_msg, 0, sizeof(fill_msg));
-  fill_msg.msg_iov = &fill_iov;
-  fill_msg.msg_iovlen = 1;
-  for (;;) {
-    errno = 0;
-    ssize_t sent = sendmsg(fds[0], &fill_msg, MSG_NOSIGNAL);
-    if (sent > 0) {
-      continue;
-    }
-    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      break;
-    }
-    pr_error("S2 tcp fill errno=%d\n", errno);
+  info_len = sizeof(sender_info);
+  memset(&sender_info, 0, sizeof(sender_info));
+  memset(&peer_info, 0, sizeof(peer_info));
+  if (getsockopt(fds[0], IPPROTO_TCP, TCP_INFO,
+                 &sender_info, &info_len) != 0 ||
+      info_len < sizeof(sender_info) ||
+      sender_info.tcpi_state != TCP_ESTABLISHED) {
+    pr_error("S2 tcp sender state errno=%d state=%u\n",
+            errno, sender_info.tcpi_state);
     goto fail;
   }
 
-  if (fcntl(fds[0], F_SETFL, old_flags) < 0) {
-    pr_error("S2 tcp restore errno=%d\n", errno);
+  info_len = sizeof(peer_info);
+  if (getsockopt(fds[1], IPPROTO_TCP, TCP_INFO,
+                 &peer_info, &info_len) != 0 ||
+      info_len < sizeof(peer_info) ||
+      peer_info.tcpi_state != TCP_ESTABLISHED) {
+    pr_error("S2 tcp peer state errno=%d state=%u\n",
+            errno, peer_info.tcpi_state);
     goto fail;
   }
 
-  uint32_t outq = 0;
-  if (ioctl(fds[0], SIOCOUTQ, &outq) != 0) {
-    pr_error("S2 tcp SIOCOUTQ errno=%d\n", errno);
-    goto fail;
+  optlen = sizeof(mss);
+  have_mss = getsockopt(fds[0], IPPROTO_TCP, TCP_MAXSEG,
+                        &mss, &optlen) == 0 &&
+            optlen == sizeof(mss);
+  optlen = sizeof(window_clamp);
+  have_window_clamp = getsockopt(listen_fd, IPPROTO_TCP, TCP_WINDOW_CLAMP,
+                                 &window_clamp, &optlen) == 0 &&
+                     optlen == sizeof(window_clamp);
+
+  effective = sndbuf / 2;
+  gate = sender_info.tcpi_state == TCP_ESTABLISHED &&
+         peer_info.tcpi_state == TCP_ESTABLISHED &&
+         (flags & O_NONBLOCK) == 0 &&
+         effective < S2_IOV_TOTAL &&
+         sndbuf >= 2u * S2_TCP_MSS;
+  if (have_mss && (mss == 0 || mss > S2_TCP_MSS)) {
+    gate = 0;
   }
-  uint32_t effective = sndbuf / 2;
-  uint32_t required = effective > 4096 ? effective - 4096 : 0;
-  pr_info("H1A-S2 tcp sndbuf=%u effective=%u outq=%u gate=%s\n",
-          sndbuf, effective, outq,
-          (outq > 0 && outq >= required) ? "PASS" : "FAIL");
-  if (outq == 0 || outq < required) {
+  /* TCP_WINDOW_CLAMP=1 is the receive-side tuning constant.  Do not test
+   * MSS <= 1 here; the meaningful window invariant is that the clamp is
+   * below the carrier size when the kernel exposes it. */
+  if (have_window_clamp && window_clamp >= S2_IOV_TOTAL) {
+    gate = 0;
+  }
+
+  pr_info("H1A-S2 tcp sndbuf=%u effective=%u mss=%u window_clamp=%u "
+          "state=%u/%u snd_mss=%u rcv_mss=%u snd_wnd=%u rcv_wnd=%u "
+          "notsent=%u gate=%s\n",
+          sndbuf, effective,
+          have_mss ? mss : 0,
+          have_window_clamp ? window_clamp : 0,
+          sender_info.tcpi_state, peer_info.tcpi_state,
+          sender_info.tcpi_snd_mss, sender_info.tcpi_rcv_mss,
+          sender_info.tcpi_snd_wnd, sender_info.tcpi_rcv_wnd,
+          sender_info.tcpi_notsent_bytes,
+          gate ? "PASS" : "FAIL");
+  if (!gate) {
     goto fail;
   }
 
+  close(listen_fd);
+  listen_fd = -1;
   s2_sender_fd = fds[0];
   s2_peer_fd = fds[1];
   return 1;

@@ -1001,3 +1001,42 @@ The round stayed contained: the device remained responsive and no panic was
 observed. S2 is now blocked pending an offline deterministic sendmsg blocking
 redesign. Do not schedule another real S2 attempt, carrier retry, CFI, fops,
 root, or full-chain run until that redesign is specified and reviewed.
+
+### 2026-09-16 H1A-S2 deterministic TCP blocking redesign
+
+Replaced the run-4 fill-plus-`SIOCOUTQ` TCP preparation with a deterministic
+small-buffer contract. On the listening socket, before bind/listen, S2 now
+sets `SO_RCVBUF=4096`, `TCP_WINDOW_CLAMP=1`, and `TCP_MAXSEG=536`. On the
+accepted sender it sets `SO_SNDBUF=8192` and `TCP_NODELAY=1`, leaves the
+sender blocking, performs no socket prefill, and does not use `SIOCOUTQ`
+as a blocking gate.
+
+Before arming, the gate requires:
+
+- both TCP endpoints report `TCP_ESTABLISHED`;
+- the sender has no `O_NONBLOCK`;
+- effective `sndbuf < 0x10004`;
+- raw `sndbuf >= 2*536`.
+
+`TCP_MAXSEG` and `TCP_WINDOW_CLAMP` are logged when readable; an unreadable
+MSS or clamp is diagnostic-only, while unreadable core values fail closed.
+The requested `TCP_WINDOW_CLAMP=1` is used as the receive-side tuning
+constant, not as a bogus `MSS <= 1` comparison. Effective sndbuf, MSS,
+window clamp, TCP states, window sizes, and notsent counter are logged.
+
+```text
+build/alioth/bin/preload_slide_h1a_s2.so
+size=72400
+sha256=72529CA232F7E4848FE6E67F8F543B3B3067717C6005D436037E68F37F3E6D55
+entry=0xE99C
+load=R E [0x6648,0xEFA0)
+```
+
+NDK r26b API 34 offline rebuild passes. `llvm-readelf` confirms the nonzero
+entry lies in the executable LOAD. Required S2 markers are present; no
+dynamic/undefined `pselect`, `active-CFI=1`, `uid_after=0=1`, `fops hijack`,
+or `full-chain` marker is present. Residual helper-only `pselect` strings
+remain in the image, as documented previously. The only build warning is the
+pre-existing unused `ks` in `kernelsnitch.h`.
+
+No adb/device command was issued and no device run is approved.

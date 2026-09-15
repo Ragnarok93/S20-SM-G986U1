@@ -11,14 +11,13 @@ No device command was issued while creating this plan.
 
 ```text
 build/alioth/bin/preload_slide_h1a_s2.so
-size=71952
-sha256=A5793D059066995769237FB2D065434D1B6E6E799DA100F78F6D522B97D31B9F
+size=72400
+sha256=72529CA232F7E4848FE6E67F8F543B3B3067717C6005D436037E68F37F3E6D55
 ```
 
-The current artifact is the arm-ordering-fixed S2 build described in
-`docs/status.md`. Do not rebuild, relink, or substitute another binary
-for this attempt. If the local hash differs, stop and re-audit the
-artifact.
+The current artifact is the deterministic TCP blocking redesign described in
+`docs/status.md`. Do not rebuild, relink, or substitute another binary for
+this attempt. If the local hash differs, stop and re-audit the artifact.
 
 References:
 
@@ -97,9 +96,9 @@ Stop unless:
 
 - The answer is exactly `22` bytes, ends with LF, and contains
   `mm=0xffffffc1b1cfb840`.
-- The device file size is `71952`.
+- The device file size is `72400`.
 - The device SHA256 is
-  `a5793d059066995769237fb2d065434d1b6e6e799da100f78f6d522b97d31b9f`.
+  `72529ca232f7e4848fe6e67f8f543b3b3067717c6005d436037e68f37f3e6d55`.
 
 ## Environment and launch
 
@@ -146,7 +145,9 @@ The minimum evidence set is:
 ```text
 H1A-S2 header route=sendmsg proxy-root=1 cfi=disabled
 H1A-S2 page prepared base=<hex> lock=<hex> proxy=<hex> task=<hex>
-H1A-S2 tcp sndbuf=<u32> effective=<u32> outq=<u32> gate=PASS
+H1A-S2 tcp sndbuf=<u32> effective=<u32> mss=<u32> window_clamp=<u32>
+state=<u>/<u> snd_mss=<u> rcv_mss=<u> snd_wnd=<u> rcv_wnd=<u>
+notsent=<u> gate=PASS
 H1A-S2 watchdog started pid=<pid> parent=<pid> timeout_ms=45000
 H1A-S2 gate requeue ret=-1 errno=35 victim ret=-1 errno=110
 H1A-S2 sendmsg armed tid=<pid> iov_total=65540 delay_ms=150
@@ -220,32 +221,22 @@ Do not retry the real S2 probe until the minimal hello DSO passes cleanly.
 The hello probe is also one attempt per boot; a failed hello probe requires
 evidence capture and reboot before any further device action.
 
-## TCP blocking blocker
+## Deterministic TCP blocking redesign
 
-**BLOCKED: do not schedule another real S2 device attempt.**
+Device run 4 proved that the prior fill-plus-`SIOCOUTQ` gate did not keep
+`sendmsg` blocked. The S2 TCP preparation is now:
 
-Device H1A-S2 run 4, after the arm-ordering fix, failed with:
+- on the listening socket, before bind/listen:
+  `SO_RCVBUF=4096`, `TCP_WINDOW_CLAMP=1`, `TCP_MAXSEG=536`;
+- on the accepted sender: `SO_SNDBUF=8192`, `TCP_NODELAY=1`;
+- no socket prefill and no `SIOCOUTQ` blocking gate;
+- sender remains blocking.
 
-```text
-H1A-S2 sendmsg returned ret=65540 errno=0
-S2 consumer sendmsg returned early armed=1 allowed=1 ret=65540 route_done=1
-H1A-S2 verdict=FAIL reason=punch-gate
-```
+Before arming, the gate requires an established sender/peer pair, a sender
+without `O_NONBLOCK`, `sndbuf/2 < 0x10004`, and `sndbuf >= 2*536`. The
+effective sndbuf, MSS, window clamp, TCP states, window sizes, and notsent
+counter are logged when readable. Missing optional diagnostics do not fail a
+core-contract pass; unreadable core values fail closed. The device run still
+requires explicit scheduling under this plan.
 
-The return value `65540` is exactly `0x10004`, the full carrier length.
-This is direct evidence that `sendmsg` completed the whole write instead of
-remaining blocked in the send path until the consumer's one-shot punch.
-Consequently, the existing fill plus `SIOCOUTQ` TCP gate does not guarantee
-blocking; a passing gate is not sufficient to preserve the sendmsg stack
-window through the punch.
-
-The failure was contained: the device stayed responsive and no panic was
-observed. Preserve this as evidence for the blocker, but do not retry the
-carrier on the same boot and do not advance to CFI, fops, root, or the full
-chain.
-
-Another real S2 attempt must wait for an offline, deterministic sendmsg
-blocking redesign. The redesigned gate must have a falsifiable contract that
-proves the victim's carrier is still blocked at the intended send path when
-the one-shot punch occurs. Until that design is reviewed and a new artifact is
-produced, this plan remains blocked.
+No adb/device command was issued and no device run is approved.
