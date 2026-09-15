@@ -774,6 +774,25 @@ NDK r26b API 34 static checks pass:
 
 No adb/device command was issued and no device run is approved.
 
+### 2026-09-16 H1A-S2 run 7 boundary PASS
+
+Device run 7 used artifact `a10d727b42855047145bb330df1f2de05a0fc66f7368910bc48cc7effd194fe2`
+(`size=72400`) and returned `rc=0`. Observed evidence:
+
+```text
+tcp sndbuf=16384 effective=8192 mss=524 window_clamp=1152 gate=PASS
+sendmsg armed; punch enter; punch first ret=0; punch done ret=0
+sendmsg returned ret=65540 errno=0
+gate requeue ret=-1 errno=35; victim ret=-1 errno=110
+readback proxy_tree_self=1 proxy_pi_self=1 ft_pi_root=ffffffc1b1cfa238
+evidence lock_wait_lock=0 lock_owner=ffffffc1b1cfb201 ft_root_plausible=1
+verdict PASS reason=gate-pass
+```
+
+This closes the S2 boundary check for the deterministic blocking carrier and
+W0 proxy-root readback. It is explicitly not a root result: no CFI, fops
+mutation, root, or full-chain was attempted, and no escalation is approved.
+
 ### 2026-09-16 H1A-S2 short TCP_INFO compatibility
 
 Device run 5 stopped at the new TCP gate because Android/4.19 can return a

@@ -240,3 +240,32 @@ core-contract pass; unreadable core values fail closed. The device run still
 requires explicit scheduling under this plan.
 
 No adb/device command was issued and no device run is approved.
+
+## Device run 7 boundary PASS
+
+Device run 7 used:
+
+```text
+build/alioth/bin/preload_slide_h1a_s2.so
+size=72400
+sha256=a10d727b42855047145bb330df1f2de05a0fc66f7368910bc48cc7effd194fe2
+```
+
+The process returned `rc=0` and recorded:
+
+```text
+H1A-S2 tcp sndbuf=16384 effective=8192 mss=524 window_clamp=1152 gate=PASS
+H1A-S2 sendmsg armed
+H1A-S2 punch enter
+H1A-S2 punch first ret=0
+H1A-S2 punch done ret=0
+H1A-S2 sendmsg returned ret=65540 errno=0
+H1A-S2 gate requeue ret=-1 errno=35 victim ret=-1 errno=110
+H1A-S2 readback proxy_tree_self=1 proxy_pi_self=1 ft_pi_root=ffffffc1b1cfa238
+H1A-S2 evidence lock_wait_lock=0 lock_owner=ffffffc1b1cfb201 ft_root_plausible=1
+H1A-S2 verdict=PASS reason=gate-pass
+```
+
+This is the H1A-S2 boundary result only. It validates the bounded S2
+sendmsg/proxy-root gate and readback, not any downstream stage. No CFI, fops
+mutation, root, or full-chain was attempted, and no escalation is approved.
