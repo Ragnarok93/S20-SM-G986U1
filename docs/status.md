@@ -581,3 +581,22 @@ exploit-code change were made.
 
 **Placement verdict: GO for the raw 0x50 stack placement only; downstream
 fake task/lock safety is not validated by this audit.**
+
+### 2026-09-16 task-pointer acquisition audit
+
+Offline audit complete; see
+`docs/specs/task-pointer-acquisition-audit.md`. No device access and no
+exploit-code change.
+
+- Verdict: **FAKE-TASK-ONLY**.
+- The pre-sendmsg KernelSnitch/mm-answer surface provides mm, slab page base,
+  KASLR/delta, and futex collision addresses, but not a valid victim
+  `task_struct`.
+- `mm->owner` and the existing `init_task.tasks` walk are only usable after
+  the post-CFI fops/configfs primitive, so they do not meet the pre-sendmsg
+  requirement.
+- Native blocking TCP sendmsg can encode the controlled `fake_task` pointer
+  into the stale waiter without the victim task pointer.
+- This supports only a bounded fake-task PI walk under the full
+  waiter/task/lock contract. It does not validate CFI, pipe-physrw, root, or
+  scheduler-specific fake-task fields.
