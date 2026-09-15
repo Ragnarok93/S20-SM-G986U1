@@ -773,3 +773,47 @@ NDK r26b API 34 static checks pass:
   `kernelsnitch.h`; no S2 warning was introduced.
 
 No adb/device command was issued and no device run is approved.
+
+### 2026-09-16 H1A-S2 second QA re-audit and rebuild
+
+A deeper r26b static IR check found that the prior S2 build still lost the
+victim-side sendmsg/punch/readback path. The root cause was the carrier
+contract itself: four one-byte iovs plus one 0x10000-byte iov total
+`0x10004`, not `0x10005`. r26b/Clang 17 therefore folded the contract to
+constant false and dead-stripped the sendmsg path; `noinline` alone did not
+prevent that.
+
+Additional hardening:
+
+- Corrected `S2_IOV_TOTAL` to `0x10004`.
+- Upgraded the S2 synchronization flags to `volatile atomic_int`; r26b IPSCCP
+  otherwise continued folding the cross-thread gate through
+  `pthread_create`.
+- Reset the one-way `s2_requeue_complete` latch at entry.
+- Added a defensive null check for the carrier iov array.
+- Reordered arming so `s2_sendmsg_armed` is the final store immediately
+  before `sendmsg()`; the armed marker and gate checks now happen before the
+  arming stores, with no logging or validation inside the sendmsg entry
+  window.
+
+Final superseding offline artifact:
+
+```text
+build/alioth/bin/preload_slide_h1a_s2.so
+size=181944
+sha256=63526FD7FE697A5F5C9A5254DBA44703701900B185EBCB47B7CD4A731AFEE606
+```
+
+NDK r26b API 34 static checks pass:
+
+- ELF64, AArch64, shared object.
+- Exported `main`; local `slide_h1a_s2_test`; dynamic `sendmsg`.
+- All required H1A-S2 gate/armed/punch/readback/evidence/watchdog markers
+  are present.
+- No `active-CFI=1`, `uid_after=0=1`, `fops hijack`, `full-chain`, or
+  `KS_H1A_TEST=1` marker. Residual pselect symbols come from linked helper
+  code and are not reachable through the isolated `s2_main.c` gate.
+- The only build warning is the pre-existing unused `ks` in
+  `kernelsnitch.h`.
+
+No adb/device command was issued and no device run is approved.
