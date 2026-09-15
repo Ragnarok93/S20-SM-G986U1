@@ -958,3 +958,25 @@ load=R E [0x1608,0x1730)
 `llvm-readelf` confirms both entries are nonzero and lie inside the
 executable LOAD segment. No adb/device command was issued and no device
 run is approved.
+
+### 2026-09-16 H1A-S2 arm-ordering fix
+
+Device run 3 failed at the userland arm gate because the victim checked
+`punch_allowed` while that consumer authorization was still intentionally
+zero. The waiter path now treats `punch_allowed` as a post-carrier
+authorization signal for the consumer: after the carrier contract and
+pending-sendmsg gate pass, the waiter publishes `punch_allowed=1`, then
+publishes `s2_sendmsg_armed=1` immediately before `sendmsg()`. The
+consumer still requires both `punch_allowed` and `s2_sendmsg_armed`.
+The carrier contract, stale-waiter gates, one-shot punch, evidence
+requirements, and 45-second watchdog are unchanged.
+
+```text
+build/alioth/bin/preload_slide_h1a_s2.so
+size=71952
+sha256=A5793D059066995769237FB2D065434D1B6E6E799DA100F78F6D522B97D31B9F
+entry=0xE7A4
+```
+
+NDK r26b API 34 offline rebuild and marker checks pass. No adb/device
+command was issued and no device run is approved.

