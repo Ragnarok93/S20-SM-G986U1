@@ -455,18 +455,6 @@ Next: offline core_sys_select frame-layout math against
 materials/kernelsrc/sm8250-a13-stable (nfds=320 stack_fds path), then one
 more single-shot H1A-D with corrected offsets.
 
-### 2026-09-15 pselect word-0 fallback audit
-
-- Verdict: **NO-GO**; crash risk **HIGH**. See
-  `docs/specs/pselect-word0-fallback-audit.md`.
-- In the alioth frame, `res_in` word 0 lands at waiter offset `+0x00`
-  (`tree_entry.__rb_parent_color`), not `waiter->lock` at `+0x38`
-  (`res_out` word 2). The ELF confirms both mappings.
-- A word-0-only shape leaves `waiter->lock=NULL`; `sched_setattr` ->
-  `rt_mutex_adjust_pi()` -> `rt_mutex_adjust_prio_chain()` would dereference
-  NULL in `raw_spin_trylock(&lock->wait_lock)`.
-- This is offline-only. No device run and no exploit-code change were made.
-
 ### 2026-09-15 slide/H1A independent evidence audit
 
 Completed an independent evidence-only audit (no device action, no exploit
@@ -495,3 +483,15 @@ action and no exploit-code change.
   required `0x50`; control bytes are not contiguous.
 
 **Verdict: NO-GO. Do not implement a sendmsg-family replacement encoder.**
+
+### 2026-09-15 pselect word-0 fallback audit
+
+- Verdict: **NO-GO**; crash risk **HIGH**. See
+  `docs/specs/pselect-word0-fallback-audit.md`.
+- In the alioth frame, `res_in` word 0 lands at waiter offset `+0x00`
+  (`tree_entry.__rb_parent_color`), not `waiter->lock` at `+0x38`
+  (`res_out` word 2). The ELF confirms both mappings.
+- A word-0-only shape leaves `waiter->lock=NULL`; `sched_setattr` ->
+  `rt_mutex_adjust_pi()` -> `rt_mutex_adjust_prio_chain()` would dereference
+  NULL in `raw_spin_trylock(&lock->wait_lock)`.
+- This is offline-only. No device run and no exploit-code change were made.
