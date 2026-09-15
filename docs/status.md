@@ -520,6 +520,30 @@ Do not implement or schedule this until the static checklist in the new spec
 is audited. The design explicitly rejects arbitrary sub-qword placement
 hypotheses as unsafe and out of scope.
 
+### 2026-09-15 SP-1 adversarial review: UNSAFE
+
+Offline audit verdict: **UNSAFE; do not implement, build, deploy, or
+schedule SP-1.** Review:
+`docs/specs/safe-placement-probe-review.md`.
+
+Key findings:
+
+- The marker-read path is not safe. The single-qword pselect shape zeroes
+  `waiter.task`; when the empty-owner probe lock enqueues that waiter,
+  4.19 `rt_mutex_adjust_prio_chain()` reaches
+  `wake_up_process(rt_mutex_top_waiter(lock)->task)` and dereferences NULL.
+- The marker-miss assumption is not fail-closed. `build/ks_log_h1a_d_run1.txt`
+  passed the pre-punch `EDEADLK` requeue gate but then showed
+  `punch watchdog timeout ... status=stuck`; a later PI walk is not proven to
+  exit with `EDEADLK`.
+- A nonzero `probe_lock.waiters.rb_root` is not sufficient proof of waiter
+  enqueue. It can be confused with other kernel writes and lacks an exact
+  `rb_root == rb_leftmost` / all-copy signature.
+
+The single-qword placement at `res_out[2]` is mechanically correct, but that
+does not make the probe safe. SP-1 remains blocked and must not advance to any
+device run.
+
 ### 2026-09-15 H1A-D spin root-cause audit
 
 Offline audit complete; see `docs/specs/h1a-d-spin-root-cause.md`. The
