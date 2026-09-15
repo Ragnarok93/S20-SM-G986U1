@@ -642,3 +642,31 @@ New contract: `docs/specs/sendmsg-pi-shape-design.md`.
 This is still a design/contract only. It does not validate the frame on device,
 does not approve CFI, pipe-physrw, root, or any full-chain run, and requires the
 static gates in the spec before implementation or testing.
+
+### 2026-09-16 sendmsg H1A-S2 implementation design
+
+Offline implementation design only; no device access, code change, build, or
+run. New spec:
+`docs/specs/sendmsg-h1a-s2-implementation-design.md`.
+
+- Defines a pselect-free H1A-S2 path using native blocking TCP `sendmsg`,
+  with `msg_iovlen=8`, `msg_namelen=32`, `msg_controllen=0`, and
+  `iov[5..7].iov_len=0`.
+- Finds one necessary adaptation: userspace cannot know the stale waiter's
+  kernel stack address, so the direct
+  `fake_lock.waiters = stale_waiter` contract is not implementable. S2 uses
+  the known page proxy waiter at `W0_OFF=0x2220` as the terminal lock root;
+  the sendmsg-shaped waiter then requeues into the controlled tree.
+- Corrects the iov encoding: `iov[5..7]` must be `{NULL, 0}` so the stale
+  waiter becomes a childless red root. A nonzero `iov_base` would become a
+  non-NULL rbtree child pointer.
+- Keeps the walk bounded to `SW`, `FL=+0x1350`, `W0=+0x2220`, and
+  `FT=+0x3200`; requires `FT.pi_blocked_on=0`, `pi_top_task=FT`, and
+  `prio=normal_prio=120`. CFI/fops remains disabled.
+- Adds the TCP full-send-path gate (`SIOCOUTQ`), 150 ms one-shot consumer
+  synchronization, exact `-EDEADLK`/`ETIMEDOUT` stale-waiter gates, stable
+  `H1A-S2` log markers, fail-closed conditions, and a 45 s process watchdog
+  boundary.
+- Verdict: design-only GO for a separate `KS_H1A_S2_TEST` implementation
+  after static audit. NO-GO for device use, CFI, full chain, retries, or the
+  original `fake_lock.waiters = SW` direct form.
