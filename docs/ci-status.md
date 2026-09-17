@@ -206,13 +206,13 @@ device run, no `KS_MM_TEST`, and no main-chain behavior change.
 | 4 | Renderer ordering | PASS | mm answer, 45 B companion, and 94 B run22 gate are rendered only after answer validation PASS; run22 uses the selected live collector edge |
 | 5 | Private-directory adaptation | PASS | controller rejects `/data/local/tmp` binding paths; rootchain path env defaults and gate logic remain unchanged |
 | 6 | Host byte-contract QA | PASS | 29/29 cases: C45 11/11, C94 18/18; output in `build/closed_loop_binding_selftest.txt` |
-| 7 | Closed-loop DSO build | PASS | NDK r26b API 34 `@build_closed_loop.rsp`; size 77040 B; SHA256 `7E453F63403554930A69D83C3DC6AE15C3BD0DA8B45B95FAFE67489F34771614` |
+| 7 | Closed-loop DSO build | PASS | NDK r26b API 34 `@build_closed_loop.rsp`; size 214632 B; SHA256 `7E453F63403554930A69D83C3DC6AE15C3BD0DA8B45B95FAFE67489F34771614` |
 | 8 | Rootchain regression build | PASS | `@build_rootchain.rsp`; only the pre-existing unused `ks` warning; SHA256 `931616C603242AEA75D1C557251E4BF1407036D45C1B8488E85CA0135672E299` |
 
 Build provenance:
 
 ```text
 build/alioth/bin/preload_closed_loop.so
-size=77040
+size=214632
 sha256=7E453F63403554930A69D83C3DC6AE15C3BD0DA8B45B95FAFE67489F34771614
 ```
