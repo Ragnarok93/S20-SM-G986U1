@@ -1,4 +1,5 @@
 #include "binding_renderer.h"
+#include "closed_loop.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -228,7 +229,8 @@ static int fsync_dir_of(const char *path) {
 int binding_write_atomic(const char *path, const void *data, size_t len) {
   char tmp_path[768];
   int fd;
-  if (!path || !data || strlen(path) + 4 >= sizeof(tmp_path)) {
+  if (!path || !data || !closed_loop_path_is_private(path) ||
+      strlen(path) + 4 >= sizeof(tmp_path)) {
     return -1;
   }
   snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", path);
@@ -254,7 +256,8 @@ int binding_write_atomic(const char *path, const void *data, size_t len) {
 int binding_render_mm_answer(uintptr_t mm, const char *path) {
   char buf[64];
   size_t len = 0;
-  if (binding_render_mm_answer_buffer(mm, buf, sizeof(buf), &len) != 0) {
+  if (!closed_loop_path_is_private(path) ||
+      binding_render_mm_answer_buffer(mm, buf, sizeof(buf), &len) != 0) {
     return -1;
   }
   return binding_write_atomic(path, buf, len);
@@ -263,7 +266,8 @@ int binding_render_mm_answer(uintptr_t mm, const char *path) {
 int binding_render_companion(const char *boot_id, const char *path) {
   char buf[64];
   size_t len = 0;
-  if (binding_render_companion_buffer(boot_id, buf, sizeof(buf), &len) != 0) {
+  if (!closed_loop_path_is_private(path) ||
+      binding_render_companion_buffer(boot_id, buf, sizeof(buf), &len) != 0) {
     return -1;
   }
   return binding_write_atomic(path, buf, len);
@@ -274,7 +278,8 @@ int binding_render_run22_gate(const char *boot_id, uintptr_t mm,
                               const char *path) {
   char buf[128];
   size_t len = 0;
-  if (binding_render_run22_gate_buffer(boot_id, mm, t2c_pass, c2t_pass,
+  if (!closed_loop_path_is_private(path) ||
+      binding_render_run22_gate_buffer(boot_id, mm, t2c_pass, c2t_pass,
                                        c2c_pass, buf, sizeof(buf),
                                        &len) != 0) {
     return -1;

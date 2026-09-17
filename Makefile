@@ -34,6 +34,13 @@ S2_PRELOAD := $(S2_OUTDIR)/preload_slide_h1a_s2.so
 S2_EXPORT_MAP := src/s2_export.map
 S2_NDK_ROOT ?= D:/codeTool/ndk/android-ndk-r26b/toolchains/llvm/prebuilt/windows-x86_64
 S2_CC ?= $(S2_NDK_ROOT)/bin/aarch64-linux-android34-clang.cmd
+S3_SRCS := src/s3_main.c src/slide_s3.c src/util.c src/s2_support.c \
+	src/dso_start.S
+S3_PRELOAD := $(S2_OUTDIR)/preload_slide_h1a_s3.so
+ROOTCHAIN_SRCS := src/rootchain_bridge.c src/slide_s3.c src/util.c \
+	src/s2_support.c src/fops.c src/pipe.c src/root.c src/preload.c \
+	src/su_blob.S src/wallpaper_blob.S src/dso_start.S
+ROOTCHAIN_PRELOAD := $(S2_OUTDIR)/preload_rootchain_bridge.so
 CLOSED_LOOP_SRCS := src/closed_loop/phase_controller.c \
 	src/closed_loop/binding_renderer.c src/closed_loop/bucket_answer.c \
 	src/closed_loop/util.c src/rootchain_bridge.c src/slide_s3.c \
@@ -99,13 +106,17 @@ SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
 TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
 
-.PHONY: all preload s2 closed-loop hello-dso clean info list-projects
+.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects
 
 all: preload
 
 preload: $(PRELOAD)
 
 s2: $(S2_PRELOAD)
+
+s3: $(S3_PRELOAD)
+
+rootchain: $(ROOTCHAIN_PRELOAD)
 
 closed-loop: $(CLOSED_LOOP_PRELOAD)
 
@@ -132,6 +143,16 @@ $(PRELOAD): $(PRELOAD_SRCS) $(EMBED_SU) $(WALLPAPER) $(TARGET_HEADER) src/offset
 
 $(S2_PRELOAD): $(S2_SRCS) $(S2_EXPORT_MAP) build_s2.rsp $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h | $(S2_OUTDIR)
 	cmd /c "$(S2_CC) @build_s2.rsp"
+	certutil -hashfile $@ SHA256
+
+$(S3_PRELOAD): $(S3_SRCS) $(S2_EXPORT_MAP) build_s3.rsp $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h | $(S2_OUTDIR)
+	cmd /c "$(S2_CC) @build_s3.rsp"
+	certutil -hashfile $@ SHA256
+
+$(ROOTCHAIN_PRELOAD): $(ROOTCHAIN_SRCS) $(EMBED_SU) $(WALLPAPER) \
+	$(S2_EXPORT_MAP) build_rootchain.rsp src/rootchain_bridge.h $(TARGET_HEADER) \
+	src/offset.h src/common.h src/kernelsnitch/*.h | $(S2_OUTDIR)
+	cmd /c "$(S2_CC) @build_rootchain.rsp"
 	certutil -hashfile $@ SHA256
 
 $(CLOSED_LOOP_PRELOAD): $(CLOSED_LOOP_SRCS) $(S2_EXPORT_MAP) \

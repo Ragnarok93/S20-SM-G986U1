@@ -16,9 +16,10 @@
 
 #define CLOSED_LOOP_WAIT_SECONDS (15 * 60)
 #define CLOSED_LOOP_HEARTBEAT_SECONDS 5
-#define CLOSED_LOOP_WATCHDOG_SECONDS (CLOSED_LOOP_HEARTBEAT_SECONDS * 3)
-#define CLOSED_LOOP_PRIVATE_PREFIX "/data/data/org.mozilla.firefox/files/"
-#define CLOSED_LOOP_FORBIDDEN_PREFIX "/data/local/tmp/"
+#define CLOSED_LOOP_COLLECT_BUDGET_SECONDS (10 * 60)
+#define CLOSED_LOOP_WAIT_BUDGET_SECONDS (15 * 60)
+#define CLOSED_LOOP_VALIDATE_BUDGET_SECONDS (10 * 60)
+#define CLOSED_LOOP_ROOTCHAIN_BUDGET_SECONDS (5 * 60)
 #define CLOSED_LOOP_BOOT_LOCK "/data/local/tmp/rootchain_bridge_boot.lock"
 
 enum closed_loop_phase {
@@ -33,7 +34,6 @@ struct closed_loop_binding {
   pid_t pid;
   pid_t tgid;
   unsigned long long starttime;
-  char stat_line[4096];
   char boot_id[64];
   char bucket_sha256[65];
 };
@@ -65,26 +65,42 @@ static void watchdog_handler(int signo) {
   g_watchdog_fired = 1;
   {
     static const char message[] =
-        "MMLOOP heartbeat watchdog=FAIL missed=2 same_boot_retry=0\n";
+        "MMLOOP watchdog phase-budget=FAIL same_boot_retry=0\n";
     ssize_t ignored = write(STDERR_FILENO, message, sizeof(message) - 1);
     (void)ignored;
   }
   _exit(70);
 }
 
-static void install_watchdog(void) {
+static void install_watchdog(int budget_seconds) {
   struct sigaction action;
 
   memset(&action, 0, sizeof(action));
   action.sa_handler = watchdog_handler;
   sigaction(SIGALRM, &action, NULL);
-  alarm(CLOSED_LOOP_WATCHDOG_SECONDS);
+  alarm(budget_seconds);
+}
+
+static int phase_budget_seconds(enum closed_loop_phase phase) {
+  switch (phase) {
+    case CLOSED_LOOP_COLLECT:
+      return CLOSED_LOOP_COLLECT_BUDGET_SECONDS;
+    case CLOSED_LOOP_WAIT_ANSWER:
+      return CLOSED_LOOP_WAIT_BUDGET_SECONDS;
+    case CLOSED_LOOP_VALIDATE:
+      return CLOSED_LOOP_VALIDATE_BUDGET_SECONDS;
+    case CLOSED_LOOP_ROOTCHAIN:
+      return CLOSED_LOOP_ROOTCHAIN_BUDGET_SECONDS;
+    case CLOSED_LOOP_SPAWN:
+      return 0;
+  }
+  return 0;
 }
 
 static void heartbeat(enum closed_loop_phase phase) {
   static unsigned int tick;
   pr_info("MMLOOP heartbeat phase=%s tick=%u\n", phase_name(phase), ++tick);
-  install_watchdog();
+  alarm(phase_budget_seconds(phase));
 }
 
 static int read_file_head(const char *path, char *buf, size_t len) {
@@ -166,7 +182,6 @@ static int capture_binding(struct closed_loop_binding *binding) {
   if (!read_file_head("/proc/self/stat", stat_text, sizeof(stat_text))) {
     return 0;
   }
-  snprintf(binding->stat_line, sizeof(binding->stat_line), "%s", stat_text);
   close_paren = strrchr(stat_text, ')');
   if (!close_paren) {
     return 0;
@@ -200,7 +215,6 @@ static int binding_matches(const struct closed_loop_binding *expected) {
   return current.pid == expected->pid &&
          current.tgid == expected->tgid &&
          current.starttime == expected->starttime &&
-         strcmp(current.stat_line, expected->stat_line) == 0 &&
          strcmp(current.boot_id, expected->boot_id) == 0;
 }
 
@@ -296,22 +310,42 @@ static int choose_edge(const struct closed_loop_collector_state *state,
   return 0;
 }
 
+static void unlink_binding_artifacts(void) {
+  static const char *env_names[] = {
+    "ROOTCHAIN_MM_PATH",
+    "ROOTCHAIN_MM_BOOT_ID_PATH",
+    "ROOTCHAIN_RUN22_GATE_PATH"
+  };
+  size_t i;
+
+  for (i = 0; i < sizeof(env_names) / sizeof(env_names[0]); ++i) {
+    const char *path = getenv(env_names[i]);
+    if (path && *path) {
+      (void)unlink(path);
+    }
+  }
+}
+
 static int render_bindings(const struct closed_loop_binding *binding,
                            uintptr_t mm,
                            const struct closed_loop_edge_evidence *edge) {
-  int64_t now = (int64_t)time(NULL);
-  uint64_t btime = (uint64_t)now;
+  int t2c_pass = edge && edge->t2c_votes == edge->rounds;
+  int c2t_pass = edge && edge->c2t_votes == edge->rounds;
+  int c2c_pass = edge && edge->c2c_votes == edge->rounds;
+  int rendered;
 
-  if (binding_render_mm_answer(mm, getenv("ROOTCHAIN_MM_PATH")) != 0 ||
+  unlink_binding_artifacts();
+  rendered =
+      binding_render_mm_answer(mm, getenv("ROOTCHAIN_MM_PATH")) == 0 &&
       binding_render_companion(binding->boot_id,
-                               getenv("ROOTCHAIN_MM_BOOT_ID_PATH")) != 0 ||
-      binding_render_run22_gate(binding->boot_id, mm, 1, 1, 1,
-                                getenv("ROOTCHAIN_RUN22_GATE_PATH")) != 0) {
-    return 0;
+                               getenv("ROOTCHAIN_MM_BOOT_ID_PATH")) == 0 &&
+      binding_render_run22_gate(binding->boot_id, mm, t2c_pass, c2t_pass,
+                                c2c_pass,
+                                getenv("ROOTCHAIN_RUN22_GATE_PATH")) == 0;
+  if (!rendered) {
+    unlink_binding_artifacts();
   }
-  (void)edge;
-  (void)btime;
-  return 1;
+  return rendered;
 }
 
 int closed_loop_main(void) {
@@ -362,6 +396,7 @@ int closed_loop_main(void) {
           g_spawn_binding.starttime);
 
   phase = CLOSED_LOOP_COLLECT;
+  install_watchdog(phase_budget_seconds(phase));
   heartbeat(phase);
   collector_rc = closed_loop_collect_bucket();
   alarm(0);
@@ -400,6 +435,8 @@ int closed_loop_main(void) {
           elapsed_seconds);
 
   phase = CLOSED_LOOP_VALIDATE;
+  install_watchdog(phase_budget_seconds(phase));
+  heartbeat(phase);
   validate_binding = g_spawn_binding;
   if (!binding_matches(&validate_binding) || !boot_lock_absent() ||
       !rehash_bucket(validate_binding.bucket_sha256) ||
@@ -442,6 +479,7 @@ int closed_loop_main(void) {
       return rootchain_rc == 0 ? 0 : 2;
     }
   }
+  alarm(0);
   pr_info("MMLOOP phase=%s PASS\n", phase_name(phase));
   pr_info("MMLOOP verdict=PASS phase=%s\n", phase_name(phase));
   return 0;

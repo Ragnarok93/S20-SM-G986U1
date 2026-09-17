@@ -1,4 +1,5 @@
 #define KS_SKIP_MAIN_UTILS 1
+#include <limits.h>
 #include "common.h"
 #include "kernelsnitch/kernelsnitch.h"
 #include "bucket_answer.h"
@@ -577,9 +578,58 @@ uintptr_t cleanup_kernelsnitch(void) {
 }
 
 int closed_loop_path_is_private(const char *path) {
-  return path && *path &&
-         strncmp(path, "/data/local/tmp/", 16) != 0 &&
-         strncmp(path, "/data/data/org.mozilla.firefox/files/", 38) == 0;
+  static const char private_prefix[] =
+      "/data/data/org.mozilla.firefox/files";
+  char parent[PATH_MAX];
+  char resolved_parent[PATH_MAX];
+  char *slash;
+  struct stat st;
+  size_t length;
+
+  if (!path || path[0] != '/') {
+    return 0;
+  }
+  length = strlen(path);
+  if (length >= sizeof(parent) || length < sizeof(private_prefix) + 2 ||
+      strncmp(path, private_prefix, sizeof(private_prefix) - 1) != 0 ||
+      path[sizeof(private_prefix) - 1] != '/') {
+    return 0;
+  }
+  if (strstr(path, "/../") != NULL ||
+      (length >= 3 && strcmp(path + length - 3, "/..") == 0)) {
+    return 0;
+  }
+  if (path[length - 1] == '/') {
+    return 0;
+  }
+  if (lstat(path, &st) == 0) {
+    if (S_ISLNK(st.st_mode) || S_ISDIR(st.st_mode)) {
+      return 0;
+    }
+  } else if (errno != ENOENT) {
+    return 0;
+  }
+
+  snprintf(parent, sizeof(parent), "%s", path);
+  slash = strrchr(parent, '/');
+  if (!slash) {
+    return 0;
+  }
+  if (slash == parent) {
+    parent[1] = '\0';
+  } else {
+    *slash = '\0';
+  }
+  if (lstat(parent, &st) != 0 || !S_ISDIR(st.st_mode) ||
+      !realpath(parent, resolved_parent)) {
+    return 0;
+  }
+  if (strncmp(resolved_parent, private_prefix,
+              sizeof(private_prefix) - 1) != 0) {
+    return 0;
+  }
+  return resolved_parent[sizeof(private_prefix) - 1] == '\0' ||
+         resolved_parent[sizeof(private_prefix) - 1] == '/';
 }
 
 static int closed_loop_private_path(const char *path) {
