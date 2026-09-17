@@ -40,7 +40,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifndef KS_SKIP_MAIN_UTILS
 #include "kernelsnitch/utils.h"
+#endif
 
 #define KERNEL_PAGE_SETUP_ATTEMPTS 2
 #define SLIDE_KERNEL_PAGE_SETUP_ATTEMPTS MM_SLAB_CANDIDATE_PAGES

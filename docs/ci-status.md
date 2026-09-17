@@ -192,3 +192,27 @@ no device run was performed. Deliverable:
 | 2 | Binding contract test plan | Defined for 8-field answer, 22/23+45 B, 94 B gate, manifest, boot lock, env override, phase binding, drain, heartbeat, smoke separation | `docs/specs/closed-loop-binding-qa.md` sections 2.1-2.10 |
 | 3 | Host-side byte-contract matrix | 29 cases (11 companion + 18 run22 gate), all offline-executable specs, no implementation written | `docs/specs/closed-loop-binding-qa.md` sections 3.1-3.2 |
 | 4 | Device authorization | Blocked pending code-level QA of binding-artifact generation (design-review Approve condition 7) | `ghostlock-s3-run17-analysis/docs/specs/same-process-mm-closed-loop-design-review.md` |
+
+## 2026-09-17 closed-loop phase controller DSO (offline)
+
+Scope: offline implementation and build/QA only. No adb/device command, no
+device run, no `KS_MM_TEST`, and no main-chain behavior change.
+
+| # | Check | Result | Evidence / notes |
+|---|---|---|---|
+| 1 | S3 collect v15 reuse boundary | PASS | `src/closed_loop/util.c` keeps pile/timing/vote/drain/join flow and adds only in-process `BUCKET_COLLECT_V1` rendering; live `t2c/c2t/c2c` is captured in `closed_loop_collector_state()` before cleanup and is not reparsed from the bucket |
+| 2 | Phase controller state machine | PASS | `src/closed_loop/phase_controller.c` runs SPAWN -> COLLECT -> WAIT_ANSWER -> VALIDATE -> ROOTCHAIN in one process; no exec/fork-of-self; rechecks boot_id, bucket SHA256, PID/TGID, and `/proc/self/stat` starttime at phase boundaries |
+| 3 | Fail-closed waiting | PASS | answer wait is bounded at 15 minutes with 5-second heartbeat and 15-second watchdog; phase FAIL is one-shot and does not retry |
+| 4 | Renderer ordering | PASS | mm answer, 45 B companion, and 94 B run22 gate are rendered only after answer validation PASS; run22 uses the selected live collector edge |
+| 5 | Private-directory adaptation | PASS | controller rejects `/data/local/tmp` binding paths; rootchain path env defaults and gate logic remain unchanged |
+| 6 | Host byte-contract QA | PASS | 29/29 cases: C45 11/11, C94 18/18; output in `build/closed_loop_binding_selftest.txt` |
+| 7 | Closed-loop DSO build | PASS | NDK r26b API 34 `@build_closed_loop.rsp`; size 77040 B; SHA256 `7E453F63403554930A69D83C3DC6AE15C3BD0DA8B45B95FAFE67489F34771614` |
+| 8 | Rootchain regression build | PASS | `@build_rootchain.rsp`; only the pre-existing unused `ks` warning; SHA256 `931616C603242AEA75D1C557251E4BF1407036D45C1B8488E85CA0135672E299` |
+
+Build provenance:
+
+```text
+build/alioth/bin/preload_closed_loop.so
+size=77040
+sha256=7E453F63403554930A69D83C3DC6AE15C3BD0DA8B45B95FAFE67489F34771614
+```
