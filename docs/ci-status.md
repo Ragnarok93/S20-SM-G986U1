@@ -179,3 +179,16 @@ sha256=EF97DF4EA9BAD76C350B12E0C493A49BC350B7CE6310F4B6200131CE41430214
 
 The corrected v15 artifact is local-only. M2 safe-device validation remains
 blocked until this build is deliberately scheduled for a new round.
+
+## 2026-09-17 closed-loop binding QA (same-process mm loop)
+
+Scope: offline pre-audit only. No adb/device command, no `src/` change, and
+no device run was performed. Deliverable:
+`docs/specs/closed-loop-binding-qa.md`.
+
+| # | Item | Result | Evidence |
+|---|---|---|---|
+| 1 | Phase 1 collector selection | S3 collect v15 base + minimal `BUCKET_COLLECT_V1` export patch required; v10.5 and M2 v15/v16 rejected as bases | `docs/specs/closed-loop-binding-qa.md` section 1; `bucket_collect_v10_5.c:1249,1301,1309-1316` (no t2c), S3 collect `util.c:366,514-518` (live t2c/c2t/c2c), main `util.c:331,359-399` (no votes), `docs/status.md:145-190` (M2 v15/v16) |
+| 2 | Binding contract test plan | Defined for 8-field answer, 22/23+45 B, 94 B gate, manifest, boot lock, env override, phase binding, drain, heartbeat, smoke separation | `docs/specs/closed-loop-binding-qa.md` sections 2.1-2.10 |
+| 3 | Host-side byte-contract matrix | 29 cases (11 companion + 18 run22 gate), all offline-executable specs, no implementation written | `docs/specs/closed-loop-binding-qa.md` sections 3.1-3.2 |
+| 4 | Device authorization | Blocked pending code-level QA of binding-artifact generation (design-review Approve condition 7) | `ghostlock-s3-run17-analysis/docs/specs/same-process-mm-closed-loop-design-review.md` |
