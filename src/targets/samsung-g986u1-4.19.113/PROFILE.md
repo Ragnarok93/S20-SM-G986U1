@@ -75,6 +75,12 @@ After the enabled-BTF reporting test was added and `samsung-verify` was updated 
 
 The additional build-guard regression test was then run as part of `make samsung-verify` and the user reported the full combined command passed. The guard verifies that `make PROJECT=samsung-g986u1-4.19.113 preload -n` is rejected while this directory lacks `target.h`. The passing metadata suite does not change the profile's documentation-only status.
 
+## Build-guard regression coverage
+
+The previously passing guard test covered the `preload` target. It has now been expanded to exercise the full set of Makefile payload goals (`all`, `preload`, `s2`, `s3`, `rootchain`, `closed-loop`, and `hello-dso`) in dry-run mode and assert each one fails with the evidence-only guard while this profile has no `target.h`.
+
+The expanded matrix is committed in `tests/test_inspect_android_boot.py` but needs a fresh run after the expansion; the earlier passing `make samsung-verify` predates this latest test change.
+
 ## Upstream generator compatibility audit (2026-10-28)
 
 Reviewed the generator source from `woshimaniubi8/CVE-2026-43499-root-KernelSU`:
