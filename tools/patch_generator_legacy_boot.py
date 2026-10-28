@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -106,6 +107,23 @@ class PatchError(RuntimeError):
     pass
 
 
+def replacement_is_satisfied(relative: Path, source: str, replacement: Replacement) -> bool:
+    """Recognize equivalent local implementations without requiring our comment text."""
+    if replacement.marker.startswith("# Legacy Android boot header"):
+        return (
+            re.search(r"if\s+header_version\s+in\s*\(\s*0\s*,\s*1\s*,\s*2\s*\)\s*:", source) is not None
+            and "page_size = u32(boot, 36)" in source
+            and "kernel_offset = page_size" in source
+            and re.search(r"elif\s+header_version\s+in\s*\(\s*3\s*,\s*4\s*\)\s*:", source) is not None
+            and "expected_header_sizes = {3: 0x62C, 4: 0x630}" in source
+        )
+    if replacement.marker.startswith("# The ARM64 Image may omit"):
+        guard = re.search(r"if\s+pe_offset\s*(?:(?:!=|>)\s*0)?\s*:", source)
+        signature = re.search(r'kernel\[pe_offset:pe_offset\s*\+\s*4\]\s*!=\s*b"PE\\x00\\x00"', source)
+        return guard is not None and signature is not None and guard.start() < signature.start()
+    return False
+
+
 def build_plan(root: Path) -> list[tuple[Path, str, bool]]:
     plan: list[tuple[Path, str, bool]] = []
     # Validate the entire checkout before modifying either parser.
@@ -126,7 +144,10 @@ def build_plan(root: Path) -> list[tuple[Path, str, bool]]:
             if old_count == 1 and marker_count == 0:
                 updated = updated.replace(replacement.old, replacement.new, 1)
                 file_already_patched = False
-            elif old_count == 0 and marker_count == 1:
+            elif old_count == 0 and (
+                marker_count == 1
+                or (marker_count == 0 and replacement_is_satisfied(relative, updated, replacement))
+            ):
                 continue
             else:
                 raise PatchError(
