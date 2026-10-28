@@ -51,9 +51,9 @@ SEPARATE_DEBUG_NAMES = {
     ".debug_tu_index",
 }
 SYMBOL_TABLE_NAMES = {".symtab", ".dynsym"}
-SYMBOL_TABLE_HEADER_RE = re.compile(r"^\\s*Symbol table '([^']+)' contains (\\d+) entries:\\s*$")
+SYMBOL_TABLE_HEADER_RE = re.compile(r"^\s*Symbol table '([^']+)' contains (\d+) entries:\s*$")
 SYMBOL_ROW_RE = re.compile(
-    r"^\\s*\\d+:\\s+\\S+\\s+\\S+\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)(?:\\s+.*)?$"
+    r"^\s*\d+:\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)(?:\s+.*)?$"
 )
 
 
