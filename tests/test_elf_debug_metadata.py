@@ -30,14 +30,16 @@ HEADER = """ELF Header:
 """
 SECTIONS_WITH_DWARF = """There are 6 section headers:
   [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al
+  [ 0] NULL              NULL            0000000000000000 000000 000000 00      0   0  0
   [ 1] .debug_info       PROGBITS        0000000000000000 000040 000100 00      0   0  1
   [ 2] .debug_abbrev     PROGBITS        0000000000000000 000140 000080 00      0   0  1
   [ 3] .debug_str        PROGBITS        0000000000000000 0001c0 000060 01  MS  0   0  1
   [ 4] .symtab           SYMTAB          0000000000000000 000220 000010 18      5   1  8
   [ 5] .BTF              PROGBITS        0000000000000000 000230 000028 00      0   0  4
 """
-SECTIONS_WITHOUT_DWARF = """There are 2 section headers:
+SECTIONS_WITHOUT_DWARF = """There are 3 section headers:
   [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al
+  [ 0] NULL              NULL            0000000000000000 000000 000000 00      0   0  0
   [ 1] .text             PROGBITS        0000000000000000 000040 000100 00  AX  0   0 16
   [ 2] .dynsym           DYNSYM          0000000000000000 000140 000020 18   A  3   1  8
 """
@@ -67,7 +69,7 @@ DWARF_INFO = """Contents of the .debug_info section:
 
 
 class ElfDebugMetadataTests(unittest.TestCase):
-    def _mock_readelf(self, has_dwarf: bool = True):
+    def _mock_readelf(self, has_dwarf: bool = True, lint_output: str = ""):
         sections = SECTIONS_WITH_DWARF if has_dwarf else SECTIONS_WITHOUT_DWARF
 
         def fake_run(command, **kwargs):
@@ -80,6 +82,8 @@ class ElfDebugMetadataTests(unittest.TestCase):
                 stdout = NOTES
             elif args == ["-s", "-W"]:
                 stdout = SYMBOLS if has_dwarf else SYMBOLS_NO_DWARF
+            elif args == ["--lint", "-h", "-S", "-s", "-W"]:
+                stdout = lint_output
             elif args == ["--debug-dump=info", "--dwarf-depth=1", "--wide"]:
                 stdout = DWARF_INFO
             else:
@@ -91,7 +95,7 @@ class ElfDebugMetadataTests(unittest.TestCase):
     def test_reports_dwarf_sections_and_compilation_unit_parse(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "vmlinux.elf"
-            path.write_bytes(b"ELF metadata fixture")
+            path.write_bytes(b"E" * 0x1000)
             with patch.object(inspector.shutil, "which", return_value="/usr/bin/readelf"), \
                  patch.object(inspector.subprocess, "run", side_effect=self._mock_readelf()):
                 result = inspector.inspect_elf(path)
@@ -99,13 +103,20 @@ class ElfDebugMetadataTests(unittest.TestCase):
             self.assertEqual(result.elf_fields["Class"], "ELF64")
             self.assertEqual(result.elf_fields["Machine"], "AArch64")
             self.assertEqual(result.build_id, "abcdef0123456789")
-            self.assertEqual(result.sha256, hashlib.sha256(b"ELF metadata fixture").hexdigest())
+            self.assertEqual(result.sha256, hashlib.sha256(b"E" * 0x1000).hexdigest())
             names = {section.name for section in result.sections}
             self.assertIn(".debug_info", names)
             self.assertIn(".debug_abbrev", names)
             self.assertIn(".BTF", names)
             self.assertEqual(result.dwarf_decode, "PASS")
             self.assertEqual(result.compilation_units, 2)
+            self.assertEqual(result.declared_section_count, 6)
+            self.assertEqual(len(result.sections), 6)
+            self.assertTrue(result.section_table_consistent)
+            self.assertEqual(result.out_of_bounds_sections, 0)
+            self.assertEqual(result.readelf_lint_status, "PASS")
+            self.assertEqual(result.readelf_lint_warning_count, 0)
+            self.assertEqual(result.readelf_lint_error_count, 0)
             self.assertIsNotNone(result.symbol_summary)
             assert result.symbol_summary is not None
             self.assertEqual(result.symbol_summary.declared_entries, 3)
@@ -135,7 +146,7 @@ class ElfDebugMetadataTests(unittest.TestCase):
     def test_reports_missing_dwarf_without_running_debug_dump(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "vmlinux.elf"
-            path.write_bytes(b"ELF metadata fixture")
+            path.write_bytes(b"E" * 0x1000)
             fake_run = self._mock_readelf(has_dwarf=False)
             with patch.object(inspector.shutil, "which", return_value="/usr/bin/readelf"), \
                  patch.object(inspector.subprocess, "run", side_effect=fake_run) as run:
@@ -143,6 +154,11 @@ class ElfDebugMetadataTests(unittest.TestCase):
 
             self.assertEqual(result.dwarf_decode, "NOT_PRESENT")
             self.assertEqual(result.compilation_units, 0)
+            self.assertEqual(result.declared_section_count, 3)
+            self.assertEqual(len(result.sections), 3)
+            self.assertTrue(result.section_table_consistent)
+            self.assertEqual(result.out_of_bounds_sections, 0)
+            self.assertEqual(result.readelf_lint_status, "PASS")
             self.assertIsNotNone(result.symbol_summary)
             assert result.symbol_summary is not None
             self.assertEqual(result.symbol_summary.declared_entries, 2)
@@ -153,8 +169,27 @@ class ElfDebugMetadataTests(unittest.TestCase):
                 sum(count for _name, count in result.symbol_summary.tables[0].type_counts),
                 result.symbol_summary.parsed_entries - result.symbol_summary.null_entries,
             )
-            self.assertEqual(run.call_count, 4)
+            self.assertEqual(run.call_count, 5)
 
+
+    def test_readelf_lint_warnings_are_counted_without_dumping_details(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "vmlinux.elf"
+            path.write_bytes(b"E" * 0x1000)
+            with patch.object(inspector.shutil, "which", return_value="/usr/bin/readelf"), \
+                 patch.object(
+                     inspector.subprocess,
+                     "run",
+                     side_effect=self._mock_readelf(
+                         has_dwarf=False,
+                         lint_output="readelf: Warning: section metadata diagnostic fixture",
+                     ),
+                 ):
+                result = inspector.inspect_elf(path)
+
+            self.assertEqual(result.readelf_lint_status, "WARN")
+            self.assertEqual(result.readelf_lint_warning_count, 1)
+            self.assertEqual(result.readelf_lint_error_count, 0)
 
     def test_symbol_summary_parser_rejects_unrecognized_output(self) -> None:
         with self.assertRaisesRegex(inspector.MetadataError, "no parseable symbol-table"):
