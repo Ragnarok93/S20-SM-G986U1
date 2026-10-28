@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import struct
 import sys
 import tempfile
 import unittest
@@ -43,6 +44,35 @@ class SamsungProfileManifestTests(unittest.TestCase):
         sections = {item["name"]: item["image_offset"] for item in profile["elf_sections"]}
         self.assertEqual(sections[".kernel"], 0)
         self.assertEqual(sections[".kernel2"], 0x29DA458)
+
+    def test_boot_image_layout_matches_profile(self) -> None:
+        profile = verifier.load_profile(PROFILE_PATH)
+        boot_expected = dict(profile["boot_image"])
+        boot_expected["kernel_size_bytes"] = 16
+        with tempfile.TemporaryDirectory() as tmp:
+            boot_path = Path(tmp) / "boot.img"
+            data = bytearray(4096 + 16)
+            data[:8] = b"ANDROID!"
+            struct.pack_into("<I", data, 8, 16)
+            struct.pack_into("<I", data, 36, 4096)
+            struct.pack_into("<I", data, 40, 2)
+            boot_path.write_bytes(data)
+            messages = verifier.check_boot_image_layout(boot_path, boot_expected)
+            self.assertTrue(all(line.startswith("PASS") for line in messages), messages)
+
+    def test_boot_image_layout_mismatch_is_reported(self) -> None:
+        profile = verifier.load_profile(PROFILE_PATH)
+        boot_expected = dict(profile["boot_image"])
+        with tempfile.TemporaryDirectory() as tmp:
+            boot_path = Path(tmp) / "boot.img"
+            data = bytearray(4096 + 16)
+            data[:8] = b"ANDROID!"
+            struct.pack_into("<I", data, 8, 16)
+            struct.pack_into("<I", data, 36, 2048)
+            struct.pack_into("<I", data, 40, 2)
+            boot_path.write_bytes(data)
+            messages = verifier.check_boot_image_layout(boot_path, boot_expected)
+            self.assertTrue(any("FAIL boot page_size" in line for line in messages), messages)
 
     def test_malformed_profile_fails_validation(self) -> None:
         profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
