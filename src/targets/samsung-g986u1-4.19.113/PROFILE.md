@@ -16,6 +16,27 @@
 | Page size | 4 KiB | Stock ARM64 image and configuration context |
 | VA configuration | `CONFIG_ARM64_VA_BITS_39=y` | `~/firmware-check/kernel.config` |
 
+## Boot-image inspection results (2026-10-28)
+
+The repository's `make samsung-inspect` target was run against the extracted firmware artifacts. Its output reported:
+
+| Check | Result |
+|---|---|
+| Android boot header | Version 2, legacy layout |
+| Page size | 4,096 bytes |
+| Kernel payload offset | `0x1000` |
+| Kernel payload size | 51,957,772 bytes (`0x318d00c`) |
+| Kernel payload end | `0x318e00c` |
+| Kernel payload SHA-256 | `ffbc90af676558557eb917687736c11f15b560dbb3cb9ca237224da5acb14123` |
+| Extracted Image comparison | Exact byte-for-byte match |
+| `CONFIG_IKHEADERS` | Not set in the parsed config |
+| `CONFIG_DEBUG_INFO_BTF` | Not listed in the parsed config |
+| BTF magic byte-pattern scan | Zero hits in the boot image, kernel payload, raw Image, and vendor ELF |
+
+The byte comparison establishes that the payload selected by the legacy header parser matches the separately extracted raw Image. The BTF scan is only a byte-pattern heuristic: zero hits do not independently prove the absence of valid BTF metadata. Likewise, a config option not listed in the parsed file is not equivalent to a positive proof about every possible external metadata source.
+
+This inspection validates input layout and provenance only. It does not establish the runtime memory map, structure layouts, or device-specific constants. The Samsung directory remains documentation-only and deliberately has no `target.h`.
+
 ## Verified stock configuration flags
 
 The extracted stock config reports the following enabled:
