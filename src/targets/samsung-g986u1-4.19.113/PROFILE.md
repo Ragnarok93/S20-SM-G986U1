@@ -159,9 +159,9 @@ Interpretation is deliberately conservative:
 
 Regression tests: `python3 -m unittest tests.test_elf_debug_metadata -v` may not work because `tests/` is not a Python package; the portable command is `python3 -m unittest discover -s tests -p 'test_elf_debug_metadata.py' -v`.
 
-## Reconstructed vendor ELF debug-metadata inventory (user-run, 2026-10-28)
+## Source vmlinux debug-metadata inventory at `firmware-check/vmlinux.elf` (user-run, 2026-10-28)
 
-The user ran `tools/inspect_elf_debug_metadata.py` against `~/firmware-check/vmlinux.elf`. Reported results:
+For this port, the user identifies `~/firmware-check/vmlinux.elf` as the source vmlinux artifact to inspect. The user ran `tools/inspect_elf_debug_metadata.py` against that exact file. Reported results:
 
 | Check | Result |
 |---|---|
