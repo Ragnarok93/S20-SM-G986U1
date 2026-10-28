@@ -202,6 +202,8 @@ The user searched `$HOME/firmware-check` to depth 3 for files named `vmlinux*`, 
 
 Combined with the inventory above, this establishes that the searched directory contains no matching sidecar debug files, and the sole matching ELF has no embedded DWARF core sections, BTF sections, or recognized separate-debug references. This is scoped to that search path/pattern/depth; it does not establish that no relevant metadata exists in the source tree, firmware package, build cache, or other directories.
 
+The user's first symbol-summary run reported `.symtab` as fully parseable: 145,434 declared and parsed entries, 145,051 defined entries, 382 undefined entries, and one reserved index-zero entry. The category accounting patch following that run now excludes the reserved null entry from type/binding distribution totals; those revised distributions still need a fresh local run.
+
 The next enhanced inventory reports aggregate symbol-table counts and type/binding categories without emitting symbol names or values. This can establish whether the existing `.symtab` is parseable and how many entries are defined versus undefined, but it still cannot establish the presence of DWARF type information or validate a target-specific profile.
 
 ## Artifact provenance ledger
