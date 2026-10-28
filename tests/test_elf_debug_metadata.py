@@ -110,8 +110,15 @@ class ElfDebugMetadataTests(unittest.TestCase):
             assert result.symbol_summary is not None
             self.assertEqual(result.symbol_summary.declared_entries, 3)
             self.assertEqual(result.symbol_summary.parsed_entries, 3)
-            self.assertEqual(result.symbol_summary.defined_entries, 2)
+            self.assertEqual(result.symbol_summary.defined_entries, 1)
             self.assertEqual(result.symbol_summary.undefined_entries, 1)
+            self.assertEqual(result.symbol_summary.null_entries, 1)
+            self.assertEqual(
+                result.symbol_summary.parsed_entries,
+                result.symbol_summary.defined_entries
+                + result.symbol_summary.undefined_entries
+                + result.symbol_summary.null_entries,
+            )
             self.assertIn(("FUNC", 1), result.symbol_summary.tables[0].type_counts)
             # The summary deliberately retains no symbol strings or symbol values.
             self.assertNotIn("_start", repr(result.symbol_summary))
@@ -132,7 +139,8 @@ class ElfDebugMetadataTests(unittest.TestCase):
             assert result.symbol_summary is not None
             self.assertEqual(result.symbol_summary.declared_entries, 2)
             self.assertEqual(result.symbol_summary.defined_entries, 1)
-            self.assertEqual(result.symbol_summary.undefined_entries, 1)
+            self.assertEqual(result.symbol_summary.undefined_entries, 0)
+            self.assertEqual(result.symbol_summary.null_entries, 1)
             self.assertEqual(run.call_count, 4)
 
 
