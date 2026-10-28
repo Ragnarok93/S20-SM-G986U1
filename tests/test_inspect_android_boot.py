@@ -35,7 +35,7 @@ def make_legacy_boot(payload: bytes, *, version: int = 2, page_size: int = 4096)
     struct.pack_into("<I", boot, 20, 0)            # ramdisk_addr
     struct.pack_into("<I", boot, 36, page_size)
     struct.pack_into("<I", boot, 40, version)
-    boot[page_size:] = payload
+    boot[page_size:page_size + len(payload)] = payload
     return bytes(boot)
 
 
