@@ -53,7 +53,7 @@ SEPARATE_DEBUG_NAMES = {
 SYMBOL_TABLE_NAMES = {".symtab", ".dynsym"}
 SYMBOL_TABLE_HEADER_RE = re.compile(r"^\s*Symbol table '([^']+)' contains (\d+) entries:\s*$")
 SYMBOL_ROW_RE = re.compile(
-    r"^\s*\d+:\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)(?:\s+.*)?$"
+    r"^\s*(\d+):\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)(?:\s+.*)?$"
 )
 
 
@@ -75,6 +75,7 @@ class SymbolTableSummary:
     parsed_entries: int
     defined_entries: int
     undefined_entries: int
+    null_entries: int
     type_counts: tuple[tuple[str, int], ...]
     binding_counts: tuple[tuple[str, int], ...]
 
@@ -98,6 +99,10 @@ class SymbolSummary:
     @property
     def undefined_entries(self) -> int:
         return sum(table.undefined_entries for table in self.tables)
+
+    @property
+    def null_entries(self) -> int:
+        return sum(table.null_entries for table in self.tables)
 
 
 @dataclass(frozen=True)
@@ -127,6 +132,7 @@ def parse_symbol_summary(text: str) -> SymbolSummary:
                 "declared_entries": int(header.group(2)),
                 "parsed_entries": 0,
                 "undefined_entries": 0,
+                "null_entries": 0,
                 "type_counts": {},
                 "binding_counts": {},
             }
@@ -138,9 +144,13 @@ def parse_symbol_summary(text: str) -> SymbolSummary:
         row = SYMBOL_ROW_RE.match(line)
         if not row:
             continue
-        symbol_type, binding, _visibility, section_index = row.groups()
+        entry_index, symbol_type, binding, _visibility, section_index = row.groups()
         current["parsed_entries"] = int(current["parsed_entries"]) + 1
-        if section_index == "UND":
+        if entry_index == "0":
+            # ELF symbol-table entry zero is the reserved STN_UNDEF null entry,
+            # not an undefined external reference.
+            current["null_entries"] = int(current["null_entries"]) + 1
+        elif section_index == "UND":
             current["undefined_entries"] = int(current["undefined_entries"]) + 1
         type_counts = current["type_counts"]
         binding_counts = current["binding_counts"]
@@ -156,6 +166,7 @@ def parse_symbol_summary(text: str) -> SymbolSummary:
     for item in mutable:
         parsed = int(item["parsed_entries"])
         undefined = int(item["undefined_entries"])
+        null_entries = int(item["null_entries"])
         type_counts = item["type_counts"]
         binding_counts = item["binding_counts"]
         assert isinstance(type_counts, dict)
@@ -164,8 +175,9 @@ def parse_symbol_summary(text: str) -> SymbolSummary:
             table=str(item["table"]),
             declared_entries=int(item["declared_entries"]),
             parsed_entries=parsed,
-            defined_entries=parsed - undefined,
+            defined_entries=parsed - undefined - null_entries,
             undefined_entries=undefined,
+            null_entries=null_entries,
             type_counts=tuple(sorted((str(key), int(value)) for key, value in type_counts.items())),
             binding_counts=tuple(sorted((str(key), int(value)) for key, value in binding_counts.items())),
         ))
@@ -315,6 +327,7 @@ def report(result: Inspection) -> None:
         print(f"symbol_table_entries_parsed={summary.parsed_entries}")
         print(f"symbol_table_entries_defined={summary.defined_entries}")
         print(f"symbol_table_entries_undefined={summary.undefined_entries}")
+        print(f"symbol_table_null_entries={summary.null_entries}")
         for table in summary.tables:
             complete = "yes" if table.declared_entries == table.parsed_entries else "no"
             print(
