@@ -47,6 +47,28 @@ class CompareSamsungKernelConfigsTests(unittest.TestCase):
         self.assertEqual(result["stock_only"], [])
         self.assertEqual(result["candidate_only"], [])
 
+    def test_required_target_selectors_must_match_in_stock_and_candidate(self) -> None:
+        expected = {
+            "CONFIG_SEC_Y2Q_PROJECT": "y",
+            "CONFIG_MACH_Y2Q_USA_SINGLE": "y",
+        }
+        stock = dict(expected)
+        candidate = dict(expected)
+        checks = module.evaluate_target_selectors(expected, stock, candidate)
+        self.assertTrue(all(item[4] for item in checks), checks)
+
+        candidate["CONFIG_MACH_Y2Q_USA_SINGLE"] = "n"
+        checks = module.evaluate_target_selectors(expected, stock, candidate)
+        self.assertFalse(all(item[4] for item in checks), checks)
+        usa_check = next(item for item in checks if item[0] == "CONFIG_MACH_Y2Q_USA_SINGLE")
+        self.assertEqual(usa_check[2:], ("y", "n", False))
+
+        del candidate["CONFIG_SEC_Y2Q_PROJECT"]
+        checks = module.evaluate_target_selectors(expected, stock, candidate)
+        project_check = next(item for item in checks if item[0] == "CONFIG_SEC_Y2Q_PROJECT")
+        self.assertEqual(project_check[3], "<absent>")
+        self.assertFalse(project_check[4])
+
     def test_device_selector_listing_includes_shared_and_one_sided_selectors(self) -> None:
         stock = {
             "CONFIG_SEC_Y2Q_PROJECT": "y",
