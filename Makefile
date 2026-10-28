@@ -147,7 +147,7 @@ SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
 TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
 
-.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects list-device-profiles samsung-info samsung-inspect samsung-verify samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check samsung-source-check samsung-test-tools
+.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects list-device-profiles samsung-info samsung-inspect samsung-verify samsung-config-compare samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check samsung-source-check samsung-test-tools
 
 all: preload
 
