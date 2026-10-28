@@ -98,7 +98,7 @@ class PatchGeneratorFailClosedTests(unittest.TestCase):
                 result = patcher.main(["--root", str(root)])
 
             self.assertEqual(result, 1)
-            self.assertIn("no files changed", errors.getvalue())
+            self.assertIn("target must be a regular non-symlink file", errors.getvalue())
             for path, source in before.items():
                 self.assertEqual(path.read_text(encoding="utf-8"), source)
                 self.assertFalse(path.with_name(path.name + ".pre-fail-closed.bak").exists())
