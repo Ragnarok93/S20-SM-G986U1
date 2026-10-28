@@ -56,6 +56,19 @@ The local `out-stock-layout/.config` reported `CONFIG_RELOCATABLE=y` and `CONFIG
 
 Run `python3 tools/verify_samsung_firmware.py` from the repository root to check the config and the recorded artifact digests/mappings. The script only validates provenance/configuration; it does not populate exploit constants.
 
+## Verification run results (2026-10-28)
+
+The user ran `make samsung-verify` in WSL from the repository root. The recorded command output showed:
+
+- PASS: SHA-256 for the stock boot image, raw kernel Image, and reconstructed vendor ELF matched the pinned values below.
+- PASS: all ten required stock configuration flags checked by `tools/verify_samsung_firmware.py`.
+- PASS: vendor ELF `.kernel` section matched Image offset `0x0` for `0x2695260` bytes.
+- PASS: vendor ELF `.kernel2` section matched Image offset `0x29da458` for `0x7b2bb4` bytes.
+- PASS: Android NDK r27c, API 33 compiler target `aarch64-unknown-linux-android33`, AArch64 ELF64 PIE output, Android `/system/bin/linker64` interpreter, and AArch64 ELF64 shared-library smoke test.
+- Overall verifier result: `checks passed; profile remains documentation-only`.
+
+These results establish reproducible artifact identity, the checked configuration flags, the two recorded ELF section byte mappings, and basic NDK/ELF compatibility. They do not validate an executable Samsung exploit profile or runtime memory-layout assumptions.
+
 ## Artifact provenance ledger
 
 These files were collected under WSL from the original Samsung firmware package:
