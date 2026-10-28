@@ -235,12 +235,12 @@ class InspectAndroidBootTests(unittest.TestCase):
                 combined = result.stdout + result.stderr
                 self.assertNotEqual(
                     result.returncode, 0,
-                    f"Expected {goal!r} to be blocked, but make succeeded:\\n{combined}",
+                    f"Expected {goal!r} to be blocked, but make succeeded:\n{combined}",
                 )
                 self.assertIn(
                     "evidence-only: no verified target.h exists",
                     combined,
-                    f"Wrong failure reason for payload goal {goal!r}:\\n{combined}",
+                    f"Wrong failure reason for payload goal {goal!r}:\n{combined}",
                 )
 
     def test_kernel_payload_mismatch_returns_failure(self) -> None:
