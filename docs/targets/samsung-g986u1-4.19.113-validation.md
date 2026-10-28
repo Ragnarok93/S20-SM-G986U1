@@ -61,3 +61,15 @@ Do not treat the Samsung profile as ready if any required value is inherited fro
 ## 7. Current outcome
 
 The firmware provenance is verified. The Samsung profile itself remains **documentation-only and not build-ready**. No exploit-specific target constants are supplied in this scaffold.
+
+### Latest local WSL verification (2026-10-28)
+
+Executed in the user's local checkout after pulling commit `c3816c6`:
+
+- `tools/verify_samsung_firmware.py`: all artifact SHA-256 checks, ten required config flags, and both complete ELF-section-to-Image comparisons passed.
+- Stock-config versus reference `.config` diff: 18 differences, all Samsung board/project-selection symbols; no differences matched the inspected VA/memory, debug/kallsyms, or futex/RT-mutex/security groups.
+- `bash -n build.sh`, `python3 -m py_compile tools/verify_samsung_firmware.py`, `git diff --check`, explicit-project gate, and rejection of the documentation-only Samsung profile passed.
+- Android NDK r27c / Clang 18.0.3 built AArch64 PIE and shared-library smoke tests at API 33 (Android 13). PIE interpreter was `/system/bin/linker64`; the shared probe's observed dependencies were `libc.so` and `libdl.so`.
+- Worktree was clean after deleting the generated `tools/__pycache__/`.
+
+These results prove firmware provenance, selected configuration agreement for the checked options, build-plumbing guard behavior, and basic userspace ABI output. They do not prove that the Samsung payload profile is complete or that source-build structure layouts match every vendor-specific runtime detail.
