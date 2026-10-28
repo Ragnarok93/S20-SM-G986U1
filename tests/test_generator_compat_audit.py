@@ -48,9 +48,9 @@ def make_generator_tree(
     vendor = root / "tools" / "vendor"
     vendor.mkdir(parents=True)
     legacy_branch = (
-        "    if header_version in (0, 1, 2):\\n"
-        "        page_size = u32(boot, 36)\\n"
-        "        kernel_offset = page_size\\n"
+        "    if header_version in (0, 1, 2):\n"
+        "        page_size = u32(boot, 36)\n"
+        "        kernel_offset = page_size\n"
         if legacy_support
         else ""
     )
