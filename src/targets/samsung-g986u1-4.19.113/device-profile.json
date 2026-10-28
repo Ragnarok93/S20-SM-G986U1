@@ -79,6 +79,7 @@
       "g986u",
       "singlex"
     ],
+    "preferred_device_config": "vendor/y2q_usa_singlew_defconfig",
     "candidate_config_path": "out-stock-layout/.config"
   }
 }
