@@ -45,6 +45,17 @@ NOTES = """Displaying notes found in: .note.gnu.build-id
   GNU                  0x00000014 NT_GNU_BUILD_ID
     Build ID: abcdef0123456789
 """
+SYMBOLS = """Symbol table '.symtab' contains 3 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000001000    24 FUNC    GLOBAL DEFAULT    1 _start
+     2: 0000000000000000     0 OBJECT  GLOBAL DEFAULT  UND external_item
+"""
+SYMBOLS_NO_DWARF = """Symbol table '.dynsym' contains 2 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000002000    12 FUNC    GLOBAL DEFAULT    1 external_function
+"""
 DWARF_INFO = """Contents of the .debug_info section:
   Compilation Unit @ offset 0:
    Length:        0x80
@@ -67,6 +78,8 @@ class ElfDebugMetadataTests(unittest.TestCase):
                 stdout = sections
             elif args == ["-n", "-W"]:
                 stdout = NOTES
+            elif args == ["-s", "-W"]:
+                stdout = SYMBOLS if has_dwarf else SYMBOLS_NO_DWARF
             elif args == ["--debug-dump=info", "--dwarf-depth=1", "--wide"]:
                 stdout = DWARF_INFO
             else:
@@ -93,6 +106,16 @@ class ElfDebugMetadataTests(unittest.TestCase):
             self.assertIn(".BTF", names)
             self.assertEqual(result.dwarf_decode, "PASS")
             self.assertEqual(result.compilation_units, 2)
+            self.assertIsNotNone(result.symbol_summary)
+            assert result.symbol_summary is not None
+            self.assertEqual(result.symbol_summary.declared_entries, 3)
+            self.assertEqual(result.symbol_summary.parsed_entries, 3)
+            self.assertEqual(result.symbol_summary.defined_entries, 2)
+            self.assertEqual(result.symbol_summary.undefined_entries, 1)
+            self.assertIn(("FUNC", 1), result.symbol_summary.tables[0].type_counts)
+            # The summary deliberately retains no symbol strings or symbol values.
+            self.assertNotIn("_start", repr(result.symbol_summary))
+            self.assertNotIn("0000000000001000", repr(result.symbol_summary))
 
     def test_reports_missing_dwarf_without_running_debug_dump(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -105,7 +128,17 @@ class ElfDebugMetadataTests(unittest.TestCase):
 
             self.assertEqual(result.dwarf_decode, "NOT_PRESENT")
             self.assertEqual(result.compilation_units, 0)
-            self.assertEqual(run.call_count, 3)
+            self.assertIsNotNone(result.symbol_summary)
+            assert result.symbol_summary is not None
+            self.assertEqual(result.symbol_summary.declared_entries, 2)
+            self.assertEqual(result.symbol_summary.defined_entries, 1)
+            self.assertEqual(result.symbol_summary.undefined_entries, 1)
+            self.assertEqual(run.call_count, 4)
+
+
+    def test_symbol_summary_parser_rejects_unrecognized_output(self) -> None:
+        with self.assertRaisesRegex(inspector.MetadataError, "no parseable symbol-table"):
+            inspector.parse_symbol_summary("no symbol tables here")
 
     def test_rejects_symlink_input(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
