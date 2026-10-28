@@ -165,6 +165,22 @@ def fallback_flags(wrapper_path: Path) -> dict[str, bool]:
     }
 
 
+def validation_flags(source_path: Path) -> dict[str, bool]:
+    """Check fail-closed validation markers in one generator source file."""
+    try:
+        source = source_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise AuditError(f"cannot read validation source {source_path}: {exc}") from exc
+    return {
+        "btf_validation_fail_closed": (
+            "BTF consumer layout validation failed; refusing to generate target.h" in source
+        ),
+        "percpu_validation_fail_closed": (
+            "percpu entry_task validation failed; refusing to generate target.h" in source
+        ),
+    }
+
+
 def audit(generator_root: Path, boot_path: Path) -> int:
     boot = inspect_boot(boot_path)
     print("== Read-only generator compatibility preflight ==")
@@ -235,6 +251,21 @@ def audit(generator_root: Path, boot_path: Path) -> int:
     print(f"btf_layout_validation_fail_closed={'yes' if flags['btf_validation_fail_closed'] else 'no'}")
     print(f"percpu_validation_fail_closed={'yes' if flags['percpu_validation_fail_closed'] else 'no'}")
 
+    parser_validation_fail_closed = True
+    for relative in GENERATOR_RELATIVE_PATHS:
+        parser_path = generator_root / relative
+        parser_flags = validation_flags(parser_path)
+        print(
+            f"{relative}: "
+            f"btf_validation_fail_closed={'yes' if parser_flags['btf_validation_fail_closed'] else 'no'} "
+            f"percpu_validation_fail_closed={'yes' if parser_flags['percpu_validation_fail_closed'] else 'no'}"
+        )
+        parser_validation_fail_closed = (
+            parser_validation_fail_closed
+            and parser_flags["btf_validation_fail_closed"]
+            and parser_flags["percpu_validation_fail_closed"]
+        )
+
     print("NOTE: this preflight did not import or execute the generator and did not write any files.")
     if incompatible:
         print("RESULT=BLOCKED")
@@ -242,8 +273,12 @@ def audit(generator_root: Path, boot_path: Path) -> int:
     if fallback_markers and flags["automatic_fallback_route"]:
         print("RESULT=PARTIAL (active template fallback needs review)")
         return 2
-    if not (flags["btf_validation_fail_closed"] and flags["percpu_validation_fail_closed"]):
-        print("RESULT=PARTIAL (validation failure handling is not confirmed fail-closed)")
+    if not (
+        flags["btf_validation_fail_closed"]
+        and flags["percpu_validation_fail_closed"]
+        and parser_validation_fail_closed
+    ):
+        print("RESULT=PARTIAL (validation failure handling is not confirmed fail-closed in every generator entry point)")
         return 2
     if fallback_markers:
         print("RESULT=HEADER_MAP_SUPPORTED_FAIL_CLOSED (static inspection only)")
