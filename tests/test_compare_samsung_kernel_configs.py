@@ -86,6 +86,20 @@ class CompareSamsungKernelConfigsTests(unittest.TestCase):
             with self.subTest(symbol=symbol):
                 self.assertEqual(module.classify_symbol(symbol), "security-hardening")
 
+    def test_sec_device_project_symbol_is_not_misclassified_as_security(self) -> None:
+        self.assertEqual(module.classify_symbol("CONFIG_SEC_X1Q_PROJECT"), "device-selection")
+        self.assertEqual(module.classify_symbol("CONFIG_SEC_R8Q_PROJECT"), "device-selection")
+
+    def test_one_sided_symbol_values_are_kept_for_diagnosis(self) -> None:
+        stock = {
+            "CONFIG_MACH_Y2Q_CAN_SINGLE": "y",
+            "CONFIG_MACH_X1Q_CHN_HKX": "n",
+        }
+        candidate = {"CONFIG_MACH_Y2Q_CAN_SINGLE": "n"}
+        result = module.compare_configs(stock, candidate)
+        self.assertEqual(result["stock_only_values"]["CONFIG_MACH_X1Q_CHN_HKX"], "n")
+        self.assertEqual(result["candidate_only_values"], {})
+
     def test_soc_selection_delta_is_core(self) -> None:
         stock = {"CONFIG_ARCH_QCOM": "y", "CONFIG_ARM64_VA_BITS_39": "y"}
         candidate = {"CONFIG_ARCH_QCOM": "n", "CONFIG_ARM64_VA_BITS_39": "y"}
