@@ -25,7 +25,8 @@ jobs:
           python -m py_compile \
             tools/verify_samsung_device.py \
             tools/verify_samsung_firmware.py \
-            tools/verify_samsung_kernel_source.py
+            tools/verify_samsung_kernel_source.py \
+            tools/compare_samsung_kernel_configs.py
 
       - name: Test live-device compatibility logic without requiring a device
         run: python -m unittest discover -s tests -p 'test_verify_samsung_device.py' -v
@@ -36,7 +37,11 @@ jobs:
       - name: Test kernel source compatibility preflight
         run: python -m unittest discover -s tests -p 'test_verify_samsung_kernel_source.py' -v
 
+      - name: Test stock/source config comparison
+        run: python -m unittest discover -s tests -p 'test_compare_samsung_kernel_configs.py' -v
+
       - name: Check Makefile profile discovery
         run: |
           make list-device-profiles | grep -Fx 'samsung-g986u1-4.19.113'
           make samsung-info
+          make -n samsung-config-compare
