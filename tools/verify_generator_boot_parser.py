@@ -40,7 +40,7 @@ def load_module(path: Path, name: str) -> ModuleType:
     return module
 
 
-def make_arm64_image(size: int = MIN_KERNEL_SIZE) -> bytes:
+def make_arm64_image(size: int = MIN_KERNEL_SIZE, *, include_pe: bool = True) -> bytes:
     if size < MIN_KERNEL_SIZE:
         raise ValueError("fixture kernel must meet generator's 64 KiB minimum")
     image = bytearray(size)
@@ -48,8 +48,11 @@ def make_arm64_image(size: int = MIN_KERNEL_SIZE) -> bytes:
     struct.pack_into("<Q", image, 16, size)    # image_size
     struct.pack_into("<Q", image, 24, 0)       # image_flags
     image[0x38:0x3C] = b"ARM\x64"
-    struct.pack_into("<I", image, 60, 0x40)    # PE header offset
-    image[0x40:0x44] = b"PE\x00\x00"
+    # The PE/COFF stub is optional; the header field is reserved/zero when
+    # the Image is not built with an EFI stub.
+    if include_pe:
+        struct.pack_into("<I", image, 60, 0x40)
+        image[0x40:0x44] = b"PE\x00\x00"
     return bytes(image)
 
 
@@ -132,6 +135,15 @@ def run_synthetic_tests(module: ModuleType) -> int:
         "page_size",
         "invalid legacy page size",
     )
+
+    no_pe_payload = make_arm64_image(include_pe=False)
+    for version, page_size in ((2, 4096), (3, 4096), (4, 4096)):
+        expect_parse(
+            module,
+            make_boot(no_pe_payload, version=version, page_size=page_size),
+            no_pe_payload,
+            f"header v{version} ARM64 Image without optional PE stub",
+        )
     expect_rejected(
         module,
         make_boot(payload, version=3, modern_header_size=0x630),
