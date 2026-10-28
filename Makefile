@@ -237,6 +237,7 @@ samsung-inspect:
 samsung-verify:
 	python3 tools/verify_samsung_firmware.py
 	NDK_ROOT="$(NDK_ROOT)" API="$(SAMSUNG_ANDROID_API)" bash tools/check_android_abi.sh
+	python3 -m unittest discover -s tests -v
 
 samsung-test-tools:
 	python3 -m unittest discover -s tests -v
