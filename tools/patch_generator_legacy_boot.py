@@ -62,7 +62,7 @@ LEGACY_HEADER_PATCH = '''    kernel_size = u32(boot, 8)
 
 PE_STUB_BLOCK = '''    if pe_offset >= len(kernel) or pe_offset & 3:
         fail(f"PE offset 非法: 0x{pe_offset:x}")
-    if kernel[pe_offset:pe_offset + 4] != b"PE\\\\x00\\\\x00":
+    if kernel[pe_offset:pe_offset + 4] != b"PE\x00\\\\x00":
         fail("arm64 Image 的 PE/COFF stub magic 不匹配")
 '''
 
@@ -70,7 +70,7 @@ PE_STUB_PATCH = '''    # The ARM64 Image may omit the optional EFI PE/COFF stub 
     if pe_offset != 0:
         if pe_offset >= len(kernel) or pe_offset & 3:
             fail(f"PE offset 非法: 0x{pe_offset:x}")
-        if kernel[pe_offset:pe_offset + 4] != b"PE\\\\x00\\\\x00":
+        if kernel[pe_offset:pe_offset + 4] != b"PE\x00\\\\x00":
             fail("arm64 Image 的 PE/COFF stub magic 不匹配")
 '''
 
