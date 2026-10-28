@@ -243,7 +243,7 @@ samsung-inspect:
 	  --scan-btf
 
 samsung-verify:
-	python3 tools/verify_samsung_firmware.py
+	python3 tools/verify_samsung_firmware.py --profile "$(SAMSUNG_DEVICE_PROFILE)"
 	python3 tools/inspect_android_boot.py \
 	  --boot "$(SAMSUNG_BOOT_IMAGE)" \
 	  --image "$(SAMSUNG_RAW_IMAGE)" \
