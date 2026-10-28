@@ -152,6 +152,16 @@ def fallback_flags(wrapper_path: Path) -> dict[str, bool]:
         "default_rodin_template": 'or "rodin"' in source or "or 'rodin'" in source,
         "explicit_inheritance_warning": "inherited from template" in source,
         "writes_output": "output.write_text(" in source,
+        "automatic_fallback_route": bool(re.search(
+            r"except Exception as exc:\\s*return fallback_generate_without_btf\\s*\\(",
+            source,
+        )),
+        "btf_validation_fail_closed": (
+            "BTF consumer layout validation failed; refusing to generate target.h" in source
+        ),
+        "percpu_validation_fail_closed": (
+            "percpu entry_task validation failed; refusing to generate target.h" in source
+        ),
     }
 
 
@@ -213,22 +223,33 @@ def audit(generator_root: Path, boot_path: Path) -> int:
     print("== No-BTF fallback source markers (static scan; not execution) ==")
     for name, enabled in flags.items():
         print(f"{name}={'yes' if enabled else 'no'}")
-    if all(flags[key] for key in (
+    fallback_markers = all(flags[key] for key in (
         "fallback_function", "default_rodin_template", "explicit_inheritance_warning", "writes_output"
-    )):
-        print("no_btf_fallback_risk=template inheritance path detected; output may retain unresolved macros")
+    ))
+    if fallback_markers and flags["automatic_fallback_route"]:
+        print("no_btf_fallback_risk=ACTIVE (automatic template inheritance route detected)")
+    elif fallback_markers:
+        print("no_btf_fallback_risk=NO_DIRECT_AUTOMATIC_ROUTE_DETECTED (fallback function remains in source)")
     else:
-        print("no_btf_fallback_risk=INCONCLUSIVE (expected marker set not fully found)")
+        print("no_btf_fallback_risk=INCONCLUSIVE (fallback marker set not fully found)")
+    print(f"btf_layout_validation_fail_closed={'yes' if flags['btf_validation_fail_closed'] else 'no'}")
+    print(f"percpu_validation_fail_closed={'yes' if flags['percpu_validation_fail_closed'] else 'no'}")
 
     print("NOTE: this preflight did not import or execute the generator and did not write any files.")
     if incompatible:
         print("RESULT=BLOCKED")
         return 1
-    if not all(flags.values()):
-        print("RESULT=PARTIAL (review fallback behavior manually)")
+    if fallback_markers and flags["automatic_fallback_route"]:
+        print("RESULT=PARTIAL (active template fallback needs review)")
         return 2
-    print("RESULT=HEADER_MAP_SUPPORTED (fallback behavior still requires review)")
-    return 0
+    if not (flags["btf_validation_fail_closed"] and flags["percpu_validation_fail_closed"]):
+        print("RESULT=PARTIAL (validation failure handling is not confirmed fail-closed)")
+        return 2
+    if fallback_markers:
+        print("RESULT=HEADER_MAP_SUPPORTED_FAIL_CLOSED (static inspection only)")
+        return 0
+    print("RESULT=PARTIAL (fallback implementation markers were not found)")
+    return 2
 
 
 def main(argv: list[str] | None = None) -> int:
