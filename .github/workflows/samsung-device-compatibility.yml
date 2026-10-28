@@ -61,3 +61,6 @@ jobs:
           make list-device-profiles | grep -Fx 'samsung-g986u1-4.19.113'
           make samsung-info
           make -n samsung-config-compare
+          make -n samsung-generator-patches-check | grep -F 'tools/patch_generator_fail_closed.py'
+          make -n samsung-generator-patches | grep -F 'tools/patch_generator_fail_closed.py'
+          make -n samsung-generator-verify | grep -F 'tools/verify_generator_boot_parser.py'
