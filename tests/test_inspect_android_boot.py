@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import shutil
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -195,6 +197,33 @@ class InspectAndroidBootTests(unittest.TestCase):
             report = output.getvalue()
             self.assertIn("CONFIG_DEBUG_INFO_BTF=y", report)
             self.assertIn("btf_config=enabled according to config", report)
+
+    @unittest.skipUnless(shutil.which("make"), "GNU make is required for this guard test")
+    def test_samsung_payload_build_stays_blocked_without_target_header(self) -> None:
+        project = "samsung-g986u1-4.19.113"
+        target_header = ROOT / "src" / "targets" / project / "target.h"
+        self.assertFalse(
+            target_header.exists(),
+            "This guard test expects the Samsung profile to remain documentation-only",
+        )
+
+        result = subprocess.run(
+            [
+                "make",
+                "--no-print-directory",
+                f"PROJECT={project}",
+                "preload",
+                "-n",
+            ],
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+        combined = result.stdout + result.stderr
+        self.assertNotEqual(result.returncode, 0, combined)
+        self.assertIn("evidence-only: no verified target.h exists", combined)
 
     def test_kernel_payload_mismatch_returns_failure(self) -> None:
         payload = make_arm64_payload()
