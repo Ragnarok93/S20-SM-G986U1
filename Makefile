@@ -7,6 +7,10 @@ SAMSUNG_KERNEL_RELEASE := 4.19.113-27095354
 SAMSUNG_ARCH := aarch64
 SAMSUNG_ANDROID_API := 33
 SAMSUNG_VA_BITS := 39
+SAMSUNG_BOOT_IMAGE ?= $(HOME)/stock-boot.img
+SAMSUNG_RAW_IMAGE ?= /tmp/g986u1-stock-kernel.Image
+SAMSUNG_VENDOR_ELF ?= $(HOME)/firmware-check/vmlinux.elf
+SAMSUNG_KERNEL_CONFIG ?= $(HOME)/firmware-check/kernel.config
 
 API ?= $(SAMSUNG_ANDROID_API)
 PROJECT ?= $(SAMSUNG_PROJECT)
@@ -17,7 +21,7 @@ TARGET_DIR := src/targets/$(PROJECT)
 TARGET_HEADER := $(TARGET_DIR)/target.h
 REQUESTED_GOALS := $(if $(strip $(MAKECMDGOALS)),$(MAKECMDGOALS),preload)
 PAYLOAD_GOALS := all preload s2 s3 rootchain closed-loop hello-dso
-UTILITY_GOALS := list-projects clean info samsung-info samsung-verify
+UTILITY_GOALS := list-projects clean info samsung-info samsung-inspect samsung-verify
 
 ifeq ($(strip $(PROJECT)),)
 ifneq ($(filter $(UTILITY_GOALS),$(MAKECMDGOALS)),)
@@ -136,7 +140,7 @@ SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
 TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
 
-.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects samsung-info samsung-verify
+.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects samsung-info samsung-inspect samsung-verify
 
 all: preload
 
@@ -221,6 +225,14 @@ samsung-info:
 	@echo "CONFIG_ARM64_VA_BITS_$(SAMSUNG_VA_BITS)=y"
 	@echo "PROFILE_DOC=src/targets/$(SAMSUNG_PROJECT)/PROFILE.md"
 	@echo "TARGET_HEADER_STATUS=missing; payload build is intentionally blocked"
+
+samsung-inspect:
+	python3 tools/inspect_android_boot.py \
+	  --boot "$(SAMSUNG_BOOT_IMAGE)" \
+	  --image "$(SAMSUNG_RAW_IMAGE)" \
+	  --config "$(SAMSUNG_KERNEL_CONFIG)" \
+	  --elf "$(SAMSUNG_VENDOR_ELF)" \
+	  --scan-btf
 
 samsung-verify:
 	python3 tools/verify_samsung_firmware.py
