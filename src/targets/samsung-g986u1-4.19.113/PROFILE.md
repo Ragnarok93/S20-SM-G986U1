@@ -79,7 +79,7 @@ The additional build-guard regression test was then run as part of `make samsung
 
 The previously passing guard test covered the `preload` target. It has now been expanded to exercise the full set of Makefile payload goals (`all`, `preload`, `s2`, `s3`, `rootchain`, `closed-loop`, and `hello-dso`) in dry-run mode and assert each one fails with the evidence-only guard while this profile has no `target.h`.
 
-The expanded matrix is committed in `tests/test_inspect_android_boot.py` but needs a fresh run after the expansion; the earlier passing `make samsung-verify` predates this latest test change.
+The user then ran the combined `make samsung-verify` after the expansion and reported PASS. The current suite has 11 test methods; the build-guard test checks all seven payload goals in dry-run mode and asserts the evidence-only guard message. This is evidence that the Makefile guard is functioning for the enumerated goals in the tested local environment, not evidence that a Samsung payload is buildable.
 
 ## Upstream generator compatibility audit (2026-10-28)
 
