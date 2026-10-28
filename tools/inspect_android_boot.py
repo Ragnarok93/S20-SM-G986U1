@@ -112,8 +112,16 @@ def inspect(boot_path: Path, image_path: Path | None) -> int:
         print(f"comparison_sha256={sha256(image)}")
         if payload == image:
             print("comparison=PASS exact byte-for-byte match")
+        elif payload.startswith(image):
+            print("comparison=DIFFERENT; provided Image is an exact prefix of the boot kernel payload")
+            print(f"payload_trailing_bytes={len(payload) - len(image)}")
+            return 1
+        elif image.startswith(payload):
+            print("comparison=DIFFERENT; boot kernel payload is an exact prefix of the provided Image")
+            print(f"image_trailing_bytes={len(image) - len(payload)}")
+            return 1
         else:
-            print("comparison=DIFFERENT (payload and provided Image are not byte-identical)")
+            print("comparison=DIFFERENT; boot payload and provided Image differ within their shared range")
             if len(payload) != len(image):
                 print(f"size_delta_payload_minus_image={len(payload) - len(image)}")
             return 1
