@@ -2,6 +2,7 @@
 """Tests for the read-only ELF debug-metadata inventory."""
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import subprocess
 import sys
@@ -27,12 +28,13 @@ HEADER = """ELF Header:
   Type:                              REL (Relocatable file)
   Machine:                           AArch64
 """
-SECTIONS_WITH_DWARF = """There are 5 section headers:
+SECTIONS_WITH_DWARF = """There are 6 section headers:
   [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al
   [ 1] .debug_info       PROGBITS        0000000000000000 000040 000100 00      0   0  1
   [ 2] .debug_abbrev     PROGBITS        0000000000000000 000140 000080 00      0   0  1
   [ 3] .debug_str        PROGBITS        0000000000000000 0001c0 000060 01  MS  0   0  1
   [ 4] .symtab           SYMTAB          0000000000000000 000220 000010 18      5   1  8
+  [ 5] .BTF              PROGBITS        0000000000000000 000230 000028 00      0   0  4
 """
 SECTIONS_WITHOUT_DWARF = """There are 2 section headers:
   [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al
@@ -84,9 +86,11 @@ class ElfDebugMetadataTests(unittest.TestCase):
             self.assertEqual(result.elf_fields["Class"], "ELF64")
             self.assertEqual(result.elf_fields["Machine"], "AArch64")
             self.assertEqual(result.build_id, "abcdef0123456789")
+            self.assertEqual(result.sha256, hashlib.sha256(b"ELF metadata fixture").hexdigest())
             names = {section.name for section in result.sections}
             self.assertIn(".debug_info", names)
             self.assertIn(".debug_abbrev", names)
+            self.assertIn(".BTF", names)
             self.assertEqual(result.dwarf_decode, "PASS")
             self.assertEqual(result.compilation_units, 2)
 
