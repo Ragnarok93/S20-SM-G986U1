@@ -26,9 +26,22 @@ At the inspected revision, `Makefile` defaulted `PROJECT` to `blazer-CP2A.260605
 - [x] Prevent accidental profile selection: build now requires explicit `PROJECT`; utility goals `list-projects` and `clean` remain available without it.
 - [x] Use one build path: `build.sh` delegates compiler/API/NDK selection to the Makefile.
 - [ ] Review the full config diff rather than only the first page of output.
-- [ ] Record the exact NDK revision and Android API used for compiling the userspace harness, separately from the kernel compiler identity.
+- [x] Record the userspace smoke-test toolchain separately from the kernel compiler: Android NDK r27c (`27.2.12479018`), Clang 18.0.3, Android API 33.
 
-## 4. Compatibility evidence ledger
+
+## 4. Userspace ABI smoke test
+
+On the WSL host, Android NDK r27c at `$HOME/ndk/android-ndk-r27c` was tested with `aarch64-linux-android33-clang`:
+
+- [x] Compiler target reports `aarch64-unknown-linux-android33`.
+- [x] Minimal standalone PIE builds as ELF64 AArch64 and requests `/system/bin/linker64`.
+- [x] Minimal shared library builds as ELF64 AArch64; its observed dynamic dependencies were `libc.so` and `libdl.so`.
+- [x] Equivalent smoke test also built under API 35; API 33 is the more relevant baseline for this Android 13 device.
+- [ ] Inspect the real project's declared libc/API symbol requirements separately before making any runtime compatibility claim.
+
+Re-run from the repo root with `tools/check_android_abi.sh`. This test only verifies the compiler/ELF baseline; it does not build or validate the project payload or its runtime behavior.
+
+## 5. Compatibility evidence ledger
 
 For each future change, record the evidence source and confidence—not just a value:
 
@@ -41,10 +54,10 @@ For each future change, record the evidence source and confidence—not just a v
 | Memory map | Shipped-binary evidence and clearly distinguished runtime-only unknowns |
 | Build reproducibility | One explicit project/profile selection and a recorded compiler/NDK version |
 
-## 5. Stop conditions
+## 6. Stop conditions
 
 Do not treat the Samsung profile as ready if any required value is inherited from the K40 profile without evidence; if the build silently selects a different `PROJECT`; if a build report confuses a source rebuild with the shipped ELF; or if ELF symbols are treated as defined when marked `UND`.
 
-## 6. Current outcome
+## 7. Current outcome
 
 The firmware provenance is verified. The Samsung profile itself remains **documentation-only and not build-ready**. No exploit-specific target constants are supplied in this scaffold.
