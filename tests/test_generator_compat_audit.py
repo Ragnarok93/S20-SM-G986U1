@@ -38,12 +38,26 @@ def make_boot(version: int, *, page_size: int = 4096) -> bytes:
     return bytes(data)
 
 
-def make_generator_tree(root: Path, versions: str, *, fallback: bool = True) -> None:
+def make_generator_tree(
+    root: Path,
+    versions: str,
+    *,
+    fallback: bool = True,
+    legacy_support: bool = False,
+) -> None:
     vendor = root / "tools" / "vendor"
     vendor.mkdir(parents=True)
+    legacy_branch = (
+        "    if header_version in (0, 1, 2):\\n"
+        "        page_size = u32(boot, 36)\\n"
+        "        kernel_offset = page_size\\n"
+        if legacy_support
+        else ""
+    )
     parser_source = f"""
 def extract_boot_kernel(path):
-    expected_header_sizes = {versions}
+    header_version = u32(boot, 40)
+{legacy_branch}    expected_header_sizes = {versions}
     return expected_header_sizes
 """
     (vendor / "generate_target.py").write_text(parser_source, encoding="utf-8")
@@ -91,7 +105,11 @@ class GeneratorCompatibilityAuditTests(unittest.TestCase):
             root = Path(tmp)
             generator_root = root / "generator"
             generator_root.mkdir()
-            make_generator_tree(generator_root, "{2: 0x0, 3: 0x62C, 4: 0x630}")
+            make_generator_tree(
+                generator_root,
+                "{3: 0x62C, 4: 0x630}",
+                legacy_support=True,
+            )
             boot_path = root / "boot.img"
             boot_path.write_bytes(make_boot(2))
 
