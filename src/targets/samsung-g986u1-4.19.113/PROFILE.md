@@ -37,6 +37,12 @@ The byte comparison establishes that the payload selected by the legacy header p
 
 This inspection validates input layout and provenance only. It does not establish the runtime memory map, structure layouts, or device-specific constants. The Samsung directory remains documentation-only and deliberately has no `target.h`.
 
+## KernelSU-Next / SUSFS compatibility assessment
+
+The source/reference assessment is maintained in [`docs/samsung-g986u1-kernelsu-susfs-compatibility.md`](../../../docs/samsung-g986u1-kernelsu-susfs-compatibility.md). A Snapdragon S20-series 4.19.113 reference exists, but it disables RKP/KDP, DEFEX, PROCA, and CFP; its security-configuration changes must not be copied as the default for this target. The relevant SUSFS source lineage is the `kernel-4.19` branch, whose patch expectations must be reconciled with the exact KernelSU-Next revision before integration is claimed.
+
+Current status: **reference reviewed; SUSFS integration not yet verified**. KernelSU hook mode, source patch compatibility, final configuration, preservation of Samsung security facilities, and build/runtime behavior remain separate gates. An absent line in the parsed stock config must not be treated as an enabled or disabled setting without explicit evidence.
+
 ## Verified stock configuration flags
 
 The extracted stock config reports the following enabled:
