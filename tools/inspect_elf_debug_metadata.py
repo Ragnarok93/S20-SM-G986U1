@@ -45,6 +45,7 @@ DWARF_SUPPORT_NAMES = {
     ".debug_loclists", ".debug_ranges", ".debug_rnglists", ".debug_types",
     ".eh_frame", ".gdb_index", ".debug_names",
 }
+BTF_SECTION_NAMES = {".BTF", ".BTF.ext"}
 SEPARATE_DEBUG_NAMES = {
     ".gnu_debuglink", ".gnu_debugaltlink", ".debug_sup", ".debug_cu_index",
     ".debug_tu_index",
@@ -134,11 +135,17 @@ def inspect_elf(path: Path, readelf: str = "readelf") -> Inspection:
     if executable is None:
         raise MetadataError(f"readelf executable not found: {readelf}")
     try:
-        data = path.read_bytes()
+        file_size = path.stat().st_size
+        if file_size == 0:
+            raise MetadataError("input file is empty")
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except MetadataError:
+        raise
     except OSError as exc:
         raise MetadataError(f"cannot read input: {path}: {exc}") from exc
-    if not data:
-        raise MetadataError("input file is empty")
 
     header = run_readelf(executable, ("-h", "-W"), path)
     sections_output = run_readelf(executable, ("-S", "-W"), path)
@@ -177,8 +184,8 @@ def inspect_elf(path: Path, readelf: str = "readelf") -> Inspection:
 
     return Inspection(
         path=path,
-        file_size=len(data),
-        sha256=hashlib.sha256(data).hexdigest(),
+        file_size=file_size,
+        sha256=digest.hexdigest(),
         elf_fields=fields,
         build_id=build_id,
         sections=sections,
@@ -205,6 +212,7 @@ def report(result: Inspection) -> None:
         ("dwarf_strings", DWARF_STRING_NAMES),
         ("line_tables", LINE_INFO_NAMES),
         ("dwarf_support", DWARF_SUPPORT_NAMES),
+        ("btf_sections", BTF_SECTION_NAMES),
         ("separate_debug_refs", SEPARATE_DEBUG_NAMES),
         ("symbol_table_sections", SYMBOL_TABLE_NAMES),
     )
