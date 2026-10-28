@@ -41,7 +41,7 @@ def make_legacy_boot(payload: bytes, *, version: int = 2, page_size: int = 4096)
 
 def make_arm64_payload() -> bytes:
     payload = bytearray(0x100)
-    payload[0x38:0x3C] = b"ARM\\x64"
+    payload[0x38:0x3C] = bytes((0x41, 0x52, 0x4D, 0x64))
     return bytes(payload)
 
 
