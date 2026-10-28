@@ -150,6 +150,16 @@ def run_synthetic_tests(module: ModuleType) -> int:
         "header_size",
         "modern v3 header-size mismatch",
     )
+
+    invalid_pe_payload = bytearray(payload)
+    struct.pack_into("<I", invalid_pe_payload, 60, 0x40)
+    invalid_pe_payload[0x40:0x44] = b"NOPE"
+    expect_rejected(
+        module,
+        make_boot(bytes(invalid_pe_payload), version=2),
+        "PE/COFF stub magic",
+        "nonzero PE offset without PE signature",
+    )
     expect_rejected(
         module,
         make_boot(payload, version=5),
@@ -162,7 +172,7 @@ def run_synthetic_tests(module: ModuleType) -> int:
         "越界",
         "kernel range past EOF",
     )
-    return len(cases) + 7
+    return len(cases) + 8
 
 
 def verify_real_firmware(
