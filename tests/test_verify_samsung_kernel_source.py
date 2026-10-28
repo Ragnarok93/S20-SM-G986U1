@@ -22,15 +22,16 @@ PROFILE = module.load_profile(PROFILE_PATH)
 
 
 def make_tree(root: Path, version: str = "4", patchlevel: str = "19", sublevel: str = "113",
-              device_config: str = "y2q_usa_singlex_defconfig") -> None:
+              device_config: str = "y2q_usa_singlew_defconfig",
+              selector_values: str = "CONFIG_MACH_Y2Q_USA_SINGLE=y\nCONFIG_SEC_Y2Q_PROJECT=y\n") -> None:
     root.mkdir(parents=True, exist_ok=True)
     (root / "Makefile").write_text(
         f"VERSION = {version}\nPATCHLEVEL = {patchlevel}\nSUBLEVEL = {sublevel}\nEXTRAVERSION = \n",
         encoding="utf-8",
     )
-    for path in ("kernel", "arch/arm64", "drivers", "include/linux", "arch/arm64/configs"):
+    for path in ("kernel", "arch/arm64", "drivers", "include/linux", "arch/arm64/configs/vendor"):
         (root / path).mkdir(parents=True, exist_ok=True)
-    (root / "arch/arm64/configs" / device_config).write_text("CONFIG_ARCH_QCOM=y\n", encoding="utf-8")
+    (root / "arch/arm64/configs/vendor" / device_config).write_text(selector_values, encoding="utf-8")
 
 
 class SamsungKernelSourceTests(unittest.TestCase):
@@ -43,8 +44,10 @@ class SamsungKernelSourceTests(unittest.TestCase):
             (4, 19, 113),
         )
         self.assertEqual(profile["device"]["model"], "SM-G986U1")
+        self.assertEqual(profile["kernel_source"]["preferred_device_config"],
+                         "vendor/y2q_usa_singlew_defconfig")
 
-    def test_matching_source_tree_passes_baseline(self) -> None:
+    def test_matching_source_tree_passes_baseline_and_target_defconfig(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "kernel"
             make_tree(root)
@@ -52,7 +55,28 @@ class SamsungKernelSourceTests(unittest.TestCase):
         statuses = {(name, level) for level, name, _ in checks}
         self.assertIn(("kernel version", "PASS"), statuses)
         self.assertIn(("source tree layout", "PASS"), statuses)
-        self.assertEqual(candidates, ["arch/arm64/configs/y2q_usa_singlex_defconfig"])
+        self.assertIn(("preferred device config", "PASS"), statuses)
+        self.assertIn(("defconfig selector CONFIG_MACH_Y2Q_USA_SINGLE", "PASS"), statuses)
+        self.assertIn(("defconfig selector CONFIG_SEC_Y2Q_PROJECT", "PASS"), statuses)
+        self.assertEqual(candidates, ["arch/arm64/configs/vendor/y2q_usa_singlew_defconfig"])
+
+    def test_conflicting_target_selector_fails_source_check(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "kernel"
+            make_tree(root, selector_values="CONFIG_MACH_Y2Q_USA_SINGLE=y\n# CONFIG_SEC_Y2Q_PROJECT is not set\n")
+            checks, _, _ = module.inspect_source_tree(root, PROFILE)
+        selector = next(item for item in checks if item[1] == "defconfig selector CONFIG_SEC_Y2Q_PROJECT")
+        self.assertEqual(selector[0], "FAIL")
+        self.assertIn("found=n; expected=y", selector[2])
+
+    def test_unspecified_target_selector_is_reported_without_false_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "kernel"
+            make_tree(root, selector_values="CONFIG_MACH_Y2Q_USA_SINGLE=y\n")
+            checks, _, _ = module.inspect_source_tree(root, PROFILE)
+        selector = next(item for item in checks if item[1] == "defconfig selector CONFIG_SEC_Y2Q_PROJECT")
+        self.assertEqual(selector[0], "INFO")
+        self.assertIn("generated .config", selector[2])
 
     def test_wrong_kernel_version_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -73,18 +97,29 @@ class SamsungKernelSourceTests(unittest.TestCase):
         self.assertEqual(layout_check[0], "FAIL")
         self.assertIn("arch/arm64", layout_check[2])
 
-    def test_no_device_defconfig_is_warning_not_false_claim(self) -> None:
+    def test_missing_preferred_device_defconfig_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "kernel"
             make_tree(root, device_config="vendor_generic_defconfig")
             checks, _, candidates = module.inspect_source_tree(root, PROFILE)
         config_check = next(item for item in checks if item[1] == "device config candidates")
+        preferred_check = next(item for item in checks if item[1] == "preferred device config")
         self.assertEqual(config_check[0], "WARN")
+        self.assertEqual(preferred_check[0], "FAIL")
         self.assertEqual(candidates, [])
 
     def test_malformed_profile_without_kernel_source_fails(self) -> None:
         profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
         del profile["kernel_source"]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bad.json"
+            path.write_text(json.dumps(profile), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                module.load_profile(path)
+
+    def test_preferred_config_path_must_be_safe_relative_path(self) -> None:
+        profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+        profile["kernel_source"]["preferred_device_config"] = "../other_defconfig"
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "bad.json"
             path.write_text(json.dumps(profile), encoding="utf-8")
@@ -102,6 +137,14 @@ class SamsungKernelSourceTests(unittest.TestCase):
                 module.parse_kernel_version(makefile),
                 {"VERSION": "4", "PATCHLEVEL": "19", "SUBLEVEL": "113", "EXTRAVERSION": "-vendor"},
             )
+
+    def test_config_parser_preserves_explicit_disabled_setting(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "defconfig"
+            config.write_text("# CONFIG_SEC_Y2Q_PROJECT is not set\nCONFIG_MACH_Y2Q_USA_SINGLE=y\n", encoding="utf-8")
+            values = module.parse_config_values(config)
+        self.assertEqual(values["CONFIG_SEC_Y2Q_PROJECT"], "n")
+        self.assertEqual(values["CONFIG_MACH_Y2Q_USA_SINGLE"], "y")
 
 
 if __name__ == "__main__":
