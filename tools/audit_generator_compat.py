@@ -165,7 +165,7 @@ def audit(generator_root: Path, boot_path: Path) -> int:
     print(f"kernel_offset=0x{boot['kernel_offset']:x}")
     print(f"kernel_size={boot['kernel_size']}")
 
-    parser_results: list[tuple[Path, set[int] | None]] = []
+    parser_results: list[tuple[Path, set[int] | None, bool]] = []
     for relative in GENERATOR_RELATIVE_PATHS:
         path = generator_root / relative
         if path.is_symlink() or not path.is_file():
