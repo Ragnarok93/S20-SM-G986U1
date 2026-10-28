@@ -451,9 +451,38 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("elf", type=Path, help="ELF file to inspect (e.g. reconstructed vendor vmlinux)")
     parser.add_argument("--readelf", default="readelf", help="GNU readelf executable or path")
+    parser.add_argument(
+        "--strict-structure",
+        action="store_true",
+        help="return nonzero if ELF section/symbol structure checks report inconsistencies",
+    )
     args = parser.parse_args(argv)
     try:
-        report(inspect_elf(args.elf, args.readelf))
+        result = inspect_elf(args.elf, args.readelf)
+        report(result)
+        if args.strict_structure:
+            failures: list[str] = []
+            if not result.section_table_consistent:
+                failures.append("section table count/indices are inconsistent")
+            if result.out_of_bounds_sections:
+                failures.append(f"{result.out_of_bounds_sections} file-backed section range(s) exceed file size")
+            if result.readelf_lint_status != "PASS":
+                failures.append(
+                    f"readelf lint status is {result.readelf_lint_status} "
+                    f"({result.readelf_lint_warning_count} warning(s), "
+                    f"{result.readelf_lint_error_count} error(s))"
+                )
+            if result.symbol_summary is not None and any(
+                table.declared_entries != table.parsed_entries
+                for table in result.symbol_summary.tables
+            ):
+                failures.append("one or more symbol tables were only partially parsed")
+            if failures:
+                print("STRUCTURE_VALIDATION=FAIL", file=sys.stderr)
+                for failure in failures:
+                    print(f" - {failure}", file=sys.stderr)
+                return 1
+            print("STRUCTURE_VALIDATION=PASS")
         return 0
     except MetadataError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
