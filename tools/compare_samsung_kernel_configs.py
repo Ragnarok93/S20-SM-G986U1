@@ -73,6 +73,12 @@ def classify_symbol(symbol: str) -> str:
     return "other"
 
 
+def device_selector_symbols(stock: dict[str, str], candidate: dict[str, str]) -> list[str]:
+    """Return Samsung product/variant selectors present in either config."""
+    pattern = re.compile(r"^CONFIG_(?:SEC_[A-Za-z0-9_]+_PROJECT|MACH_(?:X1Q|Y2Q|Z3Q)_[A-Za-z0-9_]+)$")
+    return sorted(key for key in (set(stock) | set(candidate)) if pattern.fullmatch(key))
+
+
 def compare_configs(stock: dict[str, str], candidate: dict[str, str]) -> dict[str, object]:
     """Compare configs conservatively; absent keys never silently mean disabled."""
     shared = set(stock) & set(candidate)
@@ -150,6 +156,16 @@ def main(argv: Iterable[str] | None = None) -> int:
     print(f"Core-group unknowns: {len(result['critical_unknowns'])}")
     print(f"Other value deltas: {len(result['noncritical_differences'])}")
     print(f"Other one-sided symbols: {len(result['noncritical_unknowns'])}")
+
+    selectors = device_selector_symbols(stock, candidate)
+    print("\\n== Samsung product/variant selector values ==")
+    if selectors:
+        for key in selectors:
+            stock_value = stock.get(key, "<absent>")
+            candidate_value = candidate.get(key, "<absent>")
+            print(f"SELECTOR {key}: stock={stock_value} candidate={candidate_value}")
+    else:
+        print("WARN no SEC_<PROJECT> or X1Q/Y2Q/Z3Q MACH selectors found")
 
     if result["critical_differences"]:
         print("\n== Core-group value differences ==")
