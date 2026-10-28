@@ -31,7 +31,7 @@ HEADER = """ELF Header:
 """
 SECTIONS_WITH_DWARF = """There are 6 section headers:
   [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al
-  [ 0] NULL              NULL            0000000000000000 000000 000000 00      0   0  0
+  [ 0]                   NULL            0000000000000000 000000 000000 00      0   0  0
   [ 1] .debug_info       PROGBITS        0000000000000000 000040 000100 00      0   0  1
   [ 2] .debug_abbrev     PROGBITS        0000000000000000 000140 000080 00      0   0  1
   [ 3] .debug_str        PROGBITS        0000000000000000 0001c0 000060 01  MS  0   0  1
@@ -40,7 +40,7 @@ SECTIONS_WITH_DWARF = """There are 6 section headers:
 """
 SECTIONS_WITHOUT_DWARF = """There are 3 section headers:
   [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al
-  [ 0] NULL              NULL            0000000000000000 000000 000000 00      0   0  0
+  [ 0]                   NULL            0000000000000000 000000 000000 00      0   0  0
   [ 1] .text             PROGBITS        0000000000000000 000040 000100 00  AX  0   0 16
   [ 2] .dynsym           DYNSYM          0000000000000000 000140 000020 18   A  3   1  8
 """
@@ -222,6 +222,9 @@ class ElfDebugMetadataTests(unittest.TestCase):
         info = next(section for section in sections if section.name == ".debug_info")
         self.assertEqual(info.index, 1)
         self.assertEqual(info.offset, 0x40)
+        null_section = next(section for section in sections if section.index == 0)
+        self.assertEqual(null_section.name, "")
+        self.assertEqual(null_section.kind, "NULL")
         self.assertEqual(info.size, 0x100)
         self.assertEqual(info.kind, "PROGBITS")
         self.assertEqual(inspector.parse_declared_section_count(SECTIONS_WITH_DWARF), 6)
