@@ -75,6 +75,12 @@ After the enabled-BTF reporting test was added and `samsung-verify` was updated 
 
 The additional build-guard regression test was then run as part of `make samsung-verify` and the user reported the full combined command passed. The guard verifies that `make PROJECT=samsung-g986u1-4.19.113 preload -n` is rejected while this directory lacks `target.h`. The passing metadata suite does not change the profile's documentation-only status.
 
+## Latest combined verification result
+
+The user ran `make samsung-verify` after integrating the live firmware inspection and reported **PASS**. This confirms, in the user's WSL environment, the artifact/configuration validator, actual stock boot-image/raw-Image inspection and BTF signature scan, Android NDK API 33 ABI smoke test, and the regression suite all completed successfully at that revision. The build-guard regression test covers all seven payload goals.
+
+The subsequent documentation-only status and build-guard source remain in place. A passing verification target validates its listed checks; it does not supply the missing Samsung `target.h` or prove runtime exploit compatibility.
+
 ## Combined verification target update
 
 After the reported passing run, `make samsung-verify` was updated to include `tools/inspect_android_boot.py` against the actual stock boot image, extracted raw Image, parsed config, and reconstructed vendor ELF, with the BTF signature scan enabled. It now sequences artifact/config and ELF mapping checks, real-image inspection, Android ABI smoke checks, and the regression suite.
