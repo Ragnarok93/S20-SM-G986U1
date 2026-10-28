@@ -153,7 +153,7 @@ def fallback_flags(wrapper_path: Path) -> dict[str, bool]:
         "explicit_inheritance_warning": "inherited from template" in source,
         "writes_output": "output.write_text(" in source,
         "automatic_fallback_route": bool(re.search(
-            r"except Exception as exc:\\s*return fallback_generate_without_btf\\s*\\(",
+            r"except Exception as exc:\s*return fallback_generate_without_btf\s*\(",
             source,
         )),
         "btf_validation_fail_closed": (
