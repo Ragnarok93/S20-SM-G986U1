@@ -140,7 +140,7 @@ class InspectAndroidBootTests(unittest.TestCase):
             boot_path = root / "boot.img"
             config_path = root / "kernel.config"
             boot_path.write_bytes(make_legacy_boot(make_arm64_payload()))
-            config_path.write_text("CONFIG_IKCONFIG=y\\n", encoding="utf-8")
+            config_path.write_text("CONFIG_IKCONFIG=y\n", encoding="utf-8")
 
             output = io.StringIO()
             with redirect_stdout(output):
@@ -163,7 +163,7 @@ class InspectAndroidBootTests(unittest.TestCase):
             config_path = root / "kernel.config"
             boot_path.write_bytes(make_legacy_boot(make_arm64_payload()))
             config_path.write_text(
-                "# CONFIG_DEBUG_INFO_BTF is not set\\n", encoding="utf-8"
+                "# CONFIG_DEBUG_INFO_BTF is not set\n", encoding="utf-8"
             )
 
             output = io.StringIO()
