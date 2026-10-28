@@ -8,7 +8,7 @@ import json
 import re
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +28,19 @@ def load_profile(path: Path) -> dict[str, Any]:
     for key in ("required_paths", "device_config_tokens"):
         if not isinstance(source.get(key), list) or not all(isinstance(x, str) for x in source[key]):
             raise ValueError(f"profile kernel_source.{key} must be a string array")
+    preferred = source.get("preferred_device_config")
+    if not isinstance(preferred, str) or not preferred:
+        raise ValueError("profile kernel_source.preferred_device_config must be a non-empty path")
+    preferred_path = PurePosixPath(preferred)
+    if preferred_path.is_absolute() or ".." in preferred_path.parts:
+        raise ValueError("profile kernel_source.preferred_device_config must be a safe relative path")
+    kernel_config = profile.get("kernel_config")
+    selectors = kernel_config.get("target_selectors") if isinstance(kernel_config, dict) else None
+    if not isinstance(selectors, dict) or not selectors:
+        raise ValueError("profile kernel_config.target_selectors must be a non-empty object")
+    for key, expected in selectors.items():
+        if not isinstance(key, str) or not key.startswith("CONFIG_") or not isinstance(expected, str):
+            raise ValueError("target_selectors must map CONFIG_* names to string values")
     return profile
 
 
@@ -38,6 +51,20 @@ def parse_kernel_version(makefile: Path) -> dict[str, str]:
         match = re.match(r"^\s*(VERSION|PATCHLEVEL|SUBLEVEL|EXTRAVERSION)\s*=\s*(.*?)\s*$", line)
         if match:
             values[match.group(1)] = match.group(2).split("#", 1)[0].strip()
+    return values
+
+
+def parse_config_values(path: Path) -> dict[str, str]:
+    """Parse explicit Kconfig assignments and '# CONFIG_X is not set' entries."""
+    values: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if line.startswith("CONFIG_") and "=" in line:
+            key, value = line.split("=", 1)
+            values[key] = value.strip()
+        else:
+            match = re.fullmatch(r"# (CONFIG_[A-Za-z0-9_]+) is not set", line.strip())
+            if match:
+                values[match.group(1)] = "n"
     return values
 
 
@@ -128,6 +155,26 @@ def inspect_source_tree(root: Path, profile: dict[str, Any]) -> tuple[list[tuple
         checks.append(("WARN", "device config candidates",
                        "no config filename matched " + ", ".join(source_profile["device_config_tokens"])
                        + "; inspect the vendor tree's selected defconfig manually"))
+
+    preferred_rel = str(PurePosixPath(source_profile["preferred_device_config"]))
+    preferred_path = config_dir / preferred_rel
+    if preferred_path.is_file():
+        checks.append(("PASS", "preferred device config", preferred_rel))
+        expected_selectors = profile["kernel_config"]["target_selectors"]
+        preferred_values = parse_config_values(preferred_path)
+        for symbol, wanted in sorted(expected_selectors.items()):
+            found = preferred_values.get(symbol)
+            if found == wanted:
+                checks.append(("PASS", f"defconfig selector {symbol}", f"{preferred_rel}: {found}"))
+            elif found is None:
+                checks.append(("INFO", f"defconfig selector {symbol}",
+                               f"{preferred_rel}: not explicitly set; confirm in the generated .config"))
+            else:
+                checks.append(("FAIL", f"defconfig selector {symbol}",
+                               f"{preferred_rel}: found={found}; expected={wanted}"))
+    else:
+        checks.append(("FAIL", "preferred device config",
+                       f"missing {preferred_rel} under arch/arm64/configs"))
 
     metadata = git_metadata(root)
     if metadata:
