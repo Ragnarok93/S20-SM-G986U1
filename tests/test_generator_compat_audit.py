@@ -134,7 +134,7 @@ class GeneratorCompatibilityAuditTests(unittest.TestCase):
             self.assertIn("boot_header_version=2", report)
             self.assertIn("accepted_header_versions=3,4", report)
             self.assertIn("parser_compatibility=BLOCKED", report)
-            self.assertIn("no_btf_fallback_risk=template inheritance path detected", report)
+            self.assertIn("no_btf_fallback_risk=ACTIVE (automatic template inheritance route detected)", report)
             self.assertIn("did not write any files", report)
             self.assertFalse((generator_root / "src" / "targets").exists())
 
