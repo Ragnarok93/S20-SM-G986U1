@@ -2,6 +2,8 @@
 
 **Status: documentation-only; not build-ready.** This directory intentionally does not contain `target.h`, so the existing Makefile cannot select it as an executable target. Do not copy the K40 `target.h` here and treat it as a Samsung profile.
 
+The device facts and pinned artifact/configuration expectations now live in [`device-profile.json`](device-profile.json), which is consumed by `tools/verify_samsung_firmware.py`. Run `make samsung-device-check` for a read-only ADB check of the connected device identity, Android build, ABI, and kernel release. This adds repeatable compatibility gates; it does not by itself mark the device port complete.
+
 ## Verified identity
 
 | Field | Value | Evidence |
