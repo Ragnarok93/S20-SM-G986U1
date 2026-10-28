@@ -11,6 +11,7 @@ SAMSUNG_BOOT_IMAGE ?= $(HOME)/stock-boot.img
 SAMSUNG_RAW_IMAGE ?= /tmp/g986u1-stock-kernel.Image
 SAMSUNG_VENDOR_ELF ?= $(HOME)/firmware-check/vmlinux.elf
 SAMSUNG_KERNEL_CONFIG ?= $(HOME)/firmware-check/kernel.config
+UPSTREAM_GENERATOR_ROOT ?= /tmp/ghostlock-profile-gen
 
 API ?= $(SAMSUNG_ANDROID_API)
 PROJECT ?= $(SAMSUNG_PROJECT)
@@ -21,7 +22,7 @@ TARGET_DIR := src/targets/$(PROJECT)
 TARGET_HEADER := $(TARGET_DIR)/target.h
 REQUESTED_GOALS := $(if $(strip $(MAKECMDGOALS)),$(MAKECMDGOALS),preload)
 PAYLOAD_GOALS := all preload s2 s3 rootchain closed-loop hello-dso
-UTILITY_GOALS := list-projects clean info samsung-info samsung-inspect samsung-verify samsung-test-tools
+UTILITY_GOALS := list-projects clean info samsung-info samsung-inspect samsung-verify samsung-test-tools samsung-generator-audit
 
 ifeq ($(strip $(PROJECT)),)
 ifneq ($(filter $(UTILITY_GOALS),$(MAKECMDGOALS)),)
@@ -140,7 +141,7 @@ SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
 TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
 
-.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects samsung-info samsung-inspect samsung-verify samsung-test-tools
+.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects samsung-info samsung-inspect samsung-verify samsung-generator-audit samsung-test-tools
 
 all: preload
 
@@ -247,6 +248,11 @@ samsung-verify:
 
 samsung-test-tools:
 	python3 -m unittest discover -s tests -v
+
+samsung-generator-audit:
+	python3 tools/audit_generator_compat.py \
+	  --generator-root "$(UPSTREAM_GENERATOR_ROOT)" \
+	  --boot "$(SAMSUNG_BOOT_IMAGE)"
 
 list-projects:
 	@find src/targets -mindepth 2 -maxdepth 2 -name target.h -printf '%h\n' | sed 's#src/targets/##' | sort
