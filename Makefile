@@ -241,7 +241,7 @@ samsung-source-check:
 	python3 tools/verify_samsung_kernel_source.py --profile "$(SAMSUNG_DEVICE_PROFILE)" --source-root "$(SAMSUNG_KERNEL_SOURCE)"
 
 samsung-config-compare:
-	python3 tools/compare_samsung_kernel_configs.py --stock-config "$(SAMSUNG_KERNEL_CONFIG)" --candidate-config "$(SAMSUNG_SOURCE_CONFIG)" --show-all-differences $(if $(filter 1 yes true,$(SAMSUNG_CONFIG_STRICT)),--strict-all,)
+	python3 tools/compare_samsung_kernel_configs.py --profile "$(SAMSUNG_DEVICE_PROFILE)" --stock-config "$(SAMSUNG_KERNEL_CONFIG)" --candidate-config "$(SAMSUNG_SOURCE_CONFIG)" --show-all-differences $(if $(filter 1 yes true,$(SAMSUNG_CONFIG_STRICT)),--strict-all,)
 
 samsung-inspect:
 	python3 tools/inspect_android_boot.py \
