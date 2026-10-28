@@ -15,6 +15,9 @@ DEFAULT_CANDIDATE = Path.home() / "s20_kernel_chxl1/out-stock-layout/.config"
 # A delta in these groups can invalidate assumptions used by architecture,
 # task/futex, symbol-inspection, or security compatibility code.
 CRITICAL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("soc-platform", re.compile(
+        r"^CONFIG_(?:ARCH_QCOM|ARCH_MSM.*|MSM.*|QCOM.*|ARCH_EXYNOS.*|EXYNOS.*)$"
+    )),
     ("arm64-memory-layout", re.compile(
         r"^CONFIG_(?:ARM64_VA_BITS(?:_39|_52)?|ARM64_PA_BITS(?:_.*)?|ARM64_4K_PAGES|ARM64_16K_PAGES|ARM64_64K_PAGES|"
         r"PHYS_ADDR_T_64BIT|RELOCATABLE|RANDOMIZE_BASE|RANDOMIZE_MODULE_REGION_FULL|"
@@ -32,15 +35,14 @@ CRITICAL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     )),
     ("security-hardening", re.compile(
         r"^CONFIG_(?:SECURITY(?:_.*)?|SELINUX(?:_.*)?|RKP|KDP|DEFEX|SECURITY_DEFEX|"
-        r"PROCA|CFP|FIVE|KNOX(?:_.*)?|HARDENED_USERCOPY|FORTIFY_SOURCE|"
+        r"PROCA|CFP|FIVE|KNOX(?:_.*)?|SEC_(?:RKP|KDP|DEFEX|PROCA|CFP|KNOX|RESTRICT.*|.*(?:RKP|KDP|DEFEX|PROCA|CFP|ROOT|SECURITY).*)|HARDENED_USERCOPY|FORTIFY_SOURCE|"
         r"BUG_ON_DATA_CORRUPTION|STRICT_KERNEL_RWX|STRICT_MODULE_RWX|"
         r"ARM64_SW_TTBR0_PAN|PANIC_ON_OOPS|SLAB_FREELIST_HARDENED|SLAB_FREELIST_RANDOM)$"
     )),
 )
 
 DEVICE_SELECTION_PATTERN = re.compile(
-    r"^CONFIG_(?:ARCH_QCOM|ARCH_MSM.*|MSM.*|MACH_.*|BOARD_.*|SOC_.*|"
-    r"SEC_.*|EXYNOS.*|ARCH_EXYNOS.*|VENDOR_.*|BUILD_.*|PROJECT_.*)$"
+    r"^CONFIG_(?:MACH_.*|BOARD_.*|SOC_.*|VENDOR_.*|BUILD_.*|PROJECT_.*)$"
 )
 
 
