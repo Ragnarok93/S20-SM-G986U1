@@ -47,6 +47,28 @@ class CompareSamsungKernelConfigsTests(unittest.TestCase):
         self.assertEqual(result["stock_only"], [])
         self.assertEqual(result["candidate_only"], [])
 
+    def test_device_selector_listing_includes_shared_and_one_sided_selectors(self) -> None:
+        stock = {
+            "CONFIG_SEC_Y2Q_PROJECT": "y",
+            "CONFIG_MACH_Y2Q_USA_SINGLE": "y",
+            "CONFIG_MACH_Y2Q_CAN_SINGLE": "n",
+            "CONFIG_SEC_X1Q_PROJECT": "n",
+            "CONFIG_SECURITY_SELINUX": "y",
+            "CONFIG_LOCALVERSION": "-stock",
+        }
+        candidate = {
+            "CONFIG_SEC_Y2Q_PROJECT": "y",
+            "CONFIG_MACH_Y2Q_USA_SINGLE": "y",
+            "CONFIG_SECURITY_SELINUX": "y",
+        }
+        selectors = module.device_selector_symbols(stock, candidate)
+        self.assertEqual(selectors, [
+            "CONFIG_MACH_Y2Q_CAN_SINGLE",
+            "CONFIG_MACH_Y2Q_USA_SINGLE",
+            "CONFIG_SEC_X1Q_PROJECT",
+            "CONFIG_SEC_Y2Q_PROJECT",
+        ])
+
     def test_device_selection_changes_are_separated_from_core_deltas(self) -> None:
         stock = {
             "CONFIG_ARM64_VA_BITS_39": "y",
