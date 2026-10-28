@@ -199,7 +199,7 @@ class InspectAndroidBootTests(unittest.TestCase):
             self.assertIn("btf_config=enabled according to config", report)
 
     @unittest.skipUnless(shutil.which("make"), "GNU make is required for this guard test")
-    def test_samsung_payload_build_stays_blocked_without_target_header(self) -> None:
+    def test_all_samsung_payload_goals_stay_blocked_without_target_header(self) -> None:
         project = "samsung-g986u1-4.19.113"
         target_header = ROOT / "src" / "targets" / project / "target.h"
         self.assertFalse(
@@ -207,23 +207,41 @@ class InspectAndroidBootTests(unittest.TestCase):
             "This guard test expects the Samsung profile to remain documentation-only",
         )
 
-        result = subprocess.run(
-            [
-                "make",
-                "--no-print-directory",
-                f"PROJECT={project}",
-                "preload",
-                "-n",
-            ],
-            cwd=ROOT,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=False,
+        payload_goals = (
+            "all",
+            "preload",
+            "s2",
+            "s3",
+            "rootchain",
+            "closed-loop",
+            "hello-dso",
         )
-        combined = result.stdout + result.stderr
-        self.assertNotEqual(result.returncode, 0, combined)
-        self.assertIn("evidence-only: no verified target.h exists", combined)
+        for goal in payload_goals:
+            with self.subTest(goal=goal):
+                result = subprocess.run(
+                    [
+                        "make",
+                        "--no-print-directory",
+                        f"PROJECT={project}",
+                        goal,
+                        "-n",
+                    ],
+                    cwd=ROOT,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                )
+                combined = result.stdout + result.stderr
+                self.assertNotEqual(
+                    result.returncode, 0,
+                    f"Expected {goal!r} to be blocked, but make succeeded:\\n{combined}",
+                )
+                self.assertIn(
+                    "evidence-only: no verified target.h exists",
+                    combined,
+                    f"Wrong failure reason for payload goal {goal!r}:\\n{combined}",
+                )
 
     def test_kernel_payload_mismatch_returns_failure(self) -> None:
         payload = make_arm64_payload()
