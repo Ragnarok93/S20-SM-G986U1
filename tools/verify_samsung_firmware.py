@@ -1,43 +1,41 @@
 #!/usr/bin/env python3
-"""Offline provenance/config check for the Samsung SM-G986U1 stock artifacts.
-
-This tool checks known SHA-256 digests, stock config flags, and (when objcopy
-is available) full byte-for-byte mapping of the two executable sections in the
-reconstructed vendor ELF to the raw Image. It does not infer target addresses
-or produce an executable target profile.
-"""
+"""Verify Samsung SM-G986U1 artifact provenance and selected kernel config values."""
 from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
-from typing import Iterable
+from typing import Any, Iterable
 
-EXPECTED_SHA256 = {
-    "boot image": "bd8987c28ef0b9fdb56ad3e82ce3b45929c5e53717525769e5625dd1e17f7dc8",
-    "raw kernel Image": "ffbc90af676558557eb917687736c11f15b560dbb3cb9ca237224da5acb14123",
-    "vendor ELF": "531444e3c98f8f7c4d2baefeda1386aca2b60a42030fcb1f4393c5e10b9154b4",
-}
-EXPECTED_FLAGS = {
-    "CONFIG_ARM64_VA_BITS_39": "y",
-    "CONFIG_FUTEX": "y",
-    "CONFIG_FUTEX_PI": "y",
-    "CONFIG_RT_MUTEXES": "y",
-    "CONFIG_PREEMPT": "y",
-    "CONFIG_KALLSYMS": "y",
-    "CONFIG_KALLSYMS_ALL": "y",
-    "CONFIG_KALLSYMS_BASE_RELATIVE": "y",
-    "CONFIG_SECURITY_SELINUX": "y",
-    "CONFIG_IKCONFIG_PROC": "y",
-}
-IMAGE_SIZE = 51_957_772
-# (section name, section VMA-relative Image offset)
-SECTIONS = ((".kernel", 0x0), (".kernel2", 0x29DA458))
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_PROFILE = ROOT / "src/targets/samsung-g986u1-4.19.113/device-profile.json"
+
+
+def load_profile(path: Path) -> dict[str, Any]:
+    profile = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(profile, dict) or profile.get("schema_version") != 1:
+        raise ValueError("unsupported or malformed Samsung device profile (expected schema_version=1)")
+    required = ("profile_id", "device", "software", "boot_image", "artifacts", "kernel_config", "elf_sections")
+    missing = [key for key in required if key not in profile]
+    if missing:
+        raise ValueError("profile missing required fields: " + ", ".join(missing))
+    for key in ("boot_image", "raw_kernel_image", "vendor_elf"):
+        if key not in profile["artifacts"] or "sha256" not in profile["artifacts"][key]:
+            raise ValueError(f"profile missing artifacts.{key}.sha256")
+    if not isinstance(profile["kernel_config"].get("required"), dict):
+        raise ValueError("profile kernel_config.required must be an object")
+    if not isinstance(profile["elf_sections"], list) or not profile["elf_sections"]:
+        raise ValueError("profile elf_sections must be a non-empty list")
+    for section in profile["elf_sections"]:
+        if not isinstance(section, dict) or not isinstance(section.get("name"), str) or not isinstance(section.get("image_offset"), int):
+            raise ValueError("each elf_sections entry must have a string name and integer image_offset")
+    return profile
 
 
 def sha256(path: Path) -> str:
@@ -79,14 +77,17 @@ def locate_objcopy(explicit: str | None) -> str | None:
     return None
 
 
-def check_section_mapping(objcopy: str, elf: Path, image: Path) -> list[str]:
+def check_section_mapping(
+    objcopy: str, elf: Path, image: Path, expected_image_size: int,
+    sections: Iterable[tuple[str, int]],
+) -> list[str]:
     messages: list[str] = []
     image_size = image.stat().st_size
-    if image_size != IMAGE_SIZE:
-        messages.append(f"FAIL raw Image size is {image_size:,}; expected {IMAGE_SIZE:,}")
+    if image_size != expected_image_size:
+        messages.append(f"FAIL raw Image size is {image_size:,}; expected {expected_image_size:,}")
         return messages
     with tempfile.TemporaryDirectory(prefix="samsung-elf-check-") as tmp:
-        for section, offset in SECTIONS:
+        for section, offset in sections:
             output = Path(tmp) / (section.lstrip(".") + ".bin")
             cmd = [objcopy, "--dump-section", f"{section}={output}", str(elf)]
             result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -120,6 +121,7 @@ def check_section_mapping(objcopy: str, elf: Path, image: Path) -> list[str]:
 def main(argv: Iterable[str] | None = None) -> int:
     home = Path.home()
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", type=Path, default=DEFAULT_PROFILE, help="machine-readable target profile")
     parser.add_argument("--boot", type=Path, default=home / "stock-boot.img", help="decompressed stock boot image")
     parser.add_argument("--image", type=Path, default=Path("/tmp/g986u1-stock-kernel.Image"), help="raw kernel Image extracted from the stock boot image")
     parser.add_argument("--elf", type=Path, default=home / "firmware-check/vmlinux.elf", help="reconstructed vendor ELF")
@@ -127,16 +129,32 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--objcopy", help="optional explicit path to llvm-objcopy or compatible objcopy")
     args = parser.parse_args(argv)
 
+    try:
+        profile = load_profile(args.profile)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"FAIL profile metadata: {exc}", file=sys.stderr)
+        return 2
+
+    expected_hashes = {
+        "boot image": profile["artifacts"]["boot_image"]["sha256"],
+        "raw kernel Image": profile["artifacts"]["raw_kernel_image"]["sha256"],
+        "vendor ELF": profile["artifacts"]["vendor_elf"]["sha256"],
+    }
+    expected_flags: dict[str, str] = profile["kernel_config"]["required"]
+    image_size = int(profile["boot_image"]["kernel_size_bytes"])
+    sections = [(item["name"], int(item["image_offset"])) for item in profile["elf_sections"]]
+    device = profile["device"]
+
     failures = 0
     expected_files = (("boot image", args.boot), ("raw kernel Image", args.image), ("vendor ELF", args.elf))
-    print("== Samsung SM-G986U1 / G986U1UESCHXL1 artifact check ==")
+    print(f"== {device['model']} / {device['firmware_build']} artifact check ({profile['profile_id']}) ==")
     for label, path in expected_files:
         if not path.is_file():
             print(f"FAIL {label}: missing file: {path}")
             failures += 1
             continue
         digest = sha256(path)
-        expected = EXPECTED_SHA256[label]
+        expected = expected_hashes[label]
         if digest == expected:
             print(f"PASS {label}: SHA-256 {digest}")
         else:
@@ -146,7 +164,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     if args.config.is_file():
         config = parse_config(args.config)
         print(f"\n== Required stock configuration: {args.config} ==")
-        for key, expected in EXPECTED_FLAGS.items():
+        for key, expected in expected_flags.items():
             actual = config.get(key, "<missing>")
             if actual == expected:
                 print(f"PASS {key}={actual}")
@@ -163,14 +181,14 @@ def main(argv: Iterable[str] | None = None) -> int:
         if not objcopy:
             print("WARN objcopy not found; section-byte comparison skipped (pass --objcopy PATH to enable)")
         else:
-            for message in check_section_mapping(objcopy, args.elf, args.image):
+            for message in check_section_mapping(objcopy, args.elf, args.image, image_size, sections):
                 print(message)
                 if message.startswith("FAIL"):
                     failures += 1
     else:
         print("\nWARN section-byte comparison skipped because ELF or Image is missing")
 
-    print("\nRESULT: " + ("FAIL; review messages above" if failures else "checks passed; profile remains documentation-only"))
+    print("\nRESULT: " + ("FAIL; review messages above" if failures else "checks passed; device profile remains identity/provenance-only"))
     return 1 if failures else 0
 
 
