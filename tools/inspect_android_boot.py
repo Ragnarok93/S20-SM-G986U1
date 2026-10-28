@@ -95,11 +95,11 @@ def inspect(boot_path: Path, image_path: Path | None) -> int:
     else:
         print(f"ramdisk_size={ramdisk_size} (0x{ramdisk_size:x})")
     print(f"payload_sha256={sha256(payload)}")
-    if len(payload) >= 0x3C and payload[0x38:0x3C] == b"ARM\\x64":
+    if len(payload) >= 0x3C and payload[0x38:0x3C] == b"ARM\x64":
         print("payload_signature=raw ARM64 Image")
-    elif payload.startswith(b"\\x1f\\x8b"):
+    elif payload.startswith(b"\x1f\x8b"):
         print("payload_signature=gzip")
-    elif payload.startswith((b"\\x02\\x21\\x4c\\x18", b"\\x04\\x22\\x4d\\x18")):
+    elif payload.startswith((b"\x02\x21\x4c\x18", b"\x04\x22\x4d\x18")):
         print("payload_signature=LZ4")
     else:
         print(f"payload_signature=unrecognized first16={payload[:16].hex()}")
