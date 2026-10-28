@@ -120,6 +120,14 @@ class ElfDebugMetadataTests(unittest.TestCase):
                 + result.symbol_summary.null_entries,
             )
             self.assertIn(("FUNC", 1), result.symbol_summary.tables[0].type_counts)
+            self.assertEqual(
+                sum(count for _name, count in result.symbol_summary.tables[0].type_counts),
+                result.symbol_summary.parsed_entries - result.symbol_summary.null_entries,
+            )
+            self.assertEqual(
+                sum(count for _name, count in result.symbol_summary.tables[0].binding_counts),
+                result.symbol_summary.parsed_entries - result.symbol_summary.null_entries,
+            )
             # The summary deliberately retains no symbol strings or symbol values.
             self.assertNotIn("_start", repr(result.symbol_summary))
             self.assertNotIn("0000000000001000", repr(result.symbol_summary))
@@ -141,6 +149,10 @@ class ElfDebugMetadataTests(unittest.TestCase):
             self.assertEqual(result.symbol_summary.defined_entries, 1)
             self.assertEqual(result.symbol_summary.undefined_entries, 0)
             self.assertEqual(result.symbol_summary.null_entries, 1)
+            self.assertEqual(
+                sum(count for _name, count in result.symbol_summary.tables[0].type_counts),
+                result.symbol_summary.parsed_entries - result.symbol_summary.null_entries,
+            )
             self.assertEqual(run.call_count, 4)
 
 
