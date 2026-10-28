@@ -23,7 +23,7 @@ CRITICAL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     )),
     ("futex-scheduler", re.compile(
         r"^CONFIG_(?:FUTEX(?:_PI)?|RT_MUTEXES|PREEMPT(?:_.*)?|HAVE_PREEMPT.*|HZ|"
-        r"ARCH_HAS_PREEMPT_LAZY|NO_HZ(?:_.*)?)$"
+        r"ARCH_HAS_PREEMPT_LAZY|NO_HZ(?:_.*)?|HZ(?:_.*)?)$"
     )),
     ("symbols-debug-metadata", re.compile(
         r"^CONFIG_(?:KALLSYMS(?:_ALL|_BASE_RELATIVE|_ABSOLUTE_PERCPU)?|IKCONFIG(?:_PROC)?|"
