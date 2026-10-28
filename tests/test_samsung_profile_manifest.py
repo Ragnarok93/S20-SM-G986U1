@@ -41,6 +41,8 @@ class SamsungProfileManifestTests(unittest.TestCase):
         self.assertEqual(profile["boot_image"]["kernel_size_bytes"], 51_957_772)
         self.assertEqual(profile["kernel_config"]["required"]["CONFIG_ARM64_VA_BITS_39"], "y")
         self.assertEqual(profile["kernel_config"]["required"]["CONFIG_FUTEX_PI"], "y")
+        self.assertEqual(profile["kernel_config"]["target_selectors"]["CONFIG_SEC_Y2Q_PROJECT"], "y")
+        self.assertEqual(profile["kernel_config"]["target_selectors"]["CONFIG_MACH_Y2Q_USA_SINGLE"], "y")
         sections = {item["name"]: item["image_offset"] for item in profile["elf_sections"]}
         self.assertEqual(sections[".kernel"], 0)
         self.assertEqual(sections[".kernel2"], 0x29DA458)
