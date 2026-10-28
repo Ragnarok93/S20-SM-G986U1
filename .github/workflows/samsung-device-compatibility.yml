@@ -28,6 +28,22 @@ jobs:
             tools/verify_samsung_kernel_source.py \
             tools/compare_samsung_kernel_configs.py
 
+      - name: Validate generator patcher syntax
+        run: |
+          python -m py_compile \
+            tools/audit_generator_compat.py \
+            tools/patch_generator_fail_closed.py \
+            tools/patch_legacy_boot_v2.py \
+            tools/patch_optional_arm64_pe_stub.py \
+            tools/verify_generator_boot_parser.py
+
+      - name: Test generator compatibility audit and patch utilities
+        run: |
+          python -m unittest discover -s tests -p 'test_generator_compat_audit.py' -v
+          python -m unittest discover -s tests -p 'test_patch_generator_fail_closed.py' -v
+          python -m unittest discover -s tests -p 'test_patch_legacy_boot_v2.py' -v
+          python -m unittest discover -s tests -p 'test_patch_optional_arm64_pe_stub.py' -v
+
       - name: Test live-device compatibility logic without requiring a device
         run: python -m unittest discover -s tests -p 'test_verify_samsung_device.py' -v
 
