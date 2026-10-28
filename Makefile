@@ -243,6 +243,7 @@ samsung-verify:
 	  --config "$(SAMSUNG_KERNEL_CONFIG)" \
 	  --elf "$(SAMSUNG_VENDOR_ELF)" \
 	  --scan-btf
+	python3 tools/inspect_elf_debug_metadata.py "$(SAMSUNG_VENDOR_ELF)" --strict-structure
 	NDK_ROOT="$(NDK_ROOT)" API="$(SAMSUNG_ANDROID_API)" bash tools/check_android_abi.sh
 	python3 -m unittest discover -s tests -v
 
