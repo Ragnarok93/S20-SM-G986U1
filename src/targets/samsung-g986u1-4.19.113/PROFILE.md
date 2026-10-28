@@ -93,6 +93,20 @@ The previously passing guard test covered the `preload` target. It has now been 
 
 The user then ran the combined `make samsung-verify` after the expansion and reported PASS. The current suite has 11 test methods; the build-guard test checks all seven payload goals in dry-run mode and asserts the evidence-only guard message. This is evidence that the Makefile guard is functioning for the enumerated goals in the tested local environment, not evidence that a Samsung payload is buildable.
 
+## Repeatable generator preflight
+
+A read-only source preflight is available:
+
+```bash
+make samsung-generator-audit UPSTREAM_GENERATOR_ROOT=/tmp/ghostlock-profile-gen
+```
+
+The default `UPSTREAM_GENERATOR_ROOT` is `/tmp/ghostlock-profile-gen`. The script reads the boot header and statically parses the external generator's `expected_header_sizes` map and `extract_boot_kernel` legacy-path logic. It also reports markers for the no-BTF fallback's default `rodin` template/inheritance path.
+
+The audit does **not** import or execute the external generator and does not write `target.h`. Exit status 1 means it found a confirmed header-version incompatibility; exit status 2 means it could not confidently interpret the parser or complete the audit. With the currently reviewed upstream sources and this Samsung v2 image, `RESULT=BLOCKED` is expected. That result is a confirmed readiness blocker, not a regression in `make samsung-verify`.
+
+The source audit is a lightweight static preflight, not a substitute for reviewing changes to the generator source if its implementation changes.
+
 ## Upstream generator compatibility audit (2026-10-28)
 
 Reviewed the generator source from `woshimaniubi8/CVE-2026-43499-root-KernelSU`:
