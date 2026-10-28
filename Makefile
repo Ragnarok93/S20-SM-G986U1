@@ -1,4 +1,4 @@
-API ?= 35
+API ?= 33
 PROJECT ?=
 OUTDIR ?= build/$(PROJECT)/bin
 EMBEDDIR ?= build/embed
@@ -60,8 +60,10 @@ HELLO_SRCS := src/hello_dso.c src/dso_start.S
 
 .DEFAULT_GOAL := preload
 
-DEFAULT_NDK_ROOT := $(HOME)/android-ndk-cache/android-ndk-r29
-NDK_ROOT ?= $(or $(ANDROID_NDK_HOME),$(ANDROID_NDK_ROOT),$(wildcard $(DEFAULT_NDK_ROOT)))
+DEFAULT_NDK_ROOT := $(HOME)/ndk/android-ndk-r27c
+SDK_NDK_ROOT := $(HOME)/Android/Sdk/ndk/27.2.12479018
+LEGACY_NDK_ROOT := $(HOME)/android-ndk-cache/android-ndk-r29
+NDK_ROOT ?= $(or $(ANDROID_NDK_HOME),$(ANDROID_NDK_ROOT),$(wildcard $(DEFAULT_NDK_ROOT)),$(wildcard $(SDK_NDK_ROOT)),$(wildcard $(LEGACY_NDK_ROOT)))
 NDK_TOOLCHAIN ?= $(if $(NDK_ROOT),$(NDK_ROOT)/toolchains/llvm/prebuilt/linux-x86_64)
 NDK_CC := $(NDK_TOOLCHAIN)/bin/aarch64-linux-android$(API)-clang
 HOST_CLANG ?= clang
