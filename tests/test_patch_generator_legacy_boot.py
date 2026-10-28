@@ -83,6 +83,35 @@ class PatchGeneratorLegacyBootTests(unittest.TestCase):
             self.assertEqual(repeat_result, 0)
             self.assertIn("already patched", repeat_output.getvalue())
 
+    def test_accepts_equivalent_existing_patch_without_our_comments(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            originals: dict[Path, str] = {}
+            for relative, replacements in patcher.PATCHES.items():
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                header = patcher.LEGACY_HEADER_PATCH.replace(
+                    replacements[0].marker, "# existing v2 compatibility implementation"
+                )
+                pe_stub = patcher.PE_STUB_PATCH.replace(
+                    replacements[1].marker, "# existing optional PE-stub implementation"
+                )
+                source = "def extract_boot_kernel(path):\n" + header + pe_stub + "\n    return None\n"
+                compile(source, str(path), "exec")
+                path.write_text(source, encoding="utf-8")
+                originals[path] = source
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = patcher.main(["--root", str(root), "--check"])
+
+            self.assertEqual(result, 0)
+            self.assertIn("CHECK=PASS", output.getvalue())
+            self.assertIn("already patched", output.getvalue())
+            for path, source in originals.items():
+                self.assertEqual(path.read_text(encoding="utf-8"), source)
+                self.assertFalse(path.with_name(path.name + ".pre-legacy-boot.bak").exists())
+
     def test_preflight_failure_changes_no_files(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
