@@ -38,8 +38,6 @@ def parse_kernel_version(makefile: Path) -> dict[str, str]:
         match = re.match(r"^\s*(VERSION|PATCHLEVEL|SUBLEVEL|EXTRAVERSION)\s*=\s*(.*?)\s*$", line)
         if match:
             values[match.group(1)] = match.group(2).split("#", 1)[0].strip()
-        if len(values) >= 3 and all(k in values for k in ("VERSION", "PATCHLEVEL", "SUBLEVEL")):
-            break
     return values
 
 
