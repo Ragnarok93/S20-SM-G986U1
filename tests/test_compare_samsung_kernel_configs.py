@@ -52,12 +52,12 @@ class CompareSamsungKernelConfigsTests(unittest.TestCase):
             "CONFIG_ARM64_VA_BITS_39": "y",
             "CONFIG_FUTEX_PI": "y",
             "CONFIG_SECURITY_SELINUX": "y",
-            "CONFIG_ARCH_QCOM": "n",
             "CONFIG_MACH_Y2Q": "y",
+            "CONFIG_PROJECT_Y2Q_BASE": "a",
         }
         candidate = dict(stock)
-        candidate["CONFIG_ARCH_QCOM"] = "y"
         candidate["CONFIG_MACH_Y2Q"] = "n"
+        candidate["CONFIG_PROJECT_Y2Q_BASE"] = "b"
         result = module.compare_configs(stock, candidate)
         self.assertEqual(result["critical_differences"], [])
         self.assertEqual(result["critical_unknowns"], [])
