@@ -56,11 +56,18 @@ def make_generator_tree(
         if legacy_support
         else ""
     )
+    parser_validation = ""
+    if validation_fail_closed:
+        parser_validation = (
+            "\n# BTF consumer layout validation failed; refusing to generate target.h"
+            "\n# percpu entry_task validation failed; refusing to generate target.h\n"
+        )
     parser_source = f"""
 def extract_boot_kernel(path):
     header_version = u32(boot, 40)
 {legacy_branch}    expected_header_sizes = {versions}
     return expected_header_sizes
+{parser_validation}
 """
     (vendor / "generate_target.py").write_text(parser_source, encoding="utf-8")
     (vendor / "generate_target_2.py").write_text(parser_source, encoding="utf-8")
@@ -189,6 +196,45 @@ class GeneratorCompatibilityAuditTests(unittest.TestCase):
             self.assertIn("btf_layout_validation_fail_closed=yes", report)
             self.assertIn("percpu_validation_fail_closed=yes", report)
             self.assertIn("RESULT=HEADER_MAP_SUPPORTED_FAIL_CLOSED", report)
+
+    def test_vendor_parser_missing_fail_closed_marker_is_partial(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            generator_root = root / "generator"
+            generator_root.mkdir()
+            make_generator_tree(
+                generator_root,
+                "{3: 0x62C, 4: 0x630}",
+                legacy_support=True,
+                automatic_fallback_route=False,
+                validation_fail_closed=True,
+            )
+            parser_path = generator_root / "tools" / "vendor" / "generate_target_2.py"
+            parser_path.write_text(
+                parser_path.read_text(encoding="utf-8").replace(
+                    "percpu entry_task validation failed; refusing to generate target.h",
+                    "percpu validation warning",
+                ),
+                encoding="utf-8",
+            )
+            boot_path = root / "boot.img"
+            boot_path.write_bytes(make_boot(2))
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = audit_module.audit(generator_root, boot_path)
+
+            report = output.getvalue()
+            self.assertEqual(result, 2)
+            self.assertIn(
+                "tools/vendor/generate_target_2.py: "
+                "btf_validation_fail_closed=yes percpu_validation_fail_closed=no",
+                report,
+            )
+            self.assertIn(
+                "RESULT=PARTIAL (validation failure handling is not confirmed fail-closed in every generator entry point)",
+                report,
+            )
 
     def test_unknown_parser_structure_is_inconclusive(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
