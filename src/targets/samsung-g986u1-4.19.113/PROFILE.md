@@ -69,6 +69,28 @@ The user ran `make samsung-verify` in WSL from the repository root. The recorded
 
 These results establish reproducible artifact identity, the checked configuration flags, the two recorded ELF section byte mappings, and basic NDK/ELF compatibility. They do not validate an executable Samsung exploit profile or runtime memory-layout assumptions.
 
+## Upstream generator compatibility audit (2026-10-28)
+
+Reviewed the generator source from `woshimaniubi8/CVE-2026-43499-root-KernelSU`:
+
+- Wrapper: [`tools/generate_target.py`](https://github.com/woshimaniubi8/CVE-2026-43499-root-KernelSU/blob/main/tools/generate_target.py) (reviewed blob `a2e6a40817a22dbc25b65f1f1c00f03faad4c0a1`).
+- Vendored full generator: [`tools/vendor/generate_target.py`](https://github.com/woshimaniubi8/CVE-2026-43499-root-KernelSU/blob/main/tools/vendor/generate_target.py) (reviewed blob `67df9a0a3e87e9ff1ecb36af76fed29e6d154b03`).
+- Vendored profile generator: [`tools/vendor/generate_target_2.py`](https://github.com/woshimaniubi8/CVE-2026-43499-root-KernelSU/blob/main/tools/vendor/generate_target_2.py) (reviewed blob `e1de6f952fe734455538bb839b4308b8e0f513ac`).
+
+### Findings
+
+1. **Boot header v2 is rejected explicitly by both vendored parsers.** Both define accepted header sizes only for versions 3 and 4 (`{3: 0x62C, 4: 0x630}`) and fail with a message that only v3/v4 are supported. The Samsung image we inspected is header v2, so the current generator path stops at boot parsing before BTF detection or generation. This is an explicit incompatibility, not a silent parse.
+2. **The wrapper's no-BTF path is a soft failure for otherwise accepted images.** If BTF lookup fails, `complete_generate()` invokes `fallback_generate_without_btf()`. That function defaults the template to `rodin` unless `--template-target` or `TARGET_TEMPLATE` changes it, and then writes an output header.
+3. **The fallback does inherit unresolved macros.** It rewrites known symbols and a subset of layout macros; other values remain from the chosen template. The emitted header and stderr do include warnings, and the function returns success (`0`), so this is not silent inheritance—but a successful exit/output is not proof of a complete or compatible profile.
+4. **BTF validation also warns and continues.** The wrapper catches exceptions from `validate_btf_consumer_layout()` and `validate_percpu_entry_task()`, emits warnings, and continues toward output generation rather than treating failed validation as a hard error.
+5. **No-BTF geometry includes assumptions.** The fallback synthesizes the direct-map end as `p0_page_offset + (1 << 36)` and computes a VMEMMAP start from a formula rather than proving those ranges from Samsung runtime evidence. Some missing symbol values can also leave template values untouched with a warning.
+
+### Porting implications
+
+- Current first blocker: the generator's boot parser is incompatible with this Samsung image's confirmed v2 header.
+- Separate fallback risk: if header parsing is changed or a supported-format image is supplied, the current no-BTF fallback can still emit a nominally successful header with inherited or assumed values.
+- Our Samsung branch keeps the target profile documentation-only. The validator and ABI smoke test passing do not clear either generator limitation or establish runtime layout.
+
 ## Artifact provenance ledger
 
 These files were collected under WSL from the original Samsung firmware package:
