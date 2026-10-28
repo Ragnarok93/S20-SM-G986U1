@@ -190,13 +190,15 @@ def inspect(
         print(f"config_file={config_path}")
         for key in CONFIG_KEYS:
             print(f"{key}={settings.get(key, '<not listed>')}")
-        if settings.get("CONFIG_DEBUG_INFO_BTF") == "y":
+        btf_setting = settings.get("CONFIG_DEBUG_INFO_BTF")
+        if btf_setting == "y":
             print("btf_config=enabled according to config")
+        elif btf_setting == "n":
+            print("btf_config=disabled according to config")
+        elif btf_setting is None:
+            print("btf_config=not established by this config (option not listed)")
         else:
-            print(
-                "btf_config=not enabled in the parsed config "
-                f"(value={settings.get('CONFIG_DEBUG_INFO_BTF', '<not listed>')})"
-            )
+            print(f"btf_config=unrecognized config value ({btf_setting})")
         if settings.get("CONFIG_IKHEADERS") == "n":
             print("embedded_kernel_headers=disabled according to config")
         elif settings.get("CONFIG_IKHEADERS") == "y":
