@@ -27,7 +27,7 @@ SPEC.loader.exec_module(inspector)
 
 def make_legacy_boot(payload: bytes, *, version: int = 2, page_size: int = 4096) -> bytes:
     """Build a minimal synthetic legacy boot image for parser regression tests."""
-    boot = bytearray(page_size + len(payload))
+    boot = bytearray(max(4096, page_size + len(payload)))
     boot[:8] = b"ANDROID!"
     struct.pack_into("<I", boot, 8, len(payload))  # kernel_size
     struct.pack_into("<I", boot, 12, 0x8000)       # kernel_addr
@@ -36,6 +36,21 @@ def make_legacy_boot(payload: bytes, *, version: int = 2, page_size: int = 4096)
     struct.pack_into("<I", boot, 36, page_size)
     struct.pack_into("<I", boot, 40, version)
     boot[page_size:] = payload
+    return bytes(boot)
+
+
+def make_modern_boot(payload: bytes, *, version: int) -> bytes:
+    """Build a minimal synthetic Android boot header v3/v4 image."""
+    header_sizes = {3: 0x62C, 4: 0x630}
+    header_size = header_sizes[version]
+    kernel_offset = 4096  # align_up(header_size, 4096)
+    boot = bytearray(kernel_offset + len(payload))
+    boot[:8] = b"ANDROID!"
+    struct.pack_into("<I", boot, 8, len(payload))  # kernel_size
+    struct.pack_into("<I", boot, 12, 0)            # ramdisk_size
+    struct.pack_into("<I", boot, 20, header_size)
+    struct.pack_into("<I", boot, 40, version)
+    boot[kernel_offset:] = payload
     return bytes(boot)
 
 
@@ -68,6 +83,56 @@ class InspectAndroidBootTests(unittest.TestCase):
             self.assertIn("kernel_offset=0x1000", report)
             self.assertIn("comparison=PASS exact byte-for-byte match", report)
             self.assertIn("payload_signature=raw ARM64 Image", report)
+
+
+    def test_legacy_v0_page_size_2048(self) -> None:
+        payload = make_arm64_payload()
+        with tempfile.TemporaryDirectory() as tmp:
+            boot_path = Path(tmp) / "boot.img"
+            boot_path.write_bytes(make_legacy_boot(payload, version=0, page_size=2048))
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = inspector.inspect(boot_path, None, None, None, False)
+
+            self.assertEqual(result, 0)
+            report = output.getvalue()
+            self.assertIn("header_version=0", report)
+            self.assertIn("page_size=2048", report)
+            self.assertIn("kernel_offset=0x800", report)
+            self.assertIn("header_layout=legacy", report)
+
+    def test_modern_v3_and_v4_layouts(self) -> None:
+        payload = make_arm64_payload()
+        for version in (3, 4):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as tmp:
+                boot_path = Path(tmp) / "boot.img"
+                boot_path.write_bytes(make_modern_boot(payload, version=version))
+
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    result = inspector.inspect(boot_path, None, None, None, False)
+
+                self.assertEqual(result, 0)
+                report = output.getvalue()
+                self.assertIn(f"header_version={version}", report)
+                self.assertIn("header_layout=modern", report)
+                self.assertIn("kernel_offset=0x1000", report)
+                self.assertIn("payload_signature=raw ARM64 Image", report)
+
+    def test_modern_header_size_mismatch_fails(self) -> None:
+        boot = bytearray(make_modern_boot(make_arm64_payload(), version=3))
+        struct.pack_into("<I", boot, 20, 0x630)  # v3 expects 0x62C
+        with tempfile.TemporaryDirectory() as tmp:
+            boot_path = Path(tmp) / "boot.img"
+            boot_path.write_bytes(boot)
+
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                result = inspector.main(["--boot", str(boot_path)])
+
+            self.assertEqual(result, 2)
+            self.assertIn("header_size mismatch", stderr.getvalue())
 
     def test_kernel_payload_mismatch_returns_failure(self) -> None:
         payload = make_arm64_payload()
