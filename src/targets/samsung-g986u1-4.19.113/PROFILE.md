@@ -139,6 +139,26 @@ The user-reported verification output after applying the legacy-header and optio
 
 This is a parser/provenance result only. It does not validate BTF, structure layouts, target memory geometry, or a generated profile. The new `tools/patch_generator_fail_closed.py` is a separate hardening patch intended to prevent generation from succeeding when required metadata checks fail; it has not been reported as applied or tested yet. The Samsung profile remains documentation-only and no `target.h` has been added.
 
+## Debug-metadata inventory (read-only)
+
+Use the repository tool to inventory debug metadata in the reconstructed vendor ELF:
+
+```bash
+python3 tools/inspect_elf_debug_metadata.py "$HOME/firmware-check/vmlinux.elf"
+```
+
+The report includes ELF class/machine, build ID, section sizes, presence of DWARF core/support sections, BTF sections, separate-debug links, and whether GNU `readelf` can parse DWARF compilation-unit headers. It hashes the ELF in streaming chunks and does not print symbol names, symbol addresses, structure offsets, or derived profile values.
+
+Interpretation is deliberately conservative:
+
+- `.debug_info` / `.zdebug_info` plus `.debug_abbrev` / `.zdebug_abbrev` establish section presence only, not completeness.
+- `dwarf_info_decode=PASS` means readelf parsed at least one compilation-unit header without warnings in the captured output; it does not prove that every type or variable required by a consumer is available.
+- A `.gnu_debuglink`, `.gnu_debugaltlink`, `.debug_sup`, or index section can indicate external/separate debug data. The referenced artifact must be found and matched independently.
+- `.symtab` presence is not by itself proof that all symbols are defined or that addresses are valid for the shipped kernel.
+- BTF-section presence is reported separately from DWARF; neither format should be assumed available merely from the kernel version.
+
+Regression tests: `python3 -m unittest tests.test_elf_debug_metadata -v` may not work because `tests/` is not a Python package; the portable command is `python3 -m unittest discover -s tests -p 'test_elf_debug_metadata.py' -v`.
+
 ## Artifact provenance ledger
 
 These files were collected under WSL from the original Samsung firmware package:
