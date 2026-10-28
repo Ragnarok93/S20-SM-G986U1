@@ -81,9 +81,18 @@ class CompareSamsungKernelConfigsTests(unittest.TestCase):
 
     def test_security_symbols_classify_as_core(self) -> None:
         for symbol in ("CONFIG_RKP", "CONFIG_KDP", "CONFIG_SECURITY_DEFEX", "CONFIG_PROCA",
-                       "CONFIG_CFP", "CONFIG_SECURITY_SELINUX"):
+                       "CONFIG_CFP", "CONFIG_SECURITY_SELINUX", "CONFIG_SEC_RKP",
+                       "CONFIG_SEC_RESTRICT_ROOTING"):
             with self.subTest(symbol=symbol):
                 self.assertEqual(module.classify_symbol(symbol), "security-hardening")
+
+    def test_soc_selection_delta_is_core(self) -> None:
+        stock = {"CONFIG_ARCH_QCOM": "y", "CONFIG_ARM64_VA_BITS_39": "y"}
+        candidate = {"CONFIG_ARCH_QCOM": "n", "CONFIG_ARM64_VA_BITS_39": "y"}
+        result = module.compare_configs(stock, candidate)
+        self.assertEqual(len(result["critical_differences"]), 1)
+        self.assertEqual(result["critical_differences"][0][0], "CONFIG_ARCH_QCOM")
+        self.assertEqual(result["critical_differences"][0][3], "soc-platform")
 
     def test_futex_and_debug_symbols_classify_as_core(self) -> None:
         self.assertEqual(module.classify_symbol("CONFIG_FUTEX_PI"), "futex-scheduler")
