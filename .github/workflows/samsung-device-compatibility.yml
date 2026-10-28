@@ -24,13 +24,17 @@ jobs:
           python -m json.tool src/targets/samsung-g986u1-4.19.113/device-profile.json >/dev/null
           python -m py_compile \
             tools/verify_samsung_device.py \
-            tools/verify_samsung_firmware.py
+            tools/verify_samsung_firmware.py \
+            tools/verify_samsung_kernel_source.py
 
       - name: Test live-device compatibility logic without requiring a device
         run: python -m unittest discover -s tests -p 'test_verify_samsung_device.py' -v
 
       - name: Test manifest and firmware-verifier contract
         run: python -m unittest discover -s tests -p 'test_samsung_profile_manifest.py' -v
+
+      - name: Test kernel source compatibility preflight
+        run: python -m unittest discover -s tests -p 'test_verify_samsung_kernel_source.py' -v
 
       - name: Check Makefile profile discovery
         run: |
