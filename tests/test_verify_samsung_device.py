@@ -43,17 +43,17 @@ class VerifySamsungDeviceTests(unittest.TestCase):
         self.assertEqual(len(values), 2)
 
     def test_matching_device_profile_passes_all_checks(self) -> None:
-        checks = module.evaluate_profile(good_properties(), "4.19.113-27095354", PROFILE)
+        checks = module.evaluate_profile(good_properties(), "4.19.113-27095354", "aarch64", PROFILE)
         self.assertTrue(checks)
         self.assertTrue(all(passed for _, passed, _ in checks), checks)
 
     def test_kernel_suffix_is_allowed_but_wrong_kernel_fails(self) -> None:
         passed = dict((name, ok) for name, ok, _ in module.evaluate_profile(
-            good_properties(), "4.19.113-27095354-perf", PROFILE
+            good_properties(), "4.19.113-27095354-perf", "aarch64", PROFILE
         ))
         self.assertTrue(passed["kernel release"])
         failed = dict((name, ok) for name, ok, _ in module.evaluate_profile(
-            good_properties(), "5.10.198-android13", PROFILE
+            good_properties(), "5.10.198-android13", "aarch64", PROFILE
         ))
         self.assertFalse(failed["kernel release"])
 
@@ -62,7 +62,7 @@ class VerifySamsungDeviceTests(unittest.TestCase):
         properties["ro.product.model"] = "SM-G986B"
         properties["ro.build.version.incremental"] = "OTHER_BUILD"
         checks = dict((name, ok) for name, ok, _ in module.evaluate_profile(
-            properties, "4.19.113-27095354", PROFILE
+            properties, "4.19.113-27095354", "aarch64", PROFILE
         ))
         self.assertFalse(checks["model"])
         self.assertFalse(checks["firmware build"])
@@ -72,7 +72,7 @@ class VerifySamsungDeviceTests(unittest.TestCase):
         del properties["ro.product.device"]
         properties["ro.product.vendor.device"] = "y2q"
         checks = dict((name, ok) for name, ok, _ in module.evaluate_profile(
-            properties, "4.19.113-27095354", PROFILE
+            properties, "4.19.113-27095354", "aarch64", PROFILE
         ))
         self.assertTrue(checks["device codename"])
 
@@ -82,10 +82,16 @@ class VerifySamsungDeviceTests(unittest.TestCase):
         properties["ro.product.cpu.abi"] = "armeabi-v7a"
         properties["ro.product.cpu.abilist"] = "armeabi-v7a,armeabi"
         checks = dict((name, ok) for name, ok, _ in module.evaluate_profile(
-            properties, "4.19.113-27095354", PROFILE
+            properties, "4.19.113-27095354", "aarch64", PROFILE
         ))
         self.assertFalse(checks["Android release"])
         self.assertFalse(checks["primary ABI"])
+
+    def test_wrong_kernel_architecture_fails(self) -> None:
+        checks = dict((name, ok) for name, ok, _ in module.evaluate_profile(
+            good_properties(), "4.19.113-27095354", "armv7l", PROFILE
+        ))
+        self.assertFalse(checks["kernel architecture"])
 
 
 if __name__ == "__main__":
