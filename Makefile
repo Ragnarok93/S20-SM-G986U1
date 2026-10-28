@@ -1,13 +1,21 @@
 API ?= 35
-PROJECT ?= blazer-CP2A.260605.012
+PROJECT ?=
 OUTDIR ?= build/$(PROJECT)/bin
 EMBEDDIR ?= build/embed
 
 TARGET_DIR := src/targets/$(PROJECT)
 TARGET_HEADER := $(TARGET_DIR)/target.h
 
+ifeq ($(strip $(PROJECT)),)
+ifneq ($(filter list-projects clean,$(MAKECMDGOALS)),)
+# Utility goals do not select a target profile.
+else
+$(error PROJECT is required; run 'make list-projects' and then 'make PROJECT=<profile>')
+endif
+else
 ifeq ($(wildcard $(TARGET_HEADER)),)
 $(error unknown PROJECT=$(PROJECT), missing $(TARGET_HEADER))
+endif
 endif
 
 define pick_src
