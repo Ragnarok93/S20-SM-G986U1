@@ -1,0 +1,40 @@
+name: Samsung device compatibility
+
+on:
+  push:
+    branches:
+      - codex/samsung-profile-scaffold-20261028
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  samsung-profile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate profile JSON and Python syntax
+        run: |
+          python -m json.tool src/targets/samsung-g986u1-4.19.113/device-profile.json >/dev/null
+          python -m py_compile \
+            tools/verify_samsung_device.py \
+            tools/verify_samsung_firmware.py
+
+      - name: Test live-device compatibility logic without requiring a device
+        run: python -m unittest discover -s tests -p 'test_verify_samsung_device.py' -v
+
+      - name: Test manifest and firmware-verifier contract
+        run: python -m unittest discover -s tests -p 'test_samsung_profile_manifest.py' -v
+
+      - name: Check Makefile profile discovery
+        run: |
+          make list-device-profiles | grep -Fx 'samsung-g986u1-4.19.113'
+          make samsung-info
