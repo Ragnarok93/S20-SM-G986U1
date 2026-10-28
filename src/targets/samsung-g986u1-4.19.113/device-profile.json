@@ -46,6 +46,10 @@
       "CONFIG_KALLSYMS_BASE_RELATIVE": "y",
       "CONFIG_SECURITY_SELINUX": "y",
       "CONFIG_IKCONFIG_PROC": "y"
+    },
+    "target_selectors": {
+      "CONFIG_SEC_Y2Q_PROJECT": "y",
+      "CONFIG_MACH_Y2Q_USA_SINGLE": "y"
     }
   },
   "elf_sections": [
