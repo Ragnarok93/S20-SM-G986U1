@@ -51,6 +51,10 @@ SEPARATE_DEBUG_NAMES = {
     ".debug_tu_index",
 }
 SYMBOL_TABLE_NAMES = {".symtab", ".dynsym"}
+SYMBOL_TABLE_HEADER_RE = re.compile(r"^\\s*Symbol table '([^']+)' contains (\\d+) entries:\\s*$")
+SYMBOL_ROW_RE = re.compile(
+    r"^\\s*\\d+:\\s+\\S+\\s+\\S+\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)(?:\\s+.*)?$"
+)
 
 
 class MetadataError(RuntimeError):
@@ -65,6 +69,38 @@ class Section:
 
 
 @dataclass(frozen=True)
+class SymbolTableSummary:
+    table: str
+    declared_entries: int
+    parsed_entries: int
+    defined_entries: int
+    undefined_entries: int
+    type_counts: tuple[tuple[str, int], ...]
+    binding_counts: tuple[tuple[str, int], ...]
+
+
+@dataclass(frozen=True)
+class SymbolSummary:
+    tables: tuple[SymbolTableSummary, ...]
+
+    @property
+    def declared_entries(self) -> int:
+        return sum(table.declared_entries for table in self.tables)
+
+    @property
+    def parsed_entries(self) -> int:
+        return sum(table.parsed_entries for table in self.tables)
+
+    @property
+    def defined_entries(self) -> int:
+        return sum(table.defined_entries for table in self.tables)
+
+    @property
+    def undefined_entries(self) -> int:
+        return sum(table.undefined_entries for table in self.tables)
+
+
+@dataclass(frozen=True)
 class Inspection:
     path: Path
     file_size: int
@@ -75,6 +111,65 @@ class Inspection:
     dwarf_decode: str
     compilation_units: int
     dwarf_warning_count: int
+    symbol_summary: SymbolSummary | None
+
+
+def parse_symbol_summary(text: str) -> SymbolSummary:
+    """Summarize symbol table counts without retaining or returning names or values."""
+    mutable: list[dict[str, object]] = []
+    current: dict[str, object] | None = None
+
+    for line in text.splitlines():
+        header = SYMBOL_TABLE_HEADER_RE.match(line)
+        if header:
+            current = {
+                "table": header.group(1),
+                "declared_entries": int(header.group(2)),
+                "parsed_entries": 0,
+                "undefined_entries": 0,
+                "type_counts": {},
+                "binding_counts": {},
+            }
+            mutable.append(current)
+            continue
+
+        if current is None:
+            continue
+        row = SYMBOL_ROW_RE.match(line)
+        if not row:
+            continue
+        symbol_type, binding, _visibility, section_index = row.groups()
+        current["parsed_entries"] = int(current["parsed_entries"]) + 1
+        if section_index == "UND":
+            current["undefined_entries"] = int(current["undefined_entries"]) + 1
+        type_counts = current["type_counts"]
+        binding_counts = current["binding_counts"]
+        assert isinstance(type_counts, dict)
+        assert isinstance(binding_counts, dict)
+        type_counts[symbol_type] = int(type_counts.get(symbol_type, 0)) + 1
+        binding_counts[binding] = int(binding_counts.get(binding, 0)) + 1
+
+    if not mutable:
+        raise MetadataError("readelf symbol output contained no parseable symbol-table headers")
+
+    tables: list[SymbolTableSummary] = []
+    for item in mutable:
+        parsed = int(item["parsed_entries"])
+        undefined = int(item["undefined_entries"])
+        type_counts = item["type_counts"]
+        binding_counts = item["binding_counts"]
+        assert isinstance(type_counts, dict)
+        assert isinstance(binding_counts, dict)
+        tables.append(SymbolTableSummary(
+            table=str(item["table"]),
+            declared_entries=int(item["declared_entries"]),
+            parsed_entries=parsed,
+            defined_entries=parsed - undefined,
+            undefined_entries=undefined,
+            type_counts=tuple(sorted((str(key), int(value)) for key, value in type_counts.items())),
+            binding_counts=tuple(sorted((str(key), int(value)) for key, value in binding_counts.items())),
+        ))
+    return SymbolSummary(tuple(tables))
 
 
 def parse_header(text: str) -> dict[str, str]:
@@ -156,6 +251,11 @@ def inspect_elf(path: Path, readelf: str = "readelf") -> Inspection:
     build_id = build_match.group(1).lower() if build_match else None
     names = {section.name for section in sections}
 
+    symbol_summary: SymbolSummary | None = None
+    if names & SYMBOL_TABLE_NAMES:
+        symbols = run_readelf(executable, ("-s", "-W"), path, timeout=180)
+        symbol_summary = parse_symbol_summary(symbols.stdout)
+
     if names & DWARF_INFO_NAMES:
         try:
             dump = run_readelf(
@@ -192,6 +292,7 @@ def inspect_elf(path: Path, readelf: str = "readelf") -> Inspection:
         dwarf_decode=dwarf_decode,
         compilation_units=units,
         dwarf_warning_count=warnings,
+        symbol_summary=symbol_summary,
     )
 
 
@@ -205,6 +306,30 @@ def report(result: Inspection) -> None:
         print(f"elf_{field.lower().replace('/', '_')}={result.elf_fields[field]}")
     print(f"build_id={result.build_id or '<not present>'}")
     print(f"section_count={len(result.sections)}")
+
+    if result.symbol_summary is None:
+        print("symbol_table_entries=not_available")
+    else:
+        summary = result.symbol_summary
+        print(f"symbol_table_entries_declared={summary.declared_entries}")
+        print(f"symbol_table_entries_parsed={summary.parsed_entries}")
+        print(f"symbol_table_entries_defined={summary.defined_entries}")
+        print(f"symbol_table_entries_undefined={summary.undefined_entries}")
+        for table in summary.tables:
+            complete = "yes" if table.declared_entries == table.parsed_entries else "no"
+            print(
+                f"symbol_table={table.table} declared={table.declared_entries} "
+                f"parsed={table.parsed_entries} defined={table.defined_entries} "
+                f"undefined={table.undefined_entries} parse_complete={complete}"
+            )
+            if table.type_counts:
+                print("  symbol_types=" + ", ".join(
+                    f"{name}:{count}" for name, count in table.type_counts
+                ))
+            if table.binding_counts:
+                print("  symbol_bindings=" + ", ".join(
+                    f"{name}:{count}" for name, count in table.binding_counts
+                ))
 
     groups = (
         ("dwarf_info", DWARF_INFO_NAMES),
