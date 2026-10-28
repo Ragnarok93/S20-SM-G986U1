@@ -122,16 +122,16 @@ def parser_capabilities(source_path: Path) -> tuple[set[int] | None, bool]:
         return (versions if found_map else None), False
 
     has_legacy_version_branch = bool(re.search(
-        r"header_version\\s+in\\s*\\(\\s*0\\s*,\\s*1\\s*,\\s*2\\s*\\)"
-        r"|header_version\\s*<\\s*3",
+        r"header_version\s+in\s*\(\s*0\s*,\s*1\s*,\s*2\s*\)"
+        r"|header_version\s*<\s*3",
         function_source,
     ))
     reads_legacy_page_size = bool(re.search(
-        r"(?:page_size|page)\\s*=\\s*u32\\(boot\\s*,\\s*36\\s*\\)",
+        r"(?:page_size|page)\s*=\s*u32\(boot\s*,\s*36\s*\)",
         function_source,
     ))
     uses_legacy_page_offset = bool(re.search(
-        r"kernel_offset\\s*=\\s*page_size",
+        r"kernel_offset\s*=\s*page_size",
         function_source,
     ))
     legacy_path = (
