@@ -154,13 +154,15 @@ This is a parser/provenance and source-inspection result. It does not validate B
 To make the legacy parser change reproducible, this repository now includes `tools/patch_legacy_boot_v2.py`, based on the locally tested patch utility, plus unit tests for check-only mode, backups, idempotency, `--no-backup`, and all-files preflight. Run its check target first:
 
 ```bash
-make samsung-generator-legacy-patch-check \
+make samsung-generator-patches-check \
   UPSTREAM_GENERATOR_ROOT=/tmp/ghostlock-profile-gen
 python3 -m unittest discover -s tests \
   -p 'test_patch_legacy_boot_v2.py' -v
+python3 -m unittest discover -s tests \
+  -p 'test_patch_optional_arm64_pe_stub.py' -v
 ```
 
-The check target must report either `ALREADY_PATCHED` or `READY` for both parser files before applying anything. The separate optional PE-stub patch remains maintained by `tools/patch_optional_arm64_pe_stub.py`. The Samsung profile remains documentation-only and no `target.h` has been added.
+The combined check target must report either `ALREADY_PATCHED` or `READY` for both legacy-v2 parser files, then report `already patched` or `patchable` for the optional PE-stub block. These checks make no source changes. After reviewing the complete check output, `make samsung-generator-patches UPSTREAM_GENERATOR_ROOT=/tmp/ghostlock-profile-gen` applies both source-only parser patches, with separate backups. Neither target runs profile generation or creates `target.h`; the Samsung profile remains documentation-only.
 
 ## Debug-metadata inventory (read-only)
 
