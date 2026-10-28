@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
+from unittest.mock import patch
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +19,11 @@ if SPEC is None or SPEC.loader is None:
 patcher = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = patcher
 SPEC.loader.exec_module(patcher)
+
+
+def run_patcher(args: list[str]) -> int:
+    with patch.object(sys, "argv", ["patch_legacy_boot_v2.py", *args]):
+        return patcher.main()
 
 
 def make_fixture_tree(root: Path) -> dict[Path, str]:
@@ -39,7 +45,7 @@ class PatchLegacyBootV2Tests(unittest.TestCase):
             originals = make_fixture_tree(root)
             output = io.StringIO()
             with redirect_stdout(output):
-                result = patcher.main(["--root", str(root), "--check"])
+                result = run_patcher(["--root", str(root), "--check"])
 
             self.assertEqual(result, 0)
             self.assertIn("CHECK_OK:", output.getvalue())
@@ -54,7 +60,7 @@ class PatchLegacyBootV2Tests(unittest.TestCase):
             originals = make_fixture_tree(root)
             output = io.StringIO()
             with redirect_stdout(output):
-                result = patcher.main(["--root", str(root)])
+                result = run_patcher(["--root", str(root)])
 
             self.assertEqual(result, 0)
             self.assertIn("DONE:", output.getvalue())
@@ -68,14 +74,14 @@ class PatchLegacyBootV2Tests(unittest.TestCase):
 
             check_output = io.StringIO()
             with redirect_stdout(check_output):
-                check_result = patcher.main(["--root", str(root), "--check"])
+                check_result = run_patcher(["--root", str(root), "--check"])
             self.assertEqual(check_result, 0)
             self.assertIn("ALREADY_PATCHED", check_output.getvalue())
             self.assertIn("CHECK_OK: both parser files are already patched", check_output.getvalue())
 
             repeat_output = io.StringIO()
             with redirect_stdout(repeat_output):
-                repeat_result = patcher.main(["--root", str(root)])
+                repeat_result = run_patcher(["--root", str(root)])
             self.assertEqual(repeat_result, 0)
             self.assertIn("ALREADY_PATCHED", repeat_output.getvalue())
 
@@ -85,7 +91,7 @@ class PatchLegacyBootV2Tests(unittest.TestCase):
             originals = make_fixture_tree(root)
             output = io.StringIO()
             with redirect_stdout(output):
-                result = patcher.main(["--root", str(root), "--no-backup"])
+                result = run_patcher(["--root", str(root), "--no-backup"])
 
             self.assertEqual(result, 0)
             for path, source in originals.items():
@@ -105,7 +111,7 @@ class PatchLegacyBootV2Tests(unittest.TestCase):
 
             errors = io.StringIO()
             with redirect_stderr(errors):
-                result = patcher.main(["--root", str(root)])
+                result = run_patcher(["--root", str(root)])
 
             self.assertEqual(result, 2)
             self.assertIn("Preflight failed", errors.getvalue())
@@ -125,7 +131,7 @@ class PatchLegacyBootV2Tests(unittest.TestCase):
             }
             errors = io.StringIO()
             with redirect_stderr(errors):
-                result = patcher.main(["--root", str(root)])
+                result = run_patcher(["--root", str(root)])
 
             self.assertEqual(result, 2)
             self.assertIn("old-block occurrences=2", errors.getvalue())
