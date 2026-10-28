@@ -73,7 +73,7 @@ These results establish reproducible artifact identity, the checked configuratio
 
 After the enabled-BTF reporting test was added and `samsung-verify` was updated to run the regression suite, the user reported the combined command passed. At that time, the suite contained ten test methods. Together with the earlier detailed verifier output, this records successful firmware artifact/config checks, ELF section byte comparisons, Android NDK API 33 ABI smoke checks, and the then-current inspector regression tests.
 
-A later regression test was added to ensure `make PROJECT=samsung-g986u1-4.19.113 preload -n` is rejected while this directory lacks `target.h`. That newly added guard test still requires a fresh local run. The passing metadata suite does not change the profile's documentation-only status.
+The additional build-guard regression test was then run as part of `make samsung-verify` and the user reported the full combined command passed. The guard verifies that `make PROJECT=samsung-g986u1-4.19.113 preload -n` is rejected while this directory lacks `target.h`. The passing metadata suite does not change the profile's documentation-only status.
 
 ## Upstream generator compatibility audit (2026-10-28)
 
