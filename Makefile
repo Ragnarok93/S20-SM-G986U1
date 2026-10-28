@@ -272,10 +272,10 @@ samsung-generator-verify:
 # Check/apply parser compatibility on a pristine external generator checkout.
 # These targets never generate target.h; use --check before applying a patch.
 samsung-generator-legacy-patch-check:
-	python3 tools/patch_generator_legacy_boot.py --root "$(UPSTREAM_GENERATOR_ROOT)" --check
+	python3 tools/patch_legacy_boot_v2.py --root "$(UPSTREAM_GENERATOR_ROOT)" --check
 
 samsung-generator-legacy-patch:
-	python3 tools/patch_generator_legacy_boot.py --root "$(UPSTREAM_GENERATOR_ROOT)"
+	python3 tools/patch_legacy_boot_v2.py --root "$(UPSTREAM_GENERATOR_ROOT)"
 
 samsung-debug-metadata:
 	python3 tools/inspect_elf_debug_metadata.py "$(SAMSUNG_VENDOR_ELF)"
