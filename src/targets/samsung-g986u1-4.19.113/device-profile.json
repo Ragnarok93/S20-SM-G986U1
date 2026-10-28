@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "profile_id": "samsung-g986u1-4.19.113",
+  "status": "identity-check-only",
+  "device": {
+    "manufacturer": "Samsung",
+    "marketing_name": "Galaxy S20+",
+    "model": "SM-G986U1",
+    "codename": "y2q",
+    "firmware_build": "G986U1UESCHXL1"
+  },
+  "software": {
+    "android_release": "13",
+    "android_sdk": "33",
+    "kernel_release_prefix": "4.19.113-27095354",
+    "primary_abi": "arm64-v8a",
+    "kernel_architecture": "aarch64",
+    "va_bits": 39
+  },
+  "boot_image": {
+    "header_version": 2,
+    "page_size": 4096,
+    "kernel_offset": 4096,
+    "kernel_size_bytes": 51957772,
+    "raw_kernel_image_sha256": "ffbc90af676558557eb917687736c11f15b560dbb3cb9ca237224da5acb14123",
+    "boot_image_sha256": "bd8987c28ef0b9fdb56ad3e82ce3b45929c5e53717525769e5625dd1e17f7dc8"
+  }
+}
