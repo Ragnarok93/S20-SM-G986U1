@@ -151,16 +151,16 @@ The user-reported `make samsung-generator-verify UPSTREAM_GENERATOR_ROOT=/tmp/gh
 
 This is a parser/provenance and source-inspection result. It does not validate BTF, structure layouts, target memory geometry, or generated profile values, and the audit does not execute the generator. The external checkout at `/tmp/ghostlock-profile-gen` is separate from this repository.
 
-To make the legacy parser change reproducible, this repository now includes `tools/patch_generator_legacy_boot.py` and unit tests for check-only mode, backups, idempotency, equivalent pre-existing implementations, and all-files preflight. Run its check target first:
+To make the legacy parser change reproducible, this repository now includes `tools/patch_legacy_boot_v2.py`, based on the locally tested patch utility, plus unit tests for check-only mode, backups, idempotency, `--no-backup`, and all-files preflight. Run its check target first:
 
 ```bash
 make samsung-generator-legacy-patch-check \
   UPSTREAM_GENERATOR_ROOT=/tmp/ghostlock-profile-gen
 python3 -m unittest discover -s tests \
-  -p 'test_patch_generator_legacy_boot.py' -v
+  -p 'test_patch_legacy_boot_v2.py' -v
 ```
 
-The check target must report either `already patched` or `patchable` for both parser files before applying anything. The Samsung profile remains documentation-only and no `target.h` has been added.
+The check target must report either `ALREADY_PATCHED` or `READY` for both parser files before applying anything. The separate optional PE-stub patch remains maintained by `tools/patch_optional_arm64_pe_stub.py`. The Samsung profile remains documentation-only and no `target.h` has been added.
 
 ## Debug-metadata inventory (read-only)
 
