@@ -49,7 +49,31 @@
     }
   },
   "elf_sections": [
-    { "name": ".kernel", "image_offset": 0 },
-    { "name": ".kernel2", "image_offset": 43885656 }
-  ]
+    {
+      "name": ".kernel",
+      "image_offset": 0
+    },
+    {
+      "name": ".kernel2",
+      "image_offset": 43885656
+    }
+  ],
+  "kernel_source": {
+    "default_path": "~/s20_kernel_chxl1",
+    "expected_version": 4,
+    "expected_patchlevel": 19,
+    "expected_sublevel": 113,
+    "required_paths": [
+      "kernel",
+      "arch/arm64",
+      "drivers",
+      "include/linux"
+    ],
+    "device_config_tokens": [
+      "y2q",
+      "g986u1",
+      "g986u",
+      "singlex"
+    ]
+  }
 }
