@@ -98,6 +98,15 @@ A read-only source preflight is available:
 make samsung-generator-audit UPSTREAM_GENERATOR_ROOT=/tmp/ghostlock-profile-gen
 ```
 
+For a combined compatibility check, run:
+
+```bash
+make samsung-generator-verify \
+  UPSTREAM_GENERATOR_ROOT=/tmp/ghostlock-profile-gen
+```
+
+This first runs `tools/verify_generator_boot_parser.py`: synthetic cases exercise both vendored parser implementations, and the real Samsung v2 boot image must yield a kernel payload that matches the supplied raw `Image` byte-for-byte. It then runs the source-level compatibility audit, which checks the accepted boot-header layouts and whether no-BTF / failed-validation paths are demonstrably fail-closed. The command does not generate `target.h` or run the generator's profile-generation pipeline.
+
 The default `UPSTREAM_GENERATOR_ROOT` is `/tmp/ghostlock-profile-gen`. The script reads the boot header and statically parses the external generator's `expected_header_sizes` map and `extract_boot_kernel` legacy-path logic. It also reports markers for the no-BTF fallback's default `rodin` template/inheritance path.
 
 The audit does **not** import or execute the external generator and does not write `target.h`. Exit status 1 means it found a confirmed header-version incompatibility; exit status 2 means it could not confidently interpret the parser or complete the audit. With the currently reviewed upstream sources and this Samsung v2 image, `RESULT=BLOCKED` is expected. That result is a confirmed readiness blocker, not a regression in `make samsung-verify`.
