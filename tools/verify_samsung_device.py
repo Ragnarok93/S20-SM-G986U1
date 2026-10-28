@@ -34,7 +34,7 @@ def parse_getprop_output(output: str) -> dict[str, str]:
 
 
 def evaluate_profile(
-    properties: dict[str, str], kernel_release: str, profile: dict[str, Any]
+    properties: dict[str, str], kernel_release: str, kernel_arch: str, profile: dict[str, Any]
 ) -> list[tuple[str, bool, str]]:
     """Return named compatibility checks without executing commands or modifying state."""
     device = profile["device"]
@@ -71,6 +71,10 @@ def evaluate_profile(
     checks.append(("kernel release", kernel_ok,
                    f"found={kernel_release or '<missing>'}; expected prefix={expected_kernel}"))
 
+    expected_arch = software["kernel_architecture"]
+    checks.append(("kernel architecture", kernel_arch == expected_arch,
+                   f"found={kernel_arch or '<missing>'}; expected={expected_arch}"))
+
     firmware = device["firmware_build"]
     matching_properties = [key for key, value in properties.items() if firmware in value]
     checks.append(("firmware build", bool(matching_properties),
@@ -103,6 +107,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             raise ValueError(f"unsupported profile schema_version={profile.get('schema_version')!r}")
         properties = parse_getprop_output(run_adb(args.adb, args.serial, ["shell", "getprop"]))
         kernel_release = run_adb(args.adb, args.serial, ["shell", "uname", "-r"])
+        kernel_arch = run_adb(args.adb, args.serial, ["shell", "uname", "-m"])
     except (OSError, ValueError, KeyError, json.JSONDecodeError, subprocess.TimeoutExpired, RuntimeError) as exc:
         print(f"ERROR: Samsung device check could not run: {exc}", file=sys.stderr)
         return 2
@@ -111,7 +116,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     print(f"== Read-only device compatibility check: {profile['profile_id']} ==")
     print(f"Target: {device['manufacturer']} {device['marketing_name']} ({device['model']}, {device['codename']})")
     failures = 0
-    for name, passed, detail in evaluate_profile(properties, kernel_release, profile):
+    for name, passed, detail in evaluate_profile(properties, kernel_release, kernel_arch, profile):
         print(f"{'PASS' if passed else 'FAIL'} {name}: {detail}")
         failures += int(not passed)
 
