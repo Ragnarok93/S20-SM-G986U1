@@ -69,29 +69,26 @@ The user ran `make samsung-verify` in WSL from the repository root. The recorded
 
 These results establish reproducible artifact identity, the checked configuration flags, the two recorded ELF section byte mappings, and basic NDK/ELF compatibility. They do not validate an executable Samsung exploit profile or runtime memory-layout assumptions.
 
-## Combined verification milestone
+## Current verification status (2026-10-28)
 
-After the enabled-BTF reporting test was added and `samsung-verify` was updated to run the regression suite, the user reported the combined command passed. At that time, the suite contained ten test methods. Together with the earlier detailed verifier output, this records successful firmware artifact/config checks, ELF section byte comparisons, Android NDK API 33 ABI smoke checks, and the then-current inspector regression tests.
+The user reported **PASS** for `make samsung-verify` after the real-image inspection step and expanded build-guard regression test were integrated. The combined target checks:
 
-The additional build-guard regression test was then run as part of `make samsung-verify` and the user reported the full combined command passed. The guard verifies that `make PROJECT=samsung-g986u1-4.19.113 preload -n` is rejected while this directory lacks `target.h`. The passing metadata suite does not change the profile's documentation-only status.
+- pinned hashes, required stock config flags, and ELF-to-Image section mapping;
+- the actual stock boot image against the extracted raw kernel Image, plus config/ELF metadata and heuristic BTF-signature scan;
+- Android NDK r27c/API 33 AArch64 PIE and shared-library smoke tests;
+- the eleven-method read-only inspection/build-guard regression suite, including all seven enumerated payload build goals.
 
-## Latest combined verification result
+The reported pass is evidence that these checks completed successfully in the user's WSL environment at that revision. It does **not** mean a Samsung payload is buildable or its runtime memory-layout assumptions are verified. The Samsung profile remains documentation-only and has no `target.h`.
 
-The user ran `make samsung-verify` after integrating the live firmware inspection and reported **PASS**. This confirms, in the user's WSL environment, the artifact/configuration validator, actual stock boot-image/raw-Image inspection and BTF signature scan, Android NDK API 33 ABI smoke test, and the regression suite all completed successfully at that revision. The build-guard regression test covers all seven payload goals.
+## Boot-header reference
 
-The subsequent documentation-only status and build-guard source remain in place. A passing verification target validates its listed checks; it does not supply the missing Samsung `target.h` or prove runtime exploit compatibility.
+The official [Android Open Source Project boot image header guide](https://source.android.com/docs/core/architecture/bootloader/boot-image-header) describes header v2's legacy layout and distinguishes it from the v3/v4 layout. The matching [AOSP `bootimg.h` definitions](https://android.googlesource.com/platform/system/tools/mkbootimg/+/refs/heads/android16-qpr2-release/include/bootimg/bootimg.h) document the v2 structure and page-aligned payload layout.
 
-## Combined verification target update
-
-After the reported passing run, `make samsung-verify` was updated to include `tools/inspect_android_boot.py` against the actual stock boot image, extracted raw Image, parsed config, and reconstructed vendor ELF, with the BTF signature scan enabled. It now sequences artifact/config and ELF mapping checks, real-image inspection, Android ABI smoke checks, and the regression suite.
-
-This Makefile change is committed, but the expanded combined command needs one fresh run to verify the added real-image inspection executes successfully through the target.
+This repository's inspector has exercised the observed v2 image and v3/v4 synthetic fixtures. That proves the metadata parser's supported layouts and checks the observed kernel payload provenance; it does not change the upstream generator's independent compatibility limitations recorded below.
 
 ## Build-guard regression coverage
 
-The previously passing guard test covered the `preload` target. It has now been expanded to exercise the full set of Makefile payload goals (`all`, `preload`, `s2`, `s3`, `rootchain`, `closed-loop`, and `hello-dso`) in dry-run mode and assert each one fails with the evidence-only guard while this profile has no `target.h`.
-
-The user then ran the combined `make samsung-verify` after the expansion and reported PASS. The current suite has 11 test methods; the build-guard test checks all seven payload goals in dry-run mode and asserts the evidence-only guard message. This is evidence that the Makefile guard is functioning for the enumerated goals in the tested local environment, not evidence that a Samsung payload is buildable.
+The build-guard test checks all seven Makefile payload goals (`all`, `preload`, `s2`, `s3`, `rootchain`, `closed-loop`, and `hello-dso`) in dry-run mode and expects each to fail with the evidence-only guard while this profile has no `target.h`. The full `make samsung-verify` command was reported as passing after this test and the real-image inspection were integrated.
 
 ## Repeatable generator preflight
 
