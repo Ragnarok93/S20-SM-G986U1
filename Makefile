@@ -236,6 +236,12 @@ samsung-inspect:
 
 samsung-verify:
 	python3 tools/verify_samsung_firmware.py
+	python3 tools/inspect_android_boot.py \
+	  --boot "$(SAMSUNG_BOOT_IMAGE)" \
+	  --image "$(SAMSUNG_RAW_IMAGE)" \
+	  --config "$(SAMSUNG_KERNEL_CONFIG)" \
+	  --elf "$(SAMSUNG_VENDOR_ELF)" \
+	  --scan-btf
 	NDK_ROOT="$(NDK_ROOT)" API="$(SAMSUNG_ANDROID_API)" bash tools/check_android_abi.sh
 	python3 -m unittest discover -s tests -v
 
