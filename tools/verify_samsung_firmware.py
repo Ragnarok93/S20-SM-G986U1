@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -44,6 +45,55 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def check_boot_image_layout(boot_path: Path, expected: dict[str, Any]) -> list[str]:
+    """Compare the Samsung profile's legacy boot-header facts with the image."""
+    messages: list[str] = []
+    try:
+        with boot_path.open("rb") as handle:
+            header = handle.read(4096)
+    except OSError as exc:
+        return [f"FAIL unable to read boot image header: {exc}"]
+    if len(header) < 44:
+        return [f"FAIL boot image header is truncated ({len(header)} bytes; need at least 44)"]
+    if header[:8] != b"ANDROID!":
+        return ["FAIL boot image magic is not ANDROID!"]
+
+    kernel_size = struct.unpack_from("<I", header, 8)[0]
+    page_size = struct.unpack_from("<I", header, 36)[0]
+    header_version = struct.unpack_from("<I", header, 40)[0]
+    expected_version = int(expected["header_version"])
+    if header_version != expected_version:
+        return [f"FAIL boot header version={header_version}; expected={expected_version}"]
+    messages.append(f"PASS boot header version={header_version}")
+
+    if header_version > 2:
+        return messages + [f"FAIL profile expects legacy header, found version {header_version}"]
+    if page_size != int(expected["page_size"]):
+        messages.append(f"FAIL boot page_size={page_size}; expected={expected['page_size']}")
+    else:
+        messages.append(f"PASS boot page_size={page_size}")
+
+    kernel_offset = page_size
+    if kernel_offset != int(expected["kernel_offset"]):
+        messages.append(f"FAIL boot kernel_offset=0x{kernel_offset:x}; expected=0x{int(expected['kernel_offset']):x}")
+    else:
+        messages.append(f"PASS boot kernel_offset=0x{kernel_offset:x}")
+
+    if kernel_size != int(expected["kernel_size_bytes"]):
+        messages.append(f"FAIL boot kernel_size={kernel_size:,}; expected={int(expected['kernel_size_bytes']):,}")
+    else:
+        messages.append(f"PASS boot kernel_size={kernel_size:,}")
+
+    try:
+        file_size = boot_path.stat().st_size
+    except OSError as exc:
+        messages.append(f"FAIL unable to stat boot image: {exc}")
+    else:
+        if kernel_offset + kernel_size > file_size:
+            messages.append(f"FAIL kernel payload range ends at 0x{kernel_offset + kernel_size:x}, past boot image size 0x{file_size:x}")
+    return messages
 
 
 def parse_config(path: Path) -> dict[str, str]:
@@ -160,6 +210,13 @@ def main(argv: Iterable[str] | None = None) -> int:
         else:
             print(f"FAIL {label}: SHA-256 {digest}; expected {expected}")
             failures += 1
+
+    if args.boot.is_file():
+        print("\n== Boot-image layout against device profile ==")
+        for message in check_boot_image_layout(args.boot, profile["boot_image"]):
+            print(message)
+            if message.startswith("FAIL"):
+                failures += 1
 
     if args.config.is_file():
         config = parse_config(args.config)
