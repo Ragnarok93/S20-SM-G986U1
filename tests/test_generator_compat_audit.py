@@ -44,6 +44,8 @@ def make_generator_tree(
     *,
     fallback: bool = True,
     legacy_support: bool = False,
+    automatic_fallback_route: bool = True,
+    validation_fail_closed: bool = False,
 ) -> None:
     vendor = root / "tools" / "vendor"
     vendor.mkdir(parents=True)
@@ -63,13 +65,49 @@ def extract_boot_kernel(path):
     (vendor / "generate_target.py").write_text(parser_source, encoding="utf-8")
     (vendor / "generate_target_2.py").write_text(parser_source, encoding="utf-8")
     if fallback:
+        fallback_route = (
+            "    except Exception as exc:\n"
+            "        return fallback_generate_without_btf(args, profile_full, output, boot, config, kallsyms, exc)\n"
+            if automatic_fallback_route
+            else "    except Exception as exc:\n"
+            "        fail(f'required BTF unavailable: {exc}')\n"
+        )
+        if validation_fail_closed:
+            btf_validation = (
+                "    try:\n"
+                "        validate_btf_consumer_layout(btf)\n"
+                "    except Exception as exc:\n"
+                "        fail('BTF consumer layout validation failed; refusing to generate target.h')\n"
+            )
+            percpu_validation = (
+                "    try:\n"
+                "        validate_percpu_entry_task()\n"
+                "    except Exception as exc:\n"
+                "        fail('percpu entry_task validation failed; refusing to generate target.h')\n"
+            )
+        else:
+            btf_validation = (
+                "    try:\n"
+                "        validate_btf_consumer_layout(btf)\n"
+                "    except Exception as exc:\n"
+                "        print('warning: cannot validate layout; continuing generation', file=sys.stderr)\n"
+            )
+            percpu_validation = (
+                "    try:\n"
+                "        validate_percpu_entry_task()\n"
+                "    except Exception as exc:\n"
+                "        print('warning: cannot validate percpu layout; continuing generation', file=sys.stderr)\n"
+            )
         wrapper_source = '''
 def template_target_path():
     name = getattr(args, "template_target", None) or os.environ.get("TARGET_TEMPLATE") or "rodin"
 def fallback_generate_without_btf():
     warning = "values not overwritten above were inherited from template"
     output.write_text(warning)
-'''
+def complete_generate():
+    try:
+        locate_btf()
+''' + fallback_route + btf_validation + percpu_validation
     else:
         wrapper_source = "def main():\n    return 0\n"
     (root / "tools" / "generate_target.py").write_text(
@@ -118,9 +156,39 @@ class GeneratorCompatibilityAuditTests(unittest.TestCase):
                 result = audit_module.audit(generator_root, boot_path)
 
             report = output.getvalue()
-            self.assertEqual(result, 0)
+            self.assertEqual(result, 2)
             self.assertIn("parser_compatibility=SUPPORTED_BY_STATIC_MAP (v2)", report)
-            self.assertIn("no_btf_fallback_risk=template inheritance path detected", report)
+            self.assertIn("no_btf_fallback_risk=ACTIVE (automatic template inheritance route detected)", report)
+            self.assertIn("RESULT=PARTIAL (active template fallback needs review)", report)
+
+    def test_fail_closed_wrapper_is_not_reported_as_active_template_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            generator_root = root / "generator"
+            generator_root.mkdir()
+            make_generator_tree(
+                generator_root,
+                "{3: 0x62C, 4: 0x630}",
+                legacy_support=True,
+                automatic_fallback_route=False,
+                validation_fail_closed=True,
+            )
+            boot_path = root / "boot.img"
+            boot_path.write_bytes(make_boot(2))
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = audit_module.audit(generator_root, boot_path)
+
+            report = output.getvalue()
+            self.assertEqual(result, 0)
+            self.assertIn(
+                "no_btf_fallback_risk=NO_DIRECT_AUTOMATIC_ROUTE_DETECTED",
+                report,
+            )
+            self.assertIn("btf_layout_validation_fail_closed=yes", report)
+            self.assertIn("percpu_validation_fail_closed=yes", report)
+            self.assertIn("RESULT=HEADER_MAP_SUPPORTED_FAIL_CLOSED", report)
 
     def test_unknown_parser_structure_is_inconclusive(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
