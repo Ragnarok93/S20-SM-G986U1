@@ -22,6 +22,7 @@ SECTION_RE = re.compile(
     r"^\s*\[\s*(\d+)\]\s+(\S+)\s+(\S+)\s+([0-9a-fA-F]+)\s+"
     r"([0-9a-fA-F]+)\s+([0-9a-fA-F]+)(?:\s|$)"
 )
+SECTION_INDEX_RE = re.compile(r"^\s*\[\s*(\d+)\]\s+")
 SECTION_COUNT_RE = re.compile(r"There are\s+(\d+)\s+section headers?")
 LINT_DIAGNOSTIC_RE = re.compile(r"\b(warning|error):", re.IGNORECASE)
 HEADER_FIELDS = {
@@ -223,13 +224,22 @@ def parse_declared_section_count(text: str) -> int:
 def parse_sections(text: str) -> tuple[Section, ...]:
     result: list[Section] = []
     for line in text.splitlines():
+        index_match = SECTION_INDEX_RE.match(line)
+        if not index_match:
+            continue
+        index = int(index_match.group(1), 10)
+        if index == 0:
+            # The mandatory SHT_NULL header has an empty name in normal ELF files.
+            # Do not let a whitespace-token parser misread its Type as its Name.
+            result.append(Section(index=0, name="", kind="NULL", offset=0, size=0))
+            continue
         match = SECTION_RE.match(line)
         if not match:
             continue
-        index, name, kind, _address, offset, size = match.groups()
+        _index, name, kind, _address, offset, size = match.groups()
         try:
             result.append(Section(
-                index=int(index, 10),
+                index=index,
                 name=name,
                 kind=kind,
                 offset=int(offset, 16),
