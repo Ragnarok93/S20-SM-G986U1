@@ -152,12 +152,15 @@ def parse_symbol_summary(text: str) -> SymbolSummary:
             current["null_entries"] = int(current["null_entries"]) + 1
         elif section_index == "UND":
             current["undefined_entries"] = int(current["undefined_entries"]) + 1
-        type_counts = current["type_counts"]
-        binding_counts = current["binding_counts"]
-        assert isinstance(type_counts, dict)
-        assert isinstance(binding_counts, dict)
-        type_counts[symbol_type] = int(type_counts.get(symbol_type, 0)) + 1
-        binding_counts[binding] = int(binding_counts.get(binding, 0)) + 1
+        # Entry zero is the reserved STN_UNDEF record; keep it out of
+        # type/binding totals so those totals describe non-null symbols only.
+        if entry_index != "0":
+            type_counts = current["type_counts"]
+            binding_counts = current["binding_counts"]
+            assert isinstance(type_counts, dict)
+            assert isinstance(binding_counts, dict)
+            type_counts[symbol_type] = int(type_counts.get(symbol_type, 0)) + 1
+            binding_counts[binding] = int(binding_counts.get(binding, 0)) + 1
 
     if not mutable:
         raise MetadataError("readelf symbol output contained no parseable symbol-table headers")
