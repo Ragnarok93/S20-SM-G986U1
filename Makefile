@@ -12,6 +12,8 @@ SAMSUNG_RAW_IMAGE ?= /tmp/g986u1-stock-kernel.Image
 SAMSUNG_VENDOR_ELF ?= $(HOME)/firmware-check/vmlinux.elf
 SAMSUNG_KERNEL_CONFIG ?= $(HOME)/firmware-check/kernel.config
 SAMSUNG_KERNEL_SOURCE ?= $(HOME)/s20_kernel_chxl1
+SAMSUNG_SOURCE_CONFIG ?= $(SAMSUNG_KERNEL_SOURCE)/out-stock-layout/.config
+SAMSUNG_CONFIG_STRICT ?= 0
 SAMSUNG_DEVICE_PROFILE := src/targets/$(SAMSUNG_PROJECT)/device-profile.json
 ADB ?= adb
 ADB_SERIAL ?=
@@ -26,7 +28,7 @@ TARGET_DIR := src/targets/$(PROJECT)
 TARGET_HEADER := $(TARGET_DIR)/target.h
 REQUESTED_GOALS := $(if $(strip $(MAKECMDGOALS)),$(MAKECMDGOALS),preload)
 PAYLOAD_GOALS := all preload s2 s3 rootchain closed-loop hello-dso
-UTILITY_GOALS := list-projects list-device-profiles clean info samsung-info samsung-inspect samsung-verify samsung-source-check samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check
+UTILITY_GOALS := list-projects list-device-profiles clean info samsung-info samsung-inspect samsung-verify samsung-source-check samsung-config-compare samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check
 
 ifeq ($(strip $(PROJECT)),)
 ifneq ($(filter $(UTILITY_GOALS),$(MAKECMDGOALS)),)
@@ -237,6 +239,9 @@ samsung-device-check:
 
 samsung-source-check:
 	python3 tools/verify_samsung_kernel_source.py --profile "$(SAMSUNG_DEVICE_PROFILE)" --source-root "$(SAMSUNG_KERNEL_SOURCE)"
+
+samsung-config-compare:
+	python3 tools/compare_samsung_kernel_configs.py --stock-config "$(SAMSUNG_KERNEL_CONFIG)" --candidate-config "$(SAMSUNG_SOURCE_CONFIG)" --show-all-differences $(if $(filter 1 yes true,$(SAMSUNG_CONFIG_STRICT)),--strict-all,)
 
 samsung-inspect:
 	python3 tools/inspect_android_boot.py \
