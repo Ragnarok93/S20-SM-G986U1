@@ -11,6 +11,7 @@ SAMSUNG_BOOT_IMAGE ?= $(HOME)/stock-boot.img
 SAMSUNG_RAW_IMAGE ?= /tmp/g986u1-stock-kernel.Image
 SAMSUNG_VENDOR_ELF ?= $(HOME)/firmware-check/vmlinux.elf
 SAMSUNG_KERNEL_CONFIG ?= $(HOME)/firmware-check/kernel.config
+SAMSUNG_KERNEL_SOURCE ?= $(HOME)/s20_kernel_chxl1
 SAMSUNG_DEVICE_PROFILE := src/targets/$(SAMSUNG_PROJECT)/device-profile.json
 ADB ?= adb
 ADB_SERIAL ?=
@@ -25,7 +26,7 @@ TARGET_DIR := src/targets/$(PROJECT)
 TARGET_HEADER := $(TARGET_DIR)/target.h
 REQUESTED_GOALS := $(if $(strip $(MAKECMDGOALS)),$(MAKECMDGOALS),preload)
 PAYLOAD_GOALS := all preload s2 s3 rootchain closed-loop hello-dso
-UTILITY_GOALS := list-projects list-device-profiles clean info samsung-info samsung-inspect samsung-verify samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check
+UTILITY_GOALS := list-projects list-device-profiles clean info samsung-info samsung-inspect samsung-verify samsung-source-check samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check
 
 ifeq ($(strip $(PROJECT)),)
 ifneq ($(filter $(UTILITY_GOALS),$(MAKECMDGOALS)),)
@@ -144,7 +145,7 @@ SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
 TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
 
-.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects list-device-profiles samsung-info samsung-inspect samsung-verify samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check samsung-test-tools
+.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects list-device-profiles samsung-info samsung-inspect samsung-verify samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check samsung-source-check samsung-test-tools
 
 all: preload
 
@@ -233,6 +234,9 @@ samsung-info:
 
 samsung-device-check:
 	python3 tools/verify_samsung_device.py --profile "$(SAMSUNG_DEVICE_PROFILE)" --adb "$(ADB)" $(if $(strip $(ADB_SERIAL)),--serial "$(ADB_SERIAL)",)
+
+samsung-source-check:
+	python3 tools/verify_samsung_kernel_source.py --profile "$(SAMSUNG_DEVICE_PROFILE)" --source-root "$(SAMSUNG_KERNEL_SOURCE)"
 
 samsung-inspect:
 	python3 tools/inspect_android_boot.py \
