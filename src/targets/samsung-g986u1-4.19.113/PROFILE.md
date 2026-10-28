@@ -75,6 +75,12 @@ After the enabled-BTF reporting test was added and `samsung-verify` was updated 
 
 The additional build-guard regression test was then run as part of `make samsung-verify` and the user reported the full combined command passed. The guard verifies that `make PROJECT=samsung-g986u1-4.19.113 preload -n` is rejected while this directory lacks `target.h`. The passing metadata suite does not change the profile's documentation-only status.
 
+## Combined verification target update
+
+After the reported passing run, `make samsung-verify` was updated to include `tools/inspect_android_boot.py` against the actual stock boot image, extracted raw Image, parsed config, and reconstructed vendor ELF, with the BTF signature scan enabled. It now sequences artifact/config and ELF mapping checks, real-image inspection, Android ABI smoke checks, and the regression suite.
+
+This Makefile change is committed, but the expanded combined command needs one fresh run to verify the added real-image inspection executes successfully through the target.
+
 ## Build-guard regression coverage
 
 The previously passing guard test covered the `preload` target. It has now been expanded to exercise the full set of Makefile payload goals (`all`, `preload`, `s2`, `s3`, `rootchain`, `closed-loop`, and `hello-dso`) in dry-run mode and assert each one fails with the evidence-only guard while this profile has no `target.h`.
