@@ -234,7 +234,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, help="extracted stock kernel .config")
     parser.add_argument("--elf", type=Path, help="optional reconstructed vendor ELF to scan")
     parser.add_argument("--scan-btf", action="store_true", help="scan BTF magic signatures (heuristic only)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     try:
         return inspect(args.boot, args.image, args.config, args.elf, args.scan_btf)
     except (OSError, InspectError) as exc:
