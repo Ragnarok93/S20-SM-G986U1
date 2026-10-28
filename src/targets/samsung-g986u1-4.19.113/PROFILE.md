@@ -69,6 +69,12 @@ The user ran `make samsung-verify` in WSL from the repository root. The recorded
 
 These results establish reproducible artifact identity, the checked configuration flags, the two recorded ELF section byte mappings, and basic NDK/ELF compatibility. They do not validate an executable Samsung exploit profile or runtime memory-layout assumptions.
 
+## Combined verification milestone
+
+After the enabled-BTF reporting test was added and `samsung-verify` was updated to run the regression suite, the user reported the combined command passed. At that time, the suite contained ten test methods. Together with the earlier detailed verifier output, this records successful firmware artifact/config checks, ELF section byte comparisons, Android NDK API 33 ABI smoke checks, and the then-current inspector regression tests.
+
+A later regression test was added to ensure `make PROJECT=samsung-g986u1-4.19.113 preload -n` is rejected while this directory lacks `target.h`. That newly added guard test still requires a fresh local run. The passing metadata suite does not change the profile's documentation-only status.
+
 ## Upstream generator compatibility audit (2026-10-28)
 
 Reviewed the generator source from `woshimaniubi8/CVE-2026-43499-root-KernelSU`:
