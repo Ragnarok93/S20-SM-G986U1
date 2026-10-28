@@ -194,6 +194,16 @@ make samsung-debug-metadata
 
 It inventories the reconstructed vendor ELF path selected by `SAMSUNG_VENDOR_ELF`; it does not derive symbols, offsets, or profile values.
 
+## Debug-artifact search in `firmware-check` (user-run, 2026-10-28)
+
+The user searched `$HOME/firmware-check` to depth 3 for files named `vmlinux*`, `*.debug`, `*.dwo`, `*.dwp`, and `*.btf`. The only match was:
+
+- `/home/ubuntu/firmware-check/vmlinux.elf` (58,474,904 bytes)
+
+Combined with the inventory above, this establishes that the searched directory contains no matching sidecar debug files, and the sole matching ELF has no embedded DWARF core sections, BTF sections, or recognized separate-debug references. This is scoped to that search path/pattern/depth; it does not establish that no relevant metadata exists in the source tree, firmware package, build cache, or other directories.
+
+The next enhanced inventory reports aggregate symbol-table counts and type/binding categories without emitting symbol names or values. This can establish whether the existing `.symtab` is parseable and how many entries are defined versus undefined, but it still cannot establish the presence of DWARF type information or validate a target-specific profile.
+
 ## Artifact provenance ledger
 
 These files were collected under WSL from the original Samsung firmware package:
