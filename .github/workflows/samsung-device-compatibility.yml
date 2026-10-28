@@ -2,8 +2,6 @@ name: Samsung device compatibility
 
 on:
   push:
-    branches:
-      - codex/samsung-profile-scaffold-20261028
   pull_request:
 
 permissions:
