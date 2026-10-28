@@ -19,9 +19,11 @@ from typing import Sequence
 
 
 SECTION_RE = re.compile(
-    r"^\s*\[\s*\d+\]\s+(\S+)\s+(\S+)\s+([0-9a-fA-F]+)\s+"
+    r"^\s*\[\s*(\d+)\]\s+(\S+)\s+(\S+)\s+([0-9a-fA-F]+)\s+"
     r"([0-9a-fA-F]+)\s+([0-9a-fA-F]+)(?:\s|$)"
 )
+SECTION_COUNT_RE = re.compile(r"There are\s+(\d+)\s+section headers?")
+LINT_DIAGNOSTIC_RE = re.compile(r"\b(warning|error):", re.IGNORECASE)
 HEADER_FIELDS = {
     "Class": re.compile(r"^\s*Class:\s*(.*?)\s*$", re.MULTILINE),
     "Data": re.compile(r"^\s*Data:\s*(.*?)\s*$", re.MULTILINE),
@@ -63,8 +65,10 @@ class MetadataError(RuntimeError):
 
 @dataclass(frozen=True)
 class Section:
+    index: int
     name: str
     kind: str
+    offset: int
     size: int
 
 
@@ -113,6 +117,12 @@ class Inspection:
     elf_fields: dict[str, str]
     build_id: str | None
     sections: tuple[Section, ...]
+    declared_section_count: int
+    section_table_consistent: bool
+    out_of_bounds_sections: int
+    readelf_lint_status: str
+    readelf_lint_warning_count: int
+    readelf_lint_error_count: int
     dwarf_decode: str
     compilation_units: int
     dwarf_warning_count: int
@@ -203,20 +213,47 @@ def parse_header(text: str) -> dict[str, str]:
     return fields
 
 
+def parse_declared_section_count(text: str) -> int:
+    match = SECTION_COUNT_RE.search(text)
+    if not match:
+        raise MetadataError("readelf section output did not declare the section-header count")
+    return int(match.group(1))
+
+
 def parse_sections(text: str) -> tuple[Section, ...]:
     result: list[Section] = []
     for line in text.splitlines():
         match = SECTION_RE.match(line)
         if not match:
             continue
-        name, kind, _address, _offset, size = match.groups()
+        index, name, kind, _address, offset, size = match.groups()
         try:
-            result.append(Section(name=name, kind=kind, size=int(size, 16)))
+            result.append(Section(
+                index=int(index, 10),
+                name=name,
+                kind=kind,
+                offset=int(offset, 16),
+                size=int(size, 16),
+            ))
         except ValueError as exc:
-            raise MetadataError(f"invalid section size reported by readelf for {name}") from exc
+            raise MetadataError(f"invalid section metadata reported by readelf for {name}") from exc
     if not result:
         raise MetadataError("readelf section output contained no parseable section records")
     return tuple(result)
+
+
+def count_lint_diagnostics(stdout: str, stderr: str) -> tuple[int, int]:
+    warnings = 0
+    errors = 0
+    for line in (stdout + "\n" + stderr).splitlines():
+        match = LINT_DIAGNOSTIC_RE.search(line)
+        if not match:
+            continue
+        if match.group(1).lower() == "warning":
+            warnings += 1
+        else:
+            errors += 1
+    return warnings, errors
 
 
 def run_readelf(readelf: str, args: Sequence[str], path: Path, timeout: int = 120) -> subprocess.CompletedProcess[str]:
@@ -260,8 +297,27 @@ def inspect_elf(path: Path, readelf: str = "readelf") -> Inspection:
     header = run_readelf(executable, ("-h", "-W"), path)
     sections_output = run_readelf(executable, ("-S", "-W"), path)
     notes = run_readelf(executable, ("-n", "-W"), path)
+    lint = run_readelf(executable, ("--lint", "-h", "-S", "-s", "-W"), path, timeout=180)
     fields = parse_header(header.stdout)
     sections = parse_sections(sections_output.stdout)
+    declared_section_count = parse_declared_section_count(sections_output.stdout)
+    section_indices = [section.index for section in sections]
+    section_table_consistent = (
+        len(sections) == declared_section_count
+        and len(set(section_indices)) == len(section_indices)
+        and set(section_indices) == set(range(declared_section_count))
+    )
+    out_of_bounds_sections = sum(
+        1 for section in sections
+        if section.kind != "NOBITS" and section.offset + section.size > file_size
+    )
+    lint_warnings, lint_errors = count_lint_diagnostics(lint.stdout, lint.stderr)
+    if lint_errors:
+        lint_status = "ERROR"
+    elif lint_warnings:
+        lint_status = "WARN"
+    else:
+        lint_status = "PASS"
     build_match = BUILD_ID_RE.search(notes.stdout)
     build_id = build_match.group(1).lower() if build_match else None
     names = {section.name for section in sections}
@@ -304,6 +360,12 @@ def inspect_elf(path: Path, readelf: str = "readelf") -> Inspection:
         elf_fields=fields,
         build_id=build_id,
         sections=sections,
+        declared_section_count=declared_section_count,
+        section_table_consistent=section_table_consistent,
+        out_of_bounds_sections=out_of_bounds_sections,
+        readelf_lint_status=lint_status,
+        readelf_lint_warning_count=lint_warnings,
+        readelf_lint_error_count=lint_errors,
         dwarf_decode=dwarf_decode,
         compilation_units=units,
         dwarf_warning_count=warnings,
@@ -320,7 +382,13 @@ def report(result: Inspection) -> None:
     for field in ("Class", "Data", "OS/ABI", "Type", "Machine"):
         print(f"elf_{field.lower().replace('/', '_')}={result.elf_fields[field]}")
     print(f"build_id={result.build_id or '<not present>'}")
-    print(f"section_count={len(result.sections)}")
+    print(f"section_count_declared={result.declared_section_count}")
+    print(f"section_count_parsed={len(result.sections)}")
+    print(f"section_indices_consistent={'yes' if result.section_table_consistent else 'no'}")
+    print(f"section_ranges_out_of_bounds={result.out_of_bounds_sections}")
+    print(f"readelf_lint_status={result.readelf_lint_status}")
+    print(f"readelf_lint_warnings={result.readelf_lint_warning_count}")
+    print(f"readelf_lint_errors={result.readelf_lint_error_count}")
 
     if result.symbol_summary is None:
         print("symbol_table_entries=not_available")
