@@ -42,7 +42,7 @@ CRITICAL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 
 DEVICE_SELECTION_PATTERN = re.compile(
-    r"^CONFIG_(?:MACH_.*|BOARD_.*|SOC_.*|VENDOR_.*|BUILD_.*|PROJECT_.*)$"
+    r"^CONFIG_(?:MACH_.*|BOARD_.*|SOC_.*|VENDOR_.*|BUILD_.*|PROJECT_.*|SEC_.*_PROJECT)$"
 )
 
 
@@ -61,6 +61,10 @@ def parse_config(path: Path) -> dict[str, str]:
 
 
 def classify_symbol(symbol: str) -> str:
+    # Samsung's CONFIG_SEC_<DEVICE>_PROJECT symbols select device/project
+    # variants; keep them distinct from actual SEC_RKP/SEC_DEFEX-style hardening.
+    if re.fullmatch(r"CONFIG_SEC_[A-Za-z0-9_]+_PROJECT", symbol):
+        return "device-selection"
     for group, pattern in CRITICAL_PATTERNS:
         if pattern.fullmatch(symbol):
             return group
@@ -107,6 +111,8 @@ def compare_configs(stock: dict[str, str], candidate: dict[str, str]) -> dict[st
         "critical_unknowns": sorted(critical_unknowns),
         "noncritical_differences": noncritical_differences,
         "noncritical_unknowns": sorted(noncritical_unknowns),
+        "stock_only_values": {key: stock[key] for key in stock_only},
+        "candidate_only_values": {key: candidate[key] for key in candidate_only},
         "symbol_count": len(union),
     }
 
@@ -152,7 +158,9 @@ def main(argv: Iterable[str] | None = None) -> int:
     if result["critical_unknowns"]:
         print("\n== Core-group symbols missing from one config (state unknown) ==")
         for key, side in result["critical_unknowns"]:
-            print(f"UNKNOWN [{classify_symbol(key)}] {key}: {side}")
+            stock_value = stock.get(key, "<absent>")
+            candidate_value = candidate.get(key, "<absent>")
+            print(f"UNKNOWN [{classify_symbol(key)}] {key}: stock={stock_value} candidate={candidate_value} ({side})")
 
     if args.show_all_differences:
         print("\n== All shared-symbol value differences ==")
@@ -160,7 +168,9 @@ def main(argv: Iterable[str] | None = None) -> int:
             print(f"DIFF [{group}] {key}: stock={stock_value} candidate={candidate_value}")
         print("\n== All one-sided symbols ==")
         for key, side in result["noncritical_unknowns"]:
-            print(f"UNKNOWN [{classify_symbol(key)}] {key}: {side}")
+            stock_value = stock.get(key, "<absent>")
+            candidate_value = candidate.get(key, "<absent>")
+            print(f"UNKNOWN [{classify_symbol(key)}] {key}: stock={stock_value} candidate={candidate_value} ({side})")
 
     core_ok = not result["critical_differences"] and not result["critical_unknowns"]
     all_ok = not result["differences"] and not result["stock_only"] and not result["candidate_only"]
