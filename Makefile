@@ -11,6 +11,9 @@ SAMSUNG_BOOT_IMAGE ?= $(HOME)/stock-boot.img
 SAMSUNG_RAW_IMAGE ?= /tmp/g986u1-stock-kernel.Image
 SAMSUNG_VENDOR_ELF ?= $(HOME)/firmware-check/vmlinux.elf
 SAMSUNG_KERNEL_CONFIG ?= $(HOME)/firmware-check/kernel.config
+SAMSUNG_DEVICE_PROFILE := src/targets/$(SAMSUNG_PROJECT)/device-profile.json
+ADB ?= adb
+ADB_SERIAL ?=
 UPSTREAM_GENERATOR_ROOT ?= /tmp/ghostlock-profile-gen
 
 API ?= $(SAMSUNG_ANDROID_API)
@@ -22,7 +25,7 @@ TARGET_DIR := src/targets/$(PROJECT)
 TARGET_HEADER := $(TARGET_DIR)/target.h
 REQUESTED_GOALS := $(if $(strip $(MAKECMDGOALS)),$(MAKECMDGOALS),preload)
 PAYLOAD_GOALS := all preload s2 s3 rootchain closed-loop hello-dso
-UTILITY_GOALS := list-projects clean info samsung-info samsung-inspect samsung-verify samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata
+UTILITY_GOALS := list-projects clean info samsung-info samsung-inspect samsung-verify samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check
 
 ifeq ($(strip $(PROJECT)),)
 ifneq ($(filter $(UTILITY_GOALS),$(MAKECMDGOALS)),)
@@ -141,7 +144,7 @@ SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
 TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
 
-.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects samsung-info samsung-inspect samsung-verify samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-test-tools
+.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects samsung-info samsung-inspect samsung-verify samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check samsung-test-tools
 
 all: preload
 
@@ -225,7 +228,11 @@ samsung-info:
 	@echo "ANDROID_API=$(SAMSUNG_ANDROID_API)"
 	@echo "CONFIG_ARM64_VA_BITS_$(SAMSUNG_VA_BITS)=y"
 	@echo "PROFILE_DOC=src/targets/$(SAMSUNG_PROJECT)/PROFILE.md"
-	@echo "TARGET_HEADER_STATUS=missing; payload build is intentionally blocked"
+	@echo "DEVICE_PROFILE=$(SAMSUNG_DEVICE_PROFILE)"
+	@echo "TARGET_HEADER_STATUS=missing; device-specific payload build is intentionally blocked"
+
+samsung-device-check:
+	python3 tools/verify_samsung_device.py --profile "$(SAMSUNG_DEVICE_PROFILE)" --adb "$(ADB)" $(if $(strip $(ADB_SERIAL)),--serial "$(ADB_SERIAL)",)
 
 samsung-inspect:
 	python3 tools/inspect_android_boot.py \
