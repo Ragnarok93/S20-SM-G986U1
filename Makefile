@@ -22,7 +22,7 @@ TARGET_DIR := src/targets/$(PROJECT)
 TARGET_HEADER := $(TARGET_DIR)/target.h
 REQUESTED_GOALS := $(if $(strip $(MAKECMDGOALS)),$(MAKECMDGOALS),preload)
 PAYLOAD_GOALS := all preload s2 s3 rootchain closed-loop hello-dso
-UTILITY_GOALS := list-projects clean info samsung-info samsung-inspect samsung-verify samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-debug-metadata
+UTILITY_GOALS := list-projects clean info samsung-info samsung-inspect samsung-verify samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-debug-metadata
 
 ifeq ($(strip $(PROJECT)),)
 ifneq ($(filter $(UTILITY_GOALS),$(MAKECMDGOALS)),)
@@ -141,7 +141,7 @@ SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
 TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
 
-.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects samsung-info samsung-inspect samsung-verify samsung-generator-audit samsung-generator-verify samsung-debug-metadata samsung-test-tools
+.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects samsung-info samsung-inspect samsung-verify samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-debug-metadata samsung-test-tools
 
 all: preload
 
@@ -268,6 +268,14 @@ samsung-generator-verify:
 	python3 tools/audit_generator_compat.py \
 	  --generator-root "$(UPSTREAM_GENERATOR_ROOT)" \
 	  --boot "$(SAMSUNG_BOOT_IMAGE)"
+
+# Check/apply parser compatibility on a pristine external generator checkout.
+# These targets never generate target.h; use --check before applying a patch.
+samsung-generator-legacy-patch-check:
+	python3 tools/patch_generator_legacy_boot.py --root "$(UPSTREAM_GENERATOR_ROOT)" --check
+
+samsung-generator-legacy-patch:
+	python3 tools/patch_generator_legacy_boot.py --root "$(UPSTREAM_GENERATOR_ROOT)"
 
 samsung-debug-metadata:
 	python3 tools/inspect_elf_debug_metadata.py "$(SAMSUNG_VENDOR_ELF)"
