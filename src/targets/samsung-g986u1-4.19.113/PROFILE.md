@@ -115,6 +115,8 @@ The source audit is a lightweight static preflight, not a substitute for reviewi
 
 ## Upstream generator compatibility audit (2026-10-28)
 
+The findings immediately below describe the unpatched upstream baseline. The local WSL checkout was subsequently patched and tested; see **Current external-generator verification** below.
+
 Reviewed the generator source from `woshimaniubi8/CVE-2026-43499-root-KernelSU`:
 
 - Wrapper: [`tools/generate_target.py`](https://github.com/woshimaniubi8/CVE-2026-43499-root-KernelSU/blob/main/tools/generate_target.py) (reviewed blob `a2e6a40817a22dbc25b65f1f1c00f03faad4c0a1`).
@@ -131,22 +133,34 @@ Reviewed the generator source from `woshimaniubi8/CVE-2026-43499-root-KernelSU`:
 
 ### Porting implications
 
-- Current first blocker: the generator's boot parser is incompatible with this Samsung image's confirmed v2 header.
-- Separate fallback risk: if header parsing is changed or a supported-format image is supplied, the current no-BTF fallback can still emit a nominally successful header with inherited or assumed values.
-- Our Samsung branch keeps the target profile documentation-only. The validator and ABI smoke test passing do not clear either generator limitation or establish runtime layout.
+- In the pristine upstream baseline, the generator's boot parser is incompatible with this Samsung image's confirmed v2 header.
+- In that baseline, the no-BTF fallback can still emit a nominally successful header with inherited or assumed values; this must be separately corrected even after parser compatibility is added.
+- The Samsung branch keeps the target profile documentation-only. Parser tests, firmware checks, and ABI smoke tests do not establish runtime memory layout or justify carrying forward values from another device.
 
 ## Local generator parser patch status (2026-10-28)
 
 The pristine upstream generator source reviewed above rejects legacy boot-header v2 and requires a PE/COFF signature in the ARM64 Image. The user applied local patch scripts in the external WSL checkout at `/tmp/ghostlock-profile-gen`; those upstream files are not vendored or committed by this scaffold repository.
 
-The user-reported verification output after applying the legacy-header and optional-PE changes was:
+The user-reported `make samsung-generator-verify UPSTREAM_GENERATOR_ROOT=/tmp/ghostlock-profile-gen` run passed:
 
 - Both vendored parsers passed 13 synthetic cases each (26 total).
 - Both parsers extracted the kernel payload from `~/stock-boot.img` and matched `/tmp/g986u1-stock-kernel.Image` byte-for-byte.
 - Extracted payload SHA-256 matched `ffbc90af676558557eb917687736c11f15b560dbb3cb9ca237224da5acb14123`.
-- Python compilation of both vendored parser modules passed.
+- The static source audit reported both parsers support legacy versions 0–2 alongside versions 3–4, with an explicit legacy page-size path.
+- The audit reported `automatic_fallback_route=no`, `btf_validation_fail_closed=yes`, and `percpu_validation_fail_closed=yes`, ending with `RESULT=HEADER_MAP_SUPPORTED_FAIL_CLOSED (static inspection only)`.
 
-This is a parser/provenance result only. It does not validate BTF, structure layouts, target memory geometry, or a generated profile. The new `tools/patch_generator_fail_closed.py` is a separate hardening patch intended to prevent generation from succeeding when required metadata checks fail; it has not been reported as applied or tested yet. The Samsung profile remains documentation-only and no `target.h` has been added.
+This is a parser/provenance and source-inspection result. It does not validate BTF, structure layouts, target memory geometry, or generated profile values, and the audit does not execute the generator. The external checkout at `/tmp/ghostlock-profile-gen` is separate from this repository.
+
+To make the legacy parser change reproducible, this repository now includes `tools/patch_generator_legacy_boot.py` and unit tests for check-only mode, backups, idempotency, equivalent pre-existing implementations, and all-files preflight. Run its check target first:
+
+```bash
+make samsung-generator-legacy-patch-check \
+  UPSTREAM_GENERATOR_ROOT=/tmp/ghostlock-profile-gen
+python3 -m unittest discover -s tests \
+  -p 'test_patch_generator_legacy_boot.py' -v
+```
+
+The check target must report either `already patched` or `patchable` for both parser files before applying anything. The Samsung profile remains documentation-only and no `target.h` has been added.
 
 ## Debug-metadata inventory (read-only)
 
