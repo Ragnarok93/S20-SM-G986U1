@@ -159,6 +159,41 @@ Interpretation is deliberately conservative:
 
 Regression tests: `python3 -m unittest tests.test_elf_debug_metadata -v` may not work because `tests/` is not a Python package; the portable command is `python3 -m unittest discover -s tests -p 'test_elf_debug_metadata.py' -v`.
 
+## Reconstructed vendor ELF debug-metadata inventory (user-run, 2026-10-28)
+
+The user ran `tools/inspect_elf_debug_metadata.py` against `~/firmware-check/vmlinux.elf`. Reported results:
+
+| Check | Result |
+|---|---|
+| File size | 58,474,904 bytes |
+| SHA-256 | `531444e3c98f8f7c4d2baefeda1386aca2b60a42030fcb1f4393c5e10b9154b4` |
+| ELF class / machine | ELF64 / AArch64 |
+| Build ID | Not present |
+| Section count | 8 |
+| DWARF core sections | Absent |
+| BTF sections | Absent |
+| Separate-debug reference sections | Absent |
+| Symbol-table sections | `.symtab` present (3,490,416 bytes) |
+| DWARF decode | `NOT_PRESENT` |
+
+Interpretation: the reconstructed vendor ELF has a regular symbol-table section, but the inventoried file does not expose DWARF core sections, BTF sections, or common separate-debug references. A `.symtab` section alone does not establish that the type/layout debug information needed by other tools exists. The lack of embedded references is not proof that no matching external debug artifact exists elsewhere.
+
+The next read-only comparison is to inspect the *separately linked* source-tree vmlinux, if present, with the same tool:
+
+```bash
+python3 tools/inspect_elf_debug_metadata.py "$HOME/s20_kernel_chxl1/out-stock-layout/vmlinux"
+```
+
+Do not treat metadata from that source-built ELF as metadata from the shipped kernel merely because the source tree corresponds to the same firmware family. The source-built artifact is a comparison candidate only; matching provenance and binary correspondence must be established independently.
+
+A convenience target is also available:
+
+```bash
+make samsung-debug-metadata
+```
+
+It inventories the reconstructed vendor ELF path selected by `SAMSUNG_VENDOR_ELF`; it does not derive symbols, offsets, or profile values.
+
 ## Artifact provenance ledger
 
 These files were collected under WSL from the original Samsung firmware package:
