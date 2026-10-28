@@ -103,12 +103,15 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     try:
         profile = json.loads(args.profile.read_text(encoding="utf-8"))
-        if profile.get("schema_version") != 1:
-            raise ValueError(f"unsupported profile schema_version={profile.get('schema_version')!r}")
+        if not isinstance(profile, dict) or profile.get("schema_version") != 1:
+            version = profile.get("schema_version") if isinstance(profile, dict) else None
+            raise ValueError(f"unsupported or malformed profile schema_version={version!r}")
+        if not isinstance(profile.get("device"), dict) or not isinstance(profile.get("software"), dict):
+            raise ValueError("profile requires device and software objects")
         properties = parse_getprop_output(run_adb(args.adb, args.serial, ["shell", "getprop"]))
         kernel_release = run_adb(args.adb, args.serial, ["shell", "uname", "-r"])
         kernel_arch = run_adb(args.adb, args.serial, ["shell", "uname", "-m"])
-    except (OSError, ValueError, KeyError, json.JSONDecodeError, subprocess.TimeoutExpired, RuntimeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError, subprocess.TimeoutExpired, RuntimeError) as exc:
         print(f"ERROR: Samsung device check could not run: {exc}", file=sys.stderr)
         return 2
 
