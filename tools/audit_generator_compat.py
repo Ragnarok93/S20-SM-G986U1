@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import re
 from pathlib import Path
 import struct
 import sys
@@ -77,15 +78,20 @@ def inspect_boot(path: Path) -> dict[str, int | str]:
     }
 
 
-def supported_header_versions(source_path: Path) -> set[int] | None:
-    """Read expected_header_sizes assignments without importing generator code."""
+def parser_capabilities(source_path: Path) -> tuple[set[int] | None, bool]:
+    """Return the modern header-size map and whether a real legacy path is present.
+
+    A v2 key in a modern header-size map is not sufficient: legacy boot images
+    obtain the kernel offset from page_size at byte offset 36, unlike v3/v4.
+    """
     try:
-        tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+        source = source_path.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(source_path))
     except (OSError, SyntaxError, UnicodeDecodeError) as exc:
         raise AuditError(f"cannot parse generator source {source_path}: {exc}") from exc
 
     versions: set[int] = set()
-    found = False
+    found_map = False
     for node in ast.walk(tree):
         if not isinstance(node, ast.Assign):
             continue
@@ -101,8 +107,39 @@ def supported_header_versions(source_path: Path) -> set[int] | None:
             for key, value in mapping.items()
         ):
             versions.update(mapping)
-            found = True
-    return versions if found else None
+            found_map = True
+
+    extract_fn = next(
+        (
+            node for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == "extract_boot_kernel"
+        ),
+        None,
+    )
+    function_source = ast.get_source_segment(source, extract_fn) if extract_fn else None
+    if function_source is None:
+        return (versions if found_map else None), False
+
+    has_legacy_version_branch = bool(re.search(
+        r"header_version\\s+in\\s*\\(\\s*0\\s*,\\s*1\\s*,\\s*2\\s*\\)"
+        r"|header_version\\s*<\\s*3",
+        function_source,
+    ))
+    reads_legacy_page_size = bool(re.search(
+        r"(?:page_size|page)\\s*=\\s*u32\\(boot\\s*,\\s*36\\s*\\)",
+        function_source,
+    ))
+    uses_legacy_page_offset = bool(re.search(
+        r"kernel_offset\\s*=\\s*page_size",
+        function_source,
+    ))
+    legacy_path = (
+        has_legacy_version_branch
+        and reads_legacy_page_size
+        and uses_legacy_page_offset
+    )
+    return (versions if found_map else None), legacy_path
 
 
 def fallback_flags(wrapper_path: Path) -> dict[str, bool]:
@@ -133,12 +170,21 @@ def audit(generator_root: Path, boot_path: Path) -> int:
         path = generator_root / relative
         if path.is_symlink() or not path.is_file():
             raise AuditError(f"generator source missing or symlinked: {path}")
-        versions = supported_header_versions(path)
-        parser_results.append((path, versions))
-        label = ",".join(str(v) for v in sorted(versions)) if versions is not None else "unknown"
-        print(f"generator_parser={path} accepted_header_versions={label}")
+        versions, legacy_path = parser_capabilities(path)
+        parser_results.append((path, versions, legacy_path))
+        if versions is None:
+            label = "unknown"
+        else:
+            combined = set(versions)
+            if legacy_path:
+                combined.update((0, 1, 2))
+            label = ",".join(str(v) for v in sorted(combined))
+        print(
+            f"generator_parser={path} accepted_header_versions={label} "
+            f"legacy_path={'yes' if legacy_path else 'no'}"
+        )
 
-    unknown = [str(path) for path, versions in parser_results if versions is None]
+    unknown = [str(path) for path, versions, _legacy in parser_results if versions is None]
     if unknown:
         print("parser_compatibility=UNKNOWN (no literal expected_header_sizes map found)")
         print("RESULT=INCONCLUSIVE")
@@ -146,8 +192,10 @@ def audit(generator_root: Path, boot_path: Path) -> int:
 
     version = int(boot["version"])
     incompatible = [
-        str(path) for path, versions in parser_results
-        if versions is not None and version not in versions
+        str(path) for path, versions, legacy_path in parser_results
+        if versions is not None and (
+            version not in versions if version >= 3 else not legacy_path
+        )
     ]
     if incompatible:
         print(
