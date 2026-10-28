@@ -177,6 +177,25 @@ class InspectAndroidBootTests(unittest.TestCase):
             self.assertIn("CONFIG_DEBUG_INFO_BTF=n", report)
             self.assertIn("btf_config=disabled according to config", report)
 
+    def test_enabled_btf_config_is_reported_as_enabled(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            boot_path = root / "boot.img"
+            config_path = root / "kernel.config"
+            boot_path.write_bytes(make_legacy_boot(make_arm64_payload()))
+            config_path.write_text("CONFIG_DEBUG_INFO_BTF=y\n", encoding="utf-8")
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = inspector.inspect(
+                    boot_path, None, config_path, None, False
+                )
+
+            self.assertEqual(result, 0)
+            report = output.getvalue()
+            self.assertIn("CONFIG_DEBUG_INFO_BTF=y", report)
+            self.assertIn("btf_config=enabled according to config", report)
+
     def test_kernel_payload_mismatch_returns_failure(self) -> None:
         payload = make_arm64_payload()
         wrong_image = bytes([payload[0] ^ 0xFF]) + payload[1:]
