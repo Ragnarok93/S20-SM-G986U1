@@ -1,22 +1,42 @@
-API ?= 33
-PROJECT ?=
+# Evidence-backed Samsung profile metadata. This is NOT an executable payload profile.
+SAMSUNG_PROJECT := samsung-g986u1-4.19.113
+SAMSUNG_DEVICE := Samsung Galaxy S20+
+SAMSUNG_MODEL := SM-G986U1
+SAMSUNG_FIRMWARE := G986U1UESCHXL1
+SAMSUNG_KERNEL_RELEASE := 4.19.113-27095354
+SAMSUNG_ARCH := aarch64
+SAMSUNG_ANDROID_API := 33
+SAMSUNG_VA_BITS := 39
+
+API ?= $(SAMSUNG_ANDROID_API)
+PROJECT ?= $(SAMSUNG_PROJECT)
 OUTDIR ?= build/$(PROJECT)/bin
 EMBEDDIR ?= build/embed
 
 TARGET_DIR := src/targets/$(PROJECT)
 TARGET_HEADER := $(TARGET_DIR)/target.h
+REQUESTED_GOALS := $(if $(strip $(MAKECMDGOALS)),$(MAKECMDGOALS),preload)
+PAYLOAD_GOALS := all preload s2 s3 rootchain closed-loop hello-dso
+UTILITY_GOALS := list-projects clean info samsung-info samsung-verify
 
 ifeq ($(strip $(PROJECT)),)
-ifneq ($(filter list-projects clean,$(MAKECMDGOALS)),)
+ifneq ($(filter $(UTILITY_GOALS),$(MAKECMDGOALS)),)
 # Utility goals do not select a target profile.
 else
 $(error PROJECT is required; run 'make list-projects' and then 'make PROJECT=<profile>')
+endif
+else ifeq ($(PROJECT),$(SAMSUNG_PROJECT))
+ifeq ($(wildcard $(TARGET_HEADER)),)
+ifneq ($(filter $(PAYLOAD_GOALS),$(REQUESTED_GOALS)),)
+$(error $(SAMSUNG_PROJECT) is evidence-only: no verified target.h exists; refusing to build a device-specific payload. Use 'make samsung-info' or 'make samsung-verify'.)
+endif
 endif
 else
 ifeq ($(wildcard $(TARGET_HEADER)),)
 $(error unknown PROJECT=$(PROJECT), missing $(TARGET_HEADER))
 endif
 endif
+
 
 define pick_src
 $(if $(wildcard $(TARGET_DIR)/$(1)),$(TARGET_DIR)/$(1),src/$(1))
@@ -116,7 +136,7 @@ SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
 TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
 
-.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects
+.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects samsung-info samsung-verify
 
 all: preload
 
@@ -177,6 +197,8 @@ $(HELLO_DSO): $(HELLO_SRCS) $(S2_EXPORT_MAP) | $(S2_OUTDIR)
 
 info:
 	@echo "PROJECT=$(PROJECT)"
+	@echo "PROFILE_STATUS=$(if $(filter $(SAMSUNG_PROJECT),$(PROJECT)),evidence-only,executable-profile)"
+	@echo "ANDROID_API=$(API)"
 	@echo "TARGET_DIR=$(TARGET_DIR)"
 	@echo "TARGET_CC=$(TARGET_CC)"
 	@echo "TARGET_FLAGS=$(TARGET_FLAGS)"
@@ -186,6 +208,23 @@ info:
 	@echo "EMBED_SU=$(EMBED_SU)"
 	@echo "WALLPAPER=$(WALLPAPER)"
 	@echo "CORE_SRCS=$(CORE_SRCS)"
+
+samsung-info:
+	@echo "PROFILE_STATUS=evidence-only"
+	@echo "PROJECT=$(SAMSUNG_PROJECT)"
+	@echo "DEVICE=$(SAMSUNG_DEVICE)"
+	@echo "MODEL=$(SAMSUNG_MODEL)"
+	@echo "FIRMWARE=$(SAMSUNG_FIRMWARE)"
+	@echo "KERNEL_RELEASE=$(SAMSUNG_KERNEL_RELEASE)"
+	@echo "ARCH=$(SAMSUNG_ARCH)"
+	@echo "ANDROID_API=$(SAMSUNG_ANDROID_API)"
+	@echo "CONFIG_ARM64_VA_BITS_$(SAMSUNG_VA_BITS)=y"
+	@echo "PROFILE_DOC=src/targets/$(SAMSUNG_PROJECT)/PROFILE.md"
+	@echo "TARGET_HEADER_STATUS=missing; payload build is intentionally blocked"
+
+samsung-verify:
+	python3 tools/verify_samsung_firmware.py
+	NDK_ROOT="$(NDK_ROOT)" API="$(SAMSUNG_ANDROID_API)" bash tools/check_android_abi.sh
 
 list-projects:
 	@find src/targets -mindepth 2 -maxdepth 2 -name target.h -printf '%h\n' | sed 's#src/targets/##' | sort
