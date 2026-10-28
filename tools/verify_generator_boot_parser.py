@@ -162,7 +162,7 @@ def run_synthetic_tests(module: ModuleType) -> int:
         "越界",
         "kernel range past EOF",
     )
-    return len(cases) + 4
+    return len(cases) + 7
 
 
 def verify_real_firmware(
