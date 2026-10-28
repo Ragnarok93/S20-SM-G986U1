@@ -194,6 +194,14 @@ make samsung-debug-metadata
 
 It inventories the reconstructed vendor ELF path selected by `SAMSUNG_VENDOR_ELF`; it does not derive symbols, offsets, or profile values.
 
+## ELF structural validation
+
+The inspector now also checks the ELF section-table count and indices, identifies file-backed sections whose ranges exceed the ELF file size, and runs GNU `readelf --lint` across the ELF header, sections, and symbol table. It reports only the lint status and diagnostic counts rather than echoing diagnostic text that could contain names or addresses. GNU `readelf --lint` is documented to emit warnings about possible problems in the examined file. See the [GNU readelf manual](https://sourceware.org/binutils/docs/binutils/readelf.html).
+
+The optional `--strict-structure` mode returns nonzero if the section-table count/indices are inconsistent, any file-backed section exceeds the file boundary, lint reports warnings/errors, or a symbol table is only partially parsed. DWARF/BTF absence itself is not treated as an ELF structural error, since that is a metadata-availability finding rather than evidence of malformed ELF.
+
+The `make samsung-verify` recipe now runs this strict structural check against `$(SAMSUNG_VENDOR_ELF)`. The user should rerun the full verifier after pulling the latest branch to establish the current ELF's structural status.
+
 ## Debug-artifact search in `firmware-check` (user-run, 2026-10-28)
 
 The user searched `$HOME/firmware-check` to depth 3 for files named `vmlinux*`, `*.debug`, `*.dwo`, `*.dwp`, and `*.btf`. The only match was:
