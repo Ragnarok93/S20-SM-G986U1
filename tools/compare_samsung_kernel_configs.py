@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_PROFILE = ROOT / "src/targets/samsung-g986u1-4.19.113/device-profile.json"
 DEFAULT_STOCK = Path.home() / "firmware-check/kernel.config"
 DEFAULT_CANDIDATE = Path.home() / "s20_kernel_chxl1/out-stock-layout/.config"
 
@@ -46,6 +48,22 @@ DEVICE_SELECTION_PATTERN = re.compile(
 )
 
 
+def load_profile(path: Path) -> dict[str, Any]:
+    profile = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(profile, dict) or profile.get("schema_version") != 1:
+        raise ValueError("unsupported or malformed profile (expected schema_version=1)")
+    config = profile.get("kernel_config")
+    if not isinstance(config, dict):
+        raise ValueError("profile missing kernel_config object")
+    selectors = config.get("target_selectors")
+    if not isinstance(selectors, dict) or not selectors:
+        raise ValueError("profile kernel_config.target_selectors must be a non-empty object")
+    for key, expected in selectors.items():
+        if not isinstance(key, str) or not key.startswith("CONFIG_") or not isinstance(expected, str):
+            raise ValueError("target_selectors must map CONFIG_* names to string values")
+    return profile
+
+
 def parse_config(path: Path) -> dict[str, str]:
     """Parse enabled, valued and explicitly disabled symbols; absent remains absent."""
     values: dict[str, str] = {}
@@ -61,8 +79,8 @@ def parse_config(path: Path) -> dict[str, str]:
 
 
 def classify_symbol(symbol: str) -> str:
-    # Samsung's CONFIG_SEC_<DEVICE>_PROJECT symbols select device/project
-    # variants; keep them distinct from actual SEC_RKP/SEC_DEFEX-style hardening.
+    # Samsung's CONFIG_SEC_<DEVICE>_PROJECT symbols select variants, while
+    # SEC_RKP/SEC_DEFEX-style symbols represent security functionality.
     if re.fullmatch(r"CONFIG_SEC_[A-Za-z0-9_]+_PROJECT", symbol):
         return "device-selection"
     for group, pattern in CRITICAL_PATTERNS:
@@ -77,6 +95,19 @@ def device_selector_symbols(stock: dict[str, str], candidate: dict[str, str]) ->
     """Return Samsung product/variant selectors present in either config."""
     pattern = re.compile(r"^CONFIG_(?:SEC_[A-Za-z0-9_]+_PROJECT|MACH_(?:X1Q|Y2Q|Z3Q)_[A-Za-z0-9_]+)$")
     return sorted(key for key in (set(stock) | set(candidate)) if pattern.fullmatch(key))
+
+
+def evaluate_target_selectors(
+    expected: dict[str, str], stock: dict[str, str], candidate: dict[str, str]
+) -> list[tuple[str, str, str, str, bool]]:
+    """Verify the active target-selection symbols in both stock and candidate configs."""
+    checks: list[tuple[str, str, str, str, bool]] = []
+    for key, wanted in sorted(expected.items()):
+        stock_value = stock.get(key, "<absent>")
+        candidate_value = candidate.get(key, "<absent>")
+        checks.append((key, wanted, stock_value, candidate_value,
+                       stock_value == wanted and candidate_value == wanted))
+    return checks
 
 
 def compare_configs(stock: dict[str, str], candidate: dict[str, str]) -> dict[str, object]:
@@ -99,12 +130,13 @@ def compare_configs(stock: dict[str, str], candidate: dict[str, str]) -> dict[st
         else:
             noncritical_differences.append(item)
 
+    critical_groups = {name for name, _ in CRITICAL_PATTERNS}
     for key in stock_only:
         item = (key, "stock-only")
-        (critical_unknowns if classify_symbol(key) in {name for name, _ in CRITICAL_PATTERNS} else noncritical_unknowns).append(item)
+        (critical_unknowns if classify_symbol(key) in critical_groups else noncritical_unknowns).append(item)
     for key in candidate_only:
         item = (key, "candidate-only")
-        (critical_unknowns if classify_symbol(key) in {name for name, _ in CRITICAL_PATTERNS} else noncritical_unknowns).append(item)
+        (critical_unknowns if classify_symbol(key) in critical_groups else noncritical_unknowns).append(item)
 
     return {
         "stock_count": len(stock),
@@ -125,6 +157,8 @@ def compare_configs(stock: dict[str, str], candidate: dict[str, str]) -> dict[st
 
 def main(argv: Iterable[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", type=Path, default=DEFAULT_PROFILE,
+                        help="machine-readable device compatibility profile")
     parser.add_argument("--stock-config", type=Path, default=DEFAULT_STOCK,
                         help="config extracted from the exact stock firmware")
     parser.add_argument("--candidate-config", type=Path, default=DEFAULT_CANDIDATE,
@@ -135,6 +169,11 @@ def main(argv: Iterable[str] | None = None) -> int:
                         help="return nonzero for any changed/one-sided config symbol")
     args = parser.parse_args(argv)
 
+    try:
+        profile = load_profile(args.profile)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"ERROR: device profile metadata: {exc}", file=sys.stderr)
+        return 2
     for label, path in (("stock config", args.stock_config), ("candidate config", args.candidate_config)):
         if not path.is_file():
             print(f"ERROR: {label} not found: {path}", file=sys.stderr)
@@ -148,7 +187,13 @@ def main(argv: Iterable[str] | None = None) -> int:
         return 2
 
     result = compare_configs(stock, candidate)
-    print("== Samsung source-config compatibility comparison ==")
+    selectors = device_selector_symbols(stock, candidate)
+    target_checks = evaluate_target_selectors(profile["kernel_config"]["target_selectors"], stock, candidate)
+    target_ok = all(check[4] for check in target_checks)
+
+    device = profile["device"]
+    print(f"== Samsung source-config compatibility comparison: {profile['profile_id']} ==")
+    print(f"Target: {device['model']} / {device['codename']} / {device['firmware_build']}")
     print(f"Stock config:     {args.stock_config}")
     print(f"Candidate config: {args.candidate_config}")
     print(f"Symbols: stock={result['stock_count']} candidate={result['candidate_count']} shared={result['shared_count']}")
@@ -157,8 +202,11 @@ def main(argv: Iterable[str] | None = None) -> int:
     print(f"Other value deltas: {len(result['noncritical_differences'])}")
     print(f"Other one-sided symbols: {len(result['noncritical_unknowns'])}")
 
-    selectors = device_selector_symbols(stock, candidate)
-    print("\\n== Samsung product/variant selector values ==")
+    print("\n== Required target selectors ==")
+    for key, wanted, stock_value, candidate_value, passed in target_checks:
+        print(f"{'PASS' if passed else 'FAIL'} {key}: expected={wanted} stock={stock_value} candidate={candidate_value}")
+
+    print("\n== Samsung product/variant selector values ==")
     if selectors:
         for key in selectors:
             stock_value = stock.get(key, "<absent>")
@@ -174,9 +222,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     if result["critical_unknowns"]:
         print("\n== Core-group symbols missing from one config (state unknown) ==")
         for key, side in result["critical_unknowns"]:
-            stock_value = stock.get(key, "<absent>")
-            candidate_value = candidate.get(key, "<absent>")
-            print(f"UNKNOWN [{classify_symbol(key)}] {key}: stock={stock_value} candidate={candidate_value} ({side})")
+            print(f"UNKNOWN [{classify_symbol(key)}] {key}: stock={stock.get(key, '<absent>')} candidate={candidate.get(key, '<absent>')} ({side})")
 
     if args.show_all_differences:
         print("\n== All shared-symbol value differences ==")
@@ -184,22 +230,21 @@ def main(argv: Iterable[str] | None = None) -> int:
             print(f"DIFF [{group}] {key}: stock={stock_value} candidate={candidate_value}")
         print("\n== All one-sided symbols ==")
         for key, side in result["noncritical_unknowns"]:
-            stock_value = stock.get(key, "<absent>")
-            candidate_value = candidate.get(key, "<absent>")
-            print(f"UNKNOWN [{classify_symbol(key)}] {key}: stock={stock_value} candidate={candidate_value} ({side})")
+            print(f"UNKNOWN [{classify_symbol(key)}] {key}: stock={stock.get(key, '<absent>')} candidate={candidate.get(key, '<absent>')} ({side})")
 
     core_ok = not result["critical_differences"] and not result["critical_unknowns"]
     all_ok = not result["differences"] and not result["stock_only"] and not result["candidate_only"]
-    if core_ok:
-        if all_ok:
-            print("\nRESULT: EXACT_CONFIG_MATCH")
-        else:
-            print("\nRESULT: CORE_CONFIG_COMPATIBLE; non-core config changes still require device/build review")
-    else:
+    if not core_ok:
         print("\nRESULT: CORE_CONFIG_REVIEW_REQUIRED")
+    elif not target_ok:
+        print("\nRESULT: TARGET_SELECTOR_REVIEW_REQUIRED")
+    elif all_ok:
+        print("\nRESULT: EXACT_CONFIG_MATCH")
+    else:
+        print("\nRESULT: CORE_CONFIG_COMPATIBLE; non-core config changes still require device/build review")
     if args.strict_all and not all_ok:
         return 1
-    return 0 if core_ok else 1
+    return 0 if core_ok and target_ok else 1
 
 
 if __name__ == "__main__":
