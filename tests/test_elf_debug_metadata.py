@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import io
 import subprocess
 import sys
 import tempfile
@@ -69,8 +70,15 @@ DWARF_INFO = """Contents of the .debug_info section:
 
 
 class ElfDebugMetadataTests(unittest.TestCase):
-    def _mock_readelf(self, has_dwarf: bool = True, lint_output: str = ""):
-        sections = SECTIONS_WITH_DWARF if has_dwarf else SECTIONS_WITHOUT_DWARF
+    def _mock_readelf(
+        self,
+        has_dwarf: bool = True,
+        lint_output: str = "",
+        sections_override: str | None = None,
+    ):
+        sections = sections_override or (
+            SECTIONS_WITH_DWARF if has_dwarf else SECTIONS_WITHOUT_DWARF
+        )
 
         def fake_run(command, **kwargs):
             args = command[1:-1]
@@ -209,11 +217,86 @@ class ElfDebugMetadataTests(unittest.TestCase):
         with self.assertRaisesRegex(inspector.MetadataError, "missing fields"):
             inspector.parse_header("ELF Header:\n  Class: ELF64\n")
 
-    def test_section_parser_returns_sizes_without_exposing_addresses(self) -> None:
+    def test_section_parser_returns_indices_ranges_and_declared_count(self) -> None:
         sections = inspector.parse_sections(SECTIONS_WITH_DWARF)
         info = next(section for section in sections if section.name == ".debug_info")
+        self.assertEqual(info.index, 1)
+        self.assertEqual(info.offset, 0x40)
         self.assertEqual(info.size, 0x100)
         self.assertEqual(info.kind, "PROGBITS")
+        self.assertEqual(inspector.parse_declared_section_count(SECTIONS_WITH_DWARF), 6)
+
+    def test_strict_structure_rejects_declared_section_count_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "vmlinux.elf"
+            path.write_bytes(b"E" * 0x1000)
+            mismatched_sections = SECTIONS_WITH_DWARF.replace(
+                "There are 6 section headers:", "There are 7 section headers:"
+            )
+            output = io.StringIO()
+            errors = io.StringIO()
+            with patch.object(inspector.shutil, "which", return_value="/usr/bin/readelf"), \
+                 patch.object(
+                     inspector.subprocess,
+                     "run",
+                     side_effect=self._mock_readelf(sections_override=mismatched_sections),
+                 ), redirect_stdout(output), redirect_stderr(errors):
+                result = inspector.main([str(path), "--strict-structure"])
+
+            self.assertEqual(result, 1)
+            self.assertIn("section_indices_consistent=no", output.getvalue())
+            self.assertIn("STRUCTURE_VALIDATION=FAIL", errors.getvalue())
+
+    def test_strict_structure_rejects_out_of_bounds_file_backed_section(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "vmlinux.elf"
+            path.write_bytes(b"E" * 0x1000)
+            bad_range_sections = SECTIONS_WITH_DWARF.replace(
+                "000040 000100", "000ff0 000100", 1
+            )
+            errors = io.StringIO()
+            with patch.object(inspector.shutil, "which", return_value="/usr/bin/readelf"), \
+                 patch.object(
+                     inspector.subprocess,
+                     "run",
+                     side_effect=self._mock_readelf(sections_override=bad_range_sections),
+                 ), redirect_stdout(io.StringIO()), redirect_stderr(errors):
+                result = inspector.main([str(path), "--strict-structure"])
+
+            self.assertEqual(result, 1)
+            self.assertIn("1 file-backed section range(s) exceed file size", errors.getvalue())
+
+    def test_strict_structure_rejects_readelf_lint_warning(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "vmlinux.elf"
+            path.write_bytes(b"E" * 0x1000)
+            errors = io.StringIO()
+            with patch.object(inspector.shutil, "which", return_value="/usr/bin/readelf"), \
+                 patch.object(
+                     inspector.subprocess,
+                     "run",
+                     side_effect=self._mock_readelf(
+                         has_dwarf=False,
+                         lint_output="readelf: Warning: synthetic lint warning",
+                     ),
+                 ), redirect_stdout(io.StringIO()), redirect_stderr(errors):
+                result = inspector.main([str(path), "--strict-structure"])
+
+            self.assertEqual(result, 1)
+            self.assertIn("readelf lint status is WARN", errors.getvalue())
+
+    def test_strict_structure_passes_consistent_elf_fixture(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "vmlinux.elf"
+            path.write_bytes(b"E" * 0x1000)
+            output = io.StringIO()
+            with patch.object(inspector.shutil, "which", return_value="/usr/bin/readelf"), \
+                 patch.object(inspector.subprocess, "run", side_effect=self._mock_readelf()), \
+                 redirect_stdout(output):
+                result = inspector.main([str(path), "--strict-structure"])
+
+            self.assertEqual(result, 0)
+            self.assertIn("STRUCTURE_VALIDATION=PASS", output.getvalue())
 
 
 if __name__ == "__main__":
