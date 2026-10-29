@@ -28,7 +28,7 @@ TARGET_DIR := src/targets/$(PROJECT)
 TARGET_HEADER := $(TARGET_DIR)/target.h
 REQUESTED_GOALS := $(if $(strip $(MAKECMDGOALS)),$(MAKECMDGOALS),preload)
 PAYLOAD_GOALS := all preload s2 s3 rootchain closed-loop hello-dso
-UTILITY_GOALS := list-projects list-device-profiles clean info samsung-info samsung-inspect samsung-verify samsung-source-check samsung-config-compare samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check
+UTILITY_GOALS := list-projects list-device-profiles clean info samsung-info samsung-inspect samsung-verify samsung-source-check samsung-config-compare samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-generator-fail-closed-runtime-check samsung-debug-metadata samsung-device-check
 
 ifeq ($(strip $(PROJECT)),)
 ifneq ($(filter $(UTILITY_GOALS),$(MAKECMDGOALS)),)
@@ -147,7 +147,7 @@ SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
 TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
 
-.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects list-device-profiles samsung-info samsung-inspect samsung-verify samsung-config-compare samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-debug-metadata samsung-device-check samsung-source-check samsung-test-tools
+.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects list-device-profiles samsung-info samsung-inspect samsung-verify samsung-config-compare samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-generator-fail-closed-runtime-check samsung-debug-metadata samsung-device-check samsung-source-check samsung-test-tools
 
 all: preload
 
@@ -284,6 +284,12 @@ samsung-generator-verify:
 	python3 tools/audit_generator_compat.py \
 	  --generator-root "$(UPSTREAM_GENERATOR_ROOT)" \
 	  --boot "$(SAMSUNG_BOOT_IMAGE)"
+
+
+# Execute forced metadata failures against real generator control flow with all
+# kernel-analysis functions stubbed; this must never read firmware or emit target.h.
+samsung-generator-fail-closed-runtime-check:
+	python3 tools/verify_generator_fail_closed_runtime.py --generator-root "$(UPSTREAM_GENERATOR_ROOT)"
 
 # Check/apply parser compatibility on a pristine external generator checkout.
 # These targets never generate target.h; use --check before applying a patch.
