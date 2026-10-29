@@ -28,7 +28,7 @@ TARGET_DIR := src/targets/$(PROJECT)
 TARGET_HEADER := $(TARGET_DIR)/target.h
 REQUESTED_GOALS := $(if $(strip $(MAKECMDGOALS)),$(MAKECMDGOALS),preload)
 PAYLOAD_GOALS := all preload s2 s3 rootchain closed-loop hello-dso
-UTILITY_GOALS := list-projects list-device-profiles clean info samsung-info samsung-inspect samsung-verify samsung-source-check samsung-config-compare samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-generator-fail-closed-runtime-check samsung-debug-metadata samsung-device-check
+UTILITY_GOALS := list-projects list-device-profiles clean info samsung-info samsung-inspect samsung-verify samsung-source-check samsung-config-compare samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-generator-fail-closed-runtime-check samsung-debug-metadata samsung-device-check samsung-kernelsu-check samsung-kernelsu-verify
 
 ifeq ($(strip $(PROJECT)),)
 ifneq ($(filter $(UTILITY_GOALS),$(MAKECMDGOALS)),)
@@ -147,7 +147,7 @@ SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
 TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
 
-.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects list-device-profiles samsung-info samsung-inspect samsung-verify samsung-config-compare samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-generator-fail-closed-runtime-check samsung-debug-metadata samsung-device-check samsung-source-check samsung-test-tools
+.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects list-device-profiles samsung-info samsung-inspect samsung-verify samsung-config-compare samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-generator-fail-closed-runtime-check samsung-debug-metadata samsung-device-check samsung-source-check samsung-test-tools samsung-kernelsu-check samsung-kernelsu-verify
 
 all: preload
 
@@ -239,6 +239,12 @@ samsung-device-check:
 
 samsung-source-check:
 	python3 tools/verify_samsung_kernel_source.py --profile "$(SAMSUNG_DEVICE_PROFILE)" --source-root "$(SAMSUNG_KERNEL_SOURCE)"
+
+samsung-kernelsu-check:
+	python3 tools/verify_kernelsu_port.py --source-root "$(SAMSUNG_KERNEL_SOURCE)" --config "$(SAMSUNG_SOURCE_CONFIG)"
+
+samsung-kernelsu-verify:
+	python3 tools/verify_kernelsu_port.py --source-root "$(SAMSUNG_KERNEL_SOURCE)" --config "$(SAMSUNG_SOURCE_CONFIG)" --require-kernelsu
 
 samsung-config-compare:
 	python3 tools/compare_samsung_kernel_configs.py --profile "$(SAMSUNG_DEVICE_PROFILE)" --stock-config "$(SAMSUNG_KERNEL_CONFIG)" --candidate-config "$(SAMSUNG_SOURCE_CONFIG)" --show-all-differences $(if $(filter 1 yes true,$(SAMSUNG_CONFIG_STRICT)),--strict-all,)
