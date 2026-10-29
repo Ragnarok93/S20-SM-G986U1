@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "profile_id": "stock-kernel-samsung-g986u1-4.19.113",
+  "status": "stock-kernel-preflight",
+  "device": {
+    "manufacturer": "Samsung",
+    "model": "SM-G986U1",
+    "codename": "y2q",
+    "firmware_build": "G986U1UESCHXL1"
+  },
+  "kernel": {
+    "release_prefix": "4.19.113-27095354",
+    "version": "4.19.113",
+    "architecture": "aarch64",
+    "source_root_default": "~/s20_kernel_chxl1",
+    "config_default": "out-stock-layout/.config",
+    "preferred_defconfig": "arch/arm64/configs/vendor/y2q_usa_singlew_defconfig"
+  },
+  "port_scope": {
+    "kernel_modification": false,
+    "kernel_rebuild": false,
+    "uses_existing_stock_kernel": true,
+    "notes": [
+      "This repository's port uses the existing stock Samsung kernel.",
+      "KernelSU and KernelSU Next are separate projects and are not required integrations or preflight conditions here.",
+      "The verifier reads source metadata and an existing config; it does not modify the kernel tree or configuration."
+    ]
+  },
+  "stock_config_expectations": {
+    "CONFIG_ARM64_VA_BITS_39": "y",
+    "CONFIG_FUTEX": "y",
+    "CONFIG_FUTEX_PI": "y",
+    "CONFIG_RT_MUTEXES": "y",
+    "CONFIG_PREEMPT": "y",
+    "CONFIG_SECURITY_SELINUX": "y"
+  }
+}
