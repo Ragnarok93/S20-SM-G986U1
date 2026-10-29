@@ -275,26 +275,18 @@ The reference profile targets a different device/build: Qualcomm 4.19.157-perf, 
 
 A future `target.h` must be created only after each required value has explicit evidence tied to this exact Samsung build. Never fill unresolved fields by copying constants from `oplus-4.19.157-perf`.
 
-## KernelSU port preflight
+## Stock-kernel port preflight
 
-The separate `kernelsu-port-profile.json` records the SM-G986U1 KernelSU integration checks without treating the existing payload profile as a KernelSU configuration. The checker is read-only and does not generate an exploit `target.h`, patch the kernel tree, build a kernel, or install modules.
+This port uses the existing Samsung stock kernel. It does not integrate KernelSU/KernelSU Next into the kernel, modify the kernel tree, or rebuild the kernel. KernelSU and KernelSU Next are separate projects and are not requirements for this repository's port checks.
 
-Run against the local WSL source tree and its current generated configuration:
+Run the read-only preflight against the local WSL source tree and its existing config:
 
 ```bash
-make samsung-kernelsu-check \
+make samsung-stock-kernel-check \
   SAMSUNG_KERNEL_SOURCE="$HOME/s20_kernel_chxl1" \
   SAMSUNG_SOURCE_CONFIG="$HOME/s20_kernel_chxl1/out-stock-layout/.config"
 
-python3 -m unittest discover -s tests -p 'test_verify_kernelsu_port.py' -v
+python3 -m unittest discover -s tests -p 'test_verify_stock_kernel_port.py' -v
 ```
 
-The default check verifies the Linux 4.19.113 source baseline, required source-tree paths, and recorded stock configuration expectations. It reports KernelSU source/config presence as informational until explicitly required. After KernelSU has been integrated and a new `.config` generated, use the stricter check:
-
-```bash
-make samsung-kernelsu-verify \
-  SAMSUNG_KERNEL_SOURCE="$HOME/s20_kernel_chxl1" \
-  SAMSUNG_SOURCE_CONFIG="$HOME/s20_kernel_chxl1/out-stock-layout/.config"
-```
-
-The strict check requires both `drivers/kernelsu` and `CONFIG_KSU=y`. Passing is only a source/config preflight; it does not prove a successful build, boot, root grant, SELinux behavior, or runtime compatibility. Validate those on the intended firmware/device before marking the port complete.
+The preflight verifies the source tree's Linux version, expected source layout, preferred vendor defconfig path, and recorded stock configuration expectations. It does not require `drivers/kernelsu` or `CONFIG_KSU`; neither is part of this repository's kernel scope. It reads files only and does not modify the kernel or its config.
