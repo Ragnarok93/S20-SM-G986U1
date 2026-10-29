@@ -274,3 +274,27 @@ The reference profile targets a different device/build: Qualcomm 4.19.157-perf, 
 - end-to-end runtime behavior.
 
 A future `target.h` must be created only after each required value has explicit evidence tied to this exact Samsung build. Never fill unresolved fields by copying constants from `oplus-4.19.157-perf`.
+
+## KernelSU port preflight
+
+The separate `kernelsu-port-profile.json` records the SM-G986U1 KernelSU integration checks without treating the existing payload profile as a KernelSU configuration. The checker is read-only and does not generate an exploit `target.h`, patch the kernel tree, build a kernel, or install modules.
+
+Run against the local WSL source tree and its current generated configuration:
+
+```bash
+make samsung-kernelsu-check \
+  SAMSUNG_KERNEL_SOURCE="$HOME/s20_kernel_chxl1" \
+  SAMSUNG_SOURCE_CONFIG="$HOME/s20_kernel_chxl1/out-stock-layout/.config"
+
+python3 -m unittest discover -s tests -p 'test_verify_kernelsu_port.py' -v
+```
+
+The default check verifies the Linux 4.19.113 source baseline, required source-tree paths, and recorded stock configuration expectations. It reports KernelSU source/config presence as informational until explicitly required. After KernelSU has been integrated and a new `.config` generated, use the stricter check:
+
+```bash
+make samsung-kernelsu-verify \
+  SAMSUNG_KERNEL_SOURCE="$HOME/s20_kernel_chxl1" \
+  SAMSUNG_SOURCE_CONFIG="$HOME/s20_kernel_chxl1/out-stock-layout/.config"
+```
+
+The strict check requires both `drivers/kernelsu` and `CONFIG_KSU=y`. Passing is only a source/config preflight; it does not prove a successful build, boot, root grant, SELinux behavior, or runtime compatibility. Validate those on the intended firmware/device before marking the port complete.
