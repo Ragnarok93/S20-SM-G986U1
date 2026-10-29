@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "profile_id": "kernelsu-samsung-g986u1-4.19.113",
+  "status": "preflight-only",
+  "device": {
+    "manufacturer": "Samsung",
+    "model": "SM-G986U1",
+    "codename": "y2q",
+    "firmware_build": "G986U1UESCHXL1"
+  },
+  "kernel": {
+    "release_prefix": "4.19.113-27095354",
+    "version": "4.19.113",
+    "architecture": "aarch64",
+    "source_root_default": "~/s20_kernel_chxl1",
+    "config_default": "out-stock-layout/.config",
+    "preferred_defconfig": "arch/arm64/configs/vendor/y2q_usa_singlew_defconfig"
+  },
+  "integration": {
+    "name": "KernelSU",
+    "config_symbol": "CONFIG_KSU",
+    "expected_config_value": "y",
+    "source_path": "drivers/kernelsu",
+    "status": "not-yet-verified",
+    "notes": [
+      "This profile validates the local kernel source/build configuration only.",
+      "It does not apply KernelSU patches, modify the kernel tree, build a kernel, or install anything on the device.",
+      "Presence of CONFIG_KSU and drivers/kernelsu is a preflight signal, not proof that the integration is correct or boots."
+    ]
+  },
+  "stock_config_expectations": {
+    "CONFIG_ARM64_VA_BITS_39": "y",
+    "CONFIG_FUTEX": "y",
+    "CONFIG_FUTEX_PI": "y",
+    "CONFIG_RT_MUTEXES": "y",
+    "CONFIG_PREEMPT": "y",
+    "CONFIG_SECURITY_SELINUX": "y"
+  }
+}
