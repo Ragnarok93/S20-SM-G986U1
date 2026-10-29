@@ -24,7 +24,7 @@ REQUIRED_DEVICE = {
 REQUIRED_SOFTWARE = {
     "android_release": "13",
     "android_sdk": "33",
-    "kernel_release_prefix": "4.19.113-27095353",
+    "kernel_release_prefix": "4.19.113-27095354",
     "primary_abi": "arm64-v8a",
     "kernel_architecture": "aarch64",
     "va_bits": 39,
