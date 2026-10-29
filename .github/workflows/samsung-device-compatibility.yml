@@ -35,7 +35,8 @@ jobs:
             tools/patch_generator_fail_closed.py \
             tools/patch_legacy_boot_v2.py \
             tools/patch_optional_arm64_pe_stub.py \
-            tools/verify_generator_boot_parser.py
+            tools/verify_generator_boot_parser.py \
+            tools/verify_generator_fail_closed_runtime.py
 
       - name: Test generator compatibility audit and patch utilities
         run: |
@@ -64,3 +65,4 @@ jobs:
           make -n samsung-generator-patches-check | grep -F 'tools/patch_generator_fail_closed.py'
           make -n samsung-generator-patches | grep -F 'tools/patch_generator_fail_closed.py'
           make -n samsung-generator-verify | grep -F 'tools/verify_generator_boot_parser.py'
+          make -n samsung-generator-fail-closed-runtime-check | grep -F 'tools/verify_generator_fail_closed_runtime.py'
