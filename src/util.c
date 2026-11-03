@@ -3771,7 +3771,11 @@ uintptr_t prepare_kernel_page(int payload_mode) {
       if (empty_registered) {
         kp_result_mark(KP_ALLOCATOR_TRANSITION_VERIFIED);
       }
-      if (whole_slab_discard) {
+      /* Reclamation is the claim "the slab this burst built left the cache".
+       * A -32/-1 window alone does not support it: it can be a page we did not
+       * build, or a discard with an unrelated free on top.  Only the gate that
+       * sees one object and one page together marks it. */
+      if (targeted) {
         kp_result_mark(KP_RECLAMATION_VERIFIED);
       }
       /* Identity and consumption cannot be established from here: the run
