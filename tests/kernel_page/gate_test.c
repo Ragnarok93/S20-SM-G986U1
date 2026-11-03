@@ -19,6 +19,7 @@ static kp_gate_facts facts_ok(void) {
   f.want_cpu = 1;
   f.pin_bad = 0;
   f.slot_partial = 0;
+  f.baseline_ok = 1;
   f.objects_per_slab = 32;
   return f;
 }
@@ -139,6 +140,40 @@ int main(void) {
     kp_sample after = sample(998, 3136, 98);
     kp_gate_evaluate(&f, &before, &after, &v);
     expect("two slabs left the cache", &v, 0, 0, 0);
+  }
+
+  /* 10. The numbers are perfect but the baseline was never proven quiescent:
+   *     it was taken before the drain, or the reads never agreed.  The window
+   *     then spans more than the emptying free, so it cannot be read as one
+   *     event even when the deltas happen to match. */
+  memset(&v, 0, sizeof(v));
+  {
+    kp_gate_facts stale = facts_ok();
+    kp_sample before = sample(1000, 3200, 100);
+    kp_sample after = sample(999, 3168, 99);
+    stale.baseline_ok = 0;
+    kp_gate_evaluate(&stale, &before, &after, &v);
+    expect("perfect deltas, stale baseline", &v, 1, 1, 0);
+  }
+
+  /* 11. Baseline ok but the after-sample was never read: zero must not be
+   *     read as "nothing changed". */
+  memset(&v, 0, sizeof(v));
+  {
+    kp_sample before = sample(1000, 3200, 100);
+    kp_sample after = sample(0, 0, 0);
+    kp_gate_evaluate(&f, &before, &after, &v);
+    expect("after-sample missing", &v, 0, 0, 0);
+  }
+
+  /* 12. A one-object cache with an unreadable second sample: the numbers would
+   *     satisfy both deltas by accident, so missingness must be checked first. */
+  memset(&v, 0, sizeof(v));
+  {
+    kp_sample before = sample(1, 32, 1);
+    kp_sample after = sample(-1, -1, -1);
+    kp_gate_evaluate(&f, &before, &after, &v);
+    expect("missing sample on a tiny cache", &v, 0, 0, 0);
   }
 
   if (failures) {

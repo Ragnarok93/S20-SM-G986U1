@@ -5,6 +5,20 @@
 
 void kp_gate_evaluate(const kp_gate_facts *facts, const kp_sample *before,
                       const kp_sample *after, kp_gate_verdict *out) {
+  /* mm_slab_scan() reports a failed read as -1, never as a count.  A missing
+   * sample must not be able to look like a small cache: with a one-object
+   * cache, unreadable values would otherwise satisfy both deltas by accident. */
+  if (before->active < 0 || before->num < 0 || before->slabs < 0 ||
+      after->active < 0 || after->num < 0 || after->slabs < 0) {
+    out->d_active = 0;
+    out->d_num = 0;
+    out->d_slabs = 0;
+    out->registered = 0;
+    out->discarded = 0;
+    out->targeted = 0;
+    return;
+  }
+
   out->d_active = after->active - before->active;
   out->d_num = after->num - before->num;
   out->d_slabs = after->slabs - before->slabs;
@@ -30,8 +44,8 @@ void kp_gate_evaluate(const kp_gate_facts *facts, const kp_sample *before,
    * the free that emptied the page is the free the counters saw. */
   out->targeted = (facts->span_ok == 1 && facts->target_freed &&
                    facts->empty_cpu == facts->want_cpu && out->registered &&
-                   out->discarded && facts->pin_bad == 0 &&
-                   facts->slot_partial == 0)
+                   out->discarded && facts->baseline_ok &&
+                   facts->pin_bad == 0 && facts->slot_partial == 0)
                       ? 1
                       : 0;
 }

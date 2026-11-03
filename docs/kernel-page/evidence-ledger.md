@@ -18,6 +18,8 @@ nothing inherits confidence from a neighbouring claim.
 | 11 | The counter model is the vendor's, not inferred | `mm/slub.c` 6191/1859/1989/2634 read in this tree; device slabinfo geometry (32 objects, order 3) | `num_objs`+32 and `slabdata`+1 at one allocation; no movement across 31 more | holds in every burst | every cycle | verified | `active_objs` is a derived quantity (`total_objects - node-partial free`), not an allocated-object count |
 | 12 | The anchor's window contains exactly one mm free | `KS_QUIESCE` placement after sibling retirement (this pass) | `d_empty=-1` without sibling frees in the window | not yet measured on device | — | **unverified** | the code change is tested only on the host (`tests/kernel_page/gate_test.c`); needs one delivered cycle |
 | 13 | `slabdata` equals `n->nr_partial` | old comment in `kernel_page.h` | — | **false**: it is `n->nr_slabs` | — | refuted | corrected in this pass; no gate field may use it as `nr_partial` |
+| 14 | A baseline that was never proven quiet cannot pass the gate | `kp_gate_facts.baseline_ok` + host case 10 | perfect deltas with `baseline_ok=0` refuse | refuses on host | 1 case | verified on host | unexercised on device: no cycle has yet run with the new requirement |
+| 15 | Every log line that states a verdict states the same one | `gate-review.md` §3 | no line can print `discarded=1` while the gate says otherwise | three predicates collapsed into one | source + host | verified | `KS_CTL_FREE` remains its own check and is documented as such |
 
 ## Rules this ledger imposes
 

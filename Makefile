@@ -99,6 +99,7 @@ CORE_SRCS := \
   src/kernel_page/allocator_observation.c\
   src/kernel_page/experiment_state.c\
   src/kernel_page/gate.c\
+  src/kernel_page/run_state.c\
   $(call pick_src,slide.c) \
   src/slide_s2.c \
   $(call pick_src,fops.c) \
@@ -107,22 +108,28 @@ CORE_SRCS := \
 PRELOAD_SRCS := $(CORE_SRCS) src/preload.c src/su_blob.S src/wallpaper_blob.S
 S2_SRCS := src/s2_main.c src/slide_s2.c src/util.c src/s2_support.c  \
 	src/kernel_page/allocator_observation.c src/kernel_page/experiment_state.c \
-	src/kernel_page/gate.c \
+	src/kernel_page/gate.c src/kernel_page/run_state.c \
 	src/dso_start.S
 S2_OUTDIR := build/alioth/bin
 S2_PRELOAD := $(S2_OUTDIR)/preload_slide_h1a_s2.so
 S2_EXPORT_MAP := src/s2_export.map
-S2_NDK_ROOT ?= D:/codeTool/ndk/android-ndk-r26b/toolchains/llvm/prebuilt/windows-x86_64
-S2_CC ?= $(S2_NDK_ROOT)/bin/aarch64-linux-android34-clang.cmd
+# Secondary targets (s2/s3/rootchain/closed-loop) are UNVERIFIED: their recipes
+# run a clang wrapper through `cmd /c`, and build_s3.rsp is missing from the
+# tree.  Nothing here is machine-specific any more: point S2_CC at a working
+# wrapper, or S2_NDK_ROOT at an NDK and let the default derive from it.
+S2_NDK_ROOT ?= $(or $(ANDROID_NDK_ROOT),$(ANDROID_NDK_HOME))
+S2_CC ?= $(S2_NDK_ROOT)/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android34-clang.cmd
+S2_CC_OK := $(if $(wildcard $(S2_CC)),1,0)
+S2_GUARD = @test "$(S2_CC_OK)" = "1" || { echo "secondary target unverified and not configured: set S2_CC (a clang wrapper usable through cmd /c) - see docs/kernel-page/build.md"; exit 1; }
 S3_SRCS := src/s3_main.c src/slide_s3.c src/util.c src/s2_support.c  \
 	src/kernel_page/allocator_observation.c src/kernel_page/experiment_state.c \
-	src/kernel_page/gate.c \
+	src/kernel_page/gate.c src/kernel_page/run_state.c \
 	src/dso_start.S
 S3_PRELOAD := $(S2_OUTDIR)/preload_slide_h1a_s3.so
 ROOTCHAIN_SRCS := src/rootchain_bridge.c src/slide_s3.c src/util.c \
 	src/s2_support.c src/fops.c src/pipe.c src/root.c src/preload.c \
 	src/kernel_page/allocator_observation.c src/kernel_page/experiment_state.c \
-	src/kernel_page/gate.c \
+	src/kernel_page/gate.c src/kernel_page/run_state.c \
 	src/su_blob.S src/wallpaper_blob.S src/dso_start.S
 ROOTCHAIN_PRELOAD := $(S2_OUTDIR)/preload_rootchain_bridge.so
 CLOSED_LOOP_SRCS := src/closed_loop/phase_controller.c \
@@ -228,22 +235,26 @@ $(PRELOAD): $(PRELOAD_SRCS) $(EMBED_SU) $(WALLPAPER) $(TARGET_HEADER) src/offset
 	sha256sum $@
 
 $(S2_PRELOAD): $(S2_SRCS) $(S2_EXPORT_MAP) build_s2.rsp $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h | $(S2_OUTDIR)
+	$(S2_GUARD)
 	cmd /c "$(S2_CC) @build_s2.rsp"
 	certutil -hashfile $@ SHA256
 
 $(S3_PRELOAD): $(S3_SRCS) $(S2_EXPORT_MAP) build_s3.rsp $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h | $(S2_OUTDIR)
+	$(S2_GUARD)
 	cmd /c "$(S2_CC) @build_s3.rsp"
 	certutil -hashfile $@ SHA256
 
 $(ROOTCHAIN_PRELOAD): $(ROOTCHAIN_SRCS) $(EMBED_SU) $(WALLPAPER) \
 	$(S2_EXPORT_MAP) build_rootchain.rsp src/rootchain_bridge.h $(TARGET_HEADER) \
 	src/offset.h src/common.h src/kernelsnitch/*.h | $(S2_OUTDIR)
+	$(S2_GUARD)
 	cmd /c "$(S2_CC) @build_rootchain.rsp"
 	certutil -hashfile $@ SHA256
 
 $(CLOSED_LOOP_PRELOAD): $(CLOSED_LOOP_SRCS) $(S2_EXPORT_MAP) \
 	build_closed_loop.rsp $(TARGET_HEADER) src/offset.h src/common.h \
 	src/closed_loop/kernelsnitch/*.h src/kernelsnitch/*.h | $(S2_OUTDIR)
+	$(S2_GUARD)
 	cmd /c "$(S2_CC) @build_closed_loop.rsp"
 	certutil -hashfile $@ SHA256
 

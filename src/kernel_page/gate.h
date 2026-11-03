@@ -29,6 +29,9 @@ typedef struct kp_gate_facts {
   int want_cpu;       /* CPU the chain requires */
   int pin_bad;        /* any pin or CPU proof failed */
   int slot_partial;   /* a burst slot came from a foreign partial slab */
+  int baseline_ok;    /* a fresh baseline was read immediately before the
+                       * free and two reads agreed; 0 means the samples span
+                       * other events and the window is not one event wide */
   long objects_per_slab;
 } kp_gate_facts;
 

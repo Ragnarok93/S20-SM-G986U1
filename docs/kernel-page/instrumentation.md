@@ -49,7 +49,10 @@ no information and must not be read as limits.
 | `KS_DRAIN_BASE` | 3474 | immediately after the drain | informational; superseded by `KS_QUIESCE` |
 | `KS_QUIESCE` | in `[3a]` | **after** sibling retirement, immediately before the target's exit | the gate baseline |
 | `KS_SAMPLE1/2` | 3641, 3643 | after the free and after the sends | the gate's `after` sample |
-| `KS_GATE` | 3740 | computed from the two above | verdict |
+| `KS_GATE` | 3740 | computed from the two above | the one verdict |
+| `KS_DISCARD` | after the sends | restates the gate's verdict; the `post=` triple is a later interval | reporting only |
+| `KS_ARITH` | same | the three samples and their deltas; `gate=` is the gate's verdict | reporting only |
+| `KS_STATE` | terminal paths | stage, outcome, missing-sample count, whether the report is supported | lifecycle |
 | `KS_CTL_FREE` | 3673 | around the control's last child kill, baseline is `KS_SAMPLE2` | machinery check only |
 
 ### What this pass changed, and why
@@ -85,6 +88,19 @@ event. Any other row is consistent with pages *we did not intend* leaving the
 cache, which is why the gate no longer accepts them.
 
 ## The anchor/control asymmetry
+
+### One verdict, three samples
+
+`KS_GATE`, `KS_DISCARD` and `KS_ARITH` are three lines, not three opinions.
+Only `KS_GATE` computes a verdict; the other two restate it and print their own
+window's samples next to it. Before this pass `KS_DISCARD` carried a second
+predicate over the post-cleanup sample and `KS_ARITH` printed `discarded=1`
+when the counters were **flat** — the opposite of what the model says. Both
+were removed; see `gate-review.md`.
+
+A cycle whose baseline could not be taken (file open failed, or two reads never
+agreed) now refuses: `kp_gate_facts.baseline_ok` is required. The gate can
+therefore no longer compare a post-drain sample against a pre-drain baseline.
 
 The control slab is built by the same burst and emptied by the same mechanics,
 but it is **not** sampled the same way:
