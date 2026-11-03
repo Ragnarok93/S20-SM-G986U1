@@ -15,6 +15,10 @@ nothing inherits confidence from a neighbouring claim.
 | 8 | The fragment's page is `base` | zero-image differential | the panic address moves off `+0x304` | unchanged (`+0x304`) in the one cycle run | single cycle | unverified / contradicted | the cycle did not have a proven discard, so the contradiction is not conclusive |
 | 9 | The kernel consumed the planted bytes | post-hijack read-back | fake fops table is reachable | never observed | none | unverified | requires a passing probe first |
 | 10 | `n->nr_partial >= s->min_partial` at the emptying free | none available | — | not measurable | — | **not observable** | `/proc/slabinfo` reports cache-wide totals, not `nr_partial` (see `accounting.md`) |
+| 11 | The `mm_struct` slab geometry is read, not assumed | `KS_SURFACE geometry=measured` | the kernel's own objsize/objperslab/pagesperslab | `objsize=1024 objs_per_slab=32 pages_per_slab=8 span=32768`, `assumes_agree=1` | every cycle (slabinfo) | verified | per-cache `/sys/kernel/slab` attributes stay denied (`sysfs=denied errno=13`) |
+| 12 | The leaked object resolves to slot 1 of its 32 KiB page | `KS_OBJ_ID` | a correct address and span must land on the constructed slot | `offset=1024 slot=1 match=1` | one cycle | derived and checkable | proves the address is grid-consistent with the construction; not that the page is the burst slab |
+| 13 | Page membership for the 31 filler objects | `KS_ID_SLOT … page=unavailable` | — | not obtainable | — | **not observable** | one address per leak; every counter is cache-wide |
+| 14 | Each slot's free landed, and its counter effect | `KS_ID_SLOT d_src=measured` | a frozen page's free moves nothing; a listed page's free moves `active` by −1 | 31 × `d_active=0`, slot 31 `d_active=−1` | one cycle | demonstrated once | a zero delta is ambiguous between co-residency on a frozen page and a different full page |
 | 11 | The counter model is the vendor's, not inferred | `mm/slub.c` 6191/1859/1989/2634 read in this tree; device slabinfo geometry (32 objects, order 3) | `num_objs`+32 and `slabdata`+1 at one allocation; no movement across 31 more | holds in every burst | every cycle | verified | `active_objs` is a derived quantity (`total_objects - node-partial free`), not an allocated-object count |
 | 12 | The anchor's window contains exactly one mm free | `KS_QUIESCE` placement after sibling retirement (this pass) | `d_empty=-1` without sibling frees in the window | not yet measured on device | — | **unverified** | the code change is tested only on the host (`tests/kernel_page/gate_test.c`); needs one delivered cycle |
 | 13 | `slabdata` equals `n->nr_partial` | old comment in `kernel_page.h` | — | **false**: it is `n->nr_slabs` | — | refuted | corrected in this pass; no gate field may use it as `nr_partial` |
@@ -28,3 +32,5 @@ nothing inherits confidence from a neighbouring claim.
 2. Row 10 is why the gate must be judged on the outcome (row 5), not on a
    precondition it cannot read.
 3. Any new claim gets a row before it is used to justify another change.
+4. Row 13 is not a gap to be closed by a better reading of the same counters: an
+   object identity needs an address, and the leak returns one per scan.
