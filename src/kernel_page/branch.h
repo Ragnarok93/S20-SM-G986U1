@@ -6,6 +6,11 @@
  * It is not a trace of the branch executed, and it never returns a single
  * path where the counters cannot separate two.
  *
+ * Attribution rule: a cache-wide delta belongs to the target free only when
+ * competing cache activity in the same interval is excluded or independently
+ * accounted for. Otherwise it is a signature consistent with the path, and
+ * the line says so (basis=cache-wide, paths_src=consistent-with).
+ *
  * mm/slub.c (4.19.113) branches this way for a free on a page that is not
  * this CPU's active slab:
  *
@@ -13,11 +18,17 @@
  *     prior       = page->freelist;
  *     was_frozen  = page->frozen;
  *     if ((!new.inuse || !prior) && !was_frozen):
- *         if (!prior)  -> new.frozen = 1; put_cpu_partial()   (full page)
+ *         if (has_cpu_partial && !prior)
+ *                      -> new.frozen = 1; put_cpu_partial()   (full page)
  *         else if (!new.inuse && n->nr_partial >= s->min_partial)
  *                      -> slab_empty, discard_slab()          (emptied)
  *         else         -> inuse--, page stays listed          (listed)
  *     if (was_frozen) -> FREE_FROZEN, nothing moves
+ *
+ * has_cpu_partial(s) holds for mm_struct: the first free of a full page
+ * leaves active==num (nothing listed), which the else-branch would have
+ * contradicted by 31.  It is derived from source plus that measured
+ * signature, not read from sysfs; see docs/kernel-page/slub-branch-audit.md.
  *
  * do_slab_free() takes the page off this CPU's freelist before __slab_free()
  * is reached at all.

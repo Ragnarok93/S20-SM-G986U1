@@ -30,19 +30,108 @@ __slab_free()                mm/slub.c:3083
 | listed, emptied, refused | same entry; `!new.inuse` true but `n->nr_partial < s->min_partial` (3164) → falls through to 3168 as well | `active −1`; the empty page stays on `n->partial` |
 | discard | `!new.inuse && n->nr_partial >= s->min_partial` (3164) → `slab_empty:` (3180) → `remove_partial()`/`remove_full()`, `discard_slab()` (3194) | `active −1`, `num_objs −objects`, `slabdata −1` |
 
-Two paths in this function are not reachable for this cache:
-
-- `add_partial(n, page, DEACTIVATE_TO_TAIL)` (3171) requires
-  `!kmem_cache_has_cpu_partial(s)`. That is `!kmem_cache_debug(s)` under
-  `CONFIG_SLUB_CPU_PARTIAL` (152), so it holds for `mm_struct`; the measured
-  `cpu_partial=6` matches `set_cpu_partial()`'s `size >= 1024` arm (3748).
-- `remove_full()` inside `slab_empty:` needs `prior == NULL`, i.e. a page on
-  the node full list. With cpu partial enabled a full page is frozen onto
-  `c->partial` instead, so the discard of a page this payload emptied takes
-  `remove_partial()`.
-
 `min_partial` is `set_min_partial(s, ilog2(s->size) / 2)` (3915): `ilog2(1024)
 / 2 = 5`, the value the gate prints.
+
+## Evidence classes
+
+Every statement below is tagged with the class of evidence it comes from. A
+conclusion may only lean on the class named here; a configuration fact is not
+an observed execution and a derived number is not a reading.
+
+| class | what it is | how it is obtained | may not be used to |
+| --- | --- | --- | --- |
+| **C** config | compile-time and creation-time properties | this source tree, the cache's creation site | prove what any single free did |
+| **M** measured | device readings | `/proc/slabinfo`, counter deltas, log lines | name an internal value the surface does not expose |
+| **D** derived | arithmetic repeated from a source rule | the payload's own computation | claim to be a reading |
+| **P** predicate | a branch condition proven from source | the code quoted here | say which branch ran |
+| **U** unobserved | runtime outcomes the surface cannot show | — | be filled in by C, M, D or P |
+
+Two things the table already rules out: `page->inuse`, `page->frozen`, `prior`
+and `n->nr_partial` are all class **U**. No amount of **C**/**M**/**D**/**P**
+evidence turns them into a measurement, which is why `KS_BRANCH` reports a path
+*set* and `inuse_at_free=unavailable`.
+
+## `cpu_partial` is derived, not read
+
+The payload's `mm_cpu_partial_limit()` (`src/util.c`) repeats the vendor's rule:
+
+```c
+if (s->size >= PAGE_SIZE)      2
+else if (s->size >= 1024)      6      /* mm_struct: s->size == 1024 */
+else if (s->size >= 256)      13
+else                          30
+```
+
+with `s->size` taken from the **measured** slabinfo fields `objsize=1024`,
+`objperslab=32`, `pagesperslab=8` (class **M**). The value `6` is therefore a
+class **D** prediction. It is *not* read from
+`/sys/kernel/slab/mm_struct/cpu_partial`: every file in that directory returns
+`EACCES` to this shell (class **M**, see the observability table). An earlier
+draft of this document called it "measured"; that was wrong and is corrected
+here.
+
+`set_cpu_partial()` is called once at cache creation (`__kmem_cache_create`,
+3917) and again only from the sysfs `cpu_partial_store` (5299), which refuses a
+nonzero value when `!kmem_cache_has_cpu_partial(s)` (5296). So a cache that
+shows `cpu_partial != 0` cannot be a debug cache.
+
+## Both "unreachable path" claims reduce to one proposition
+
+`add_partial()` (3171) needs `!kmem_cache_has_cpu_partial(s)`, and
+`remove_full()` inside `slab_empty:` needs `prior == NULL`. Both are unreachable
+only if `kmem_cache_has_cpu_partial(mm_struct)` is true. That predicate is
+
+```c
+#define kmem_cache_has_cpu_partial(s)  (!kmem_cache_debug(s))   /* slub.c:152 */
+#define kmem_cache_debug(s)            (s->flags & SLAB_DEBUG_FLAGS)  /* 138 */
+#define SLAB_DEBUG_FLAGS  (SLAB_RED_ZONE | SLAB_POISON | SLAB_STORE_USER | \
+                           SLAB_TRACE | SLAB_CONSISTENCY_CHECKS)      /* mm/slab.h:141 */
+```
+
+so the chain is:
+
+1. **C**: `mm_cachep` is created at `kernel/fork.c:2663` with
+   `SLAB_HWCACHE_ALIGN|SLAB_PANIC|SLAB_ACCOUNT` — no debug flag, so
+   `kmem_cache_debug` was false at creation for any `CONFIG_SLUB_CPU_PARTIAL=y`
+   build.
+2. **M**: the freeze sample. The anchor page is full before the 31 filler
+   frees, so its first free has `prior == NULL`. With `has_cpu_partial` false
+   that free takes the `else` branch (3126), takes the node lock and reaches
+   `add_partial` (3171): the page is listed with 31 free objects and
+   `active_objs` falls by 31. With `has_cpu_partial` true it takes 3114 and
+   `put_cpu_partial()` instead, and no counter moves. `KS_FREEZE_SAMPLE` is
+   read 2 ms after the filler frees; in **7 of the 11 recorded cycles** it
+   reads `active == num` exactly (`docs/kernel-page/logs/20261103_105018.log:385`:
+   `active=2432 num=2432`), which the `add_partial` outcome contradicts. The
+   other four cycles read `active` 94 or 126 below `num` — unrelated pages
+   were listed in that window, so those samples do not discriminate and are
+   counted neither way. Conclusion: `has_cpu_partial(mm_struct)` was **true at
+   the free itself** in those seven cycles.
+
+   Caveat from the same surface: the counter is cache-wide, so a coincident
+   allocation of exactly 31 free objects off the node list inside the 2 ms
+   settle would mask the `add_partial` effect. Nothing in the logs shows such
+   activity and exact equality to the object would be required, but the
+   construction does not exclude it.
+3. **P**: with that proposition true, `add_partial` (3171) cannot run, and at
+   `slab_empty:` `n != NULL` implies the lock-taking branch was entered, which
+   implies `prior != NULL` (the `!prior` case went to 3114 instead); a retried
+   cmpxchg clears `n` at the top of the loop (3119-3122), so a successful
+   iteration with `n` set has `prior != NULL` and takes `remove_partial()`.
+   `remove_full()` is therefore unreachable for this cache.
+
+**Residual (class U):** `s->flags` can still be changed after creation by a
+`slub_debug=` boot argument covering this cache, or by a root write to the
+`sanity_checks` / `trace` / `red_zone` / `poison` / `store_user` attributes
+(`mm/slub.c:5437-5540`; `validate` only runs `validate_slab_cache` and sets no
+flag, 5543). Neither is observed, the experiment performs no sysfs
+write, and the exact-packing geometry (1024 bytes × 32 objects = one order-3
+span) leaves no room for red-zone or poison padding — but `SLAB_STORE_USER`,
+`SLAB_TRACE` and `SLAB_CONSISTENCY_CHECKS` do not change geometry, so geometry
+alone cannot exclude them. If one of those were enabled, `has_cpu_partial`
+would be false, `add_partial`/`remove_full` would become reachable, and the
+`active == num` signature would have read `active == num − 31` instead.
 
 ## What the counters say about each path
 
@@ -67,9 +156,13 @@ gate's two samples bracket exactly one free — `cross_*` is read after the
 crossing, `empty_*` after the target's free — and the image sends between them
 allocate only order-3 socket frags, which move no `mm_struct` object.
 
+That is an argument about *which* free the window brackets, not a proof that no
+other CPU freed an `mm_struct` inside it. See the attribution rule in
+[branch-attribution.md](branch-attribution.md).
+
 ## Observability: can `inuse` be read at all?
 
-Measured on the device on 2026-11-03 as `shell` (uid 2000):
+Measured on the device on 2026-11-03 as `shell` (uid 2000), class **M**:
 
 | surface | result |
 | --- | --- |
@@ -87,7 +180,10 @@ The `kmem:kmem_cache_free` tracepoint would report `call_site` and `ptr`
 (`include/trace/events/kmem.h:122-139`, `DEFINE_EVENT` at 148), and `ptr` is the
 freed object's kernel address — precisely the per-object identity the previous
 milestone could not obtain. It cannot be enabled from this domain, so that
-remains a root-only route.
+remains a root-only route. Note what it would and would not settle: a `ptr`
+identifies the freed *object* and its page, which closes identity, but it
+carries neither `page->inuse` nor list membership, so the `listed` versus
+`emptied-refused` residual would survive it.
 
 **Conclusion: there is no page-resolved `inuse` observation available without
 root, and the classifier keeps the ambiguity explicit rather than closing it.**

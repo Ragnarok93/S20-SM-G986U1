@@ -15,6 +15,23 @@ The NDK is resolved by `Makefile` in this order: `ANDROID_NDK_HOME`,
 `ANDROID_NDK_ROOT`, then three known local locations. Override with
 `NDK_ROOT=…`. Nothing is pinned to one machine.
 
+## Build contract (measured)
+
+`build.sh` is the only supported entry point, so its exit status has to mean
+what it says. Measured on this tree:
+
+| check | method | observed |
+| --- | --- | --- |
+| compiler failure is not swallowed | append `#error` to `src/kernelsnitch/utils.h`, run `build.sh` | `make: *** [Makefile:238: build/…/preload.so] Error 1`, exit **2**; source restored, next run exit 0 |
+| a missing artifact is a hard failure | both products are copied with `cp` under `set -euo pipefail` | a missing `build/$PROJECT/bin/preload.so` or `build/embed/su_daemon_aarch64_pie` exits nonzero |
+| success is artifact-backed | stub-`make` runs in `tests/test_build_script_contract.py` | exit 0 only when both artifacts exist and are copied to `prebuilt/` |
+
+An earlier note in this project claimed `build.sh` exits 0 after a compile
+error. That was an artefact of the wrapper that invoked it (the reported status
+came from a `grep` in the same pipeline), not the script. The injected-failure
+run above is the measurement, and `tests/test_build_script_contract.py` pins
+the contract without needing an NDK or a device.
+
 ## Secondary targets (unverified)
 
 `s2`, `s3`, `rootchain` and `closed_loop` were **not built** in this

@@ -1939,7 +1939,11 @@ static void ks_buddy_release(int *fds, size_t n) {
 /* Vendor set_cpu_partial() (mm/slub.c:3745): the per-CPU partial limit is a
  * function of the cache's object size.  slabinfo reports mm_struct as
  * 1024-byte objects, so this cache's limit is 6 - derive it the same way the
- * vendor does instead of hardcoding the number at the call site. */
+ * vendor does instead of hardcoding the number at the call site.
+ *
+ * Derived, not read: /sys/kernel/slab/mm_struct/cpu_partial is EACCES to this
+ * process (measured), so 6 is a prediction from the measured object size,
+ * conditional on CONFIG_SLUB_CPU_PARTIAL and a cache without debug flags. */
 static size_t mm_cpu_partial_limit(void) {
   if (MM_STRUCT_SZ >= PAGE_SIZE) {
     return 2;

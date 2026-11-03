@@ -15,19 +15,8 @@ nothing inherits confidence from a neighbouring claim.
 | 8 | The fragment's page is `base` | zero-image differential | the panic address moves off `+0x304` | unchanged (`+0x304`) in the one cycle run | single cycle | unverified / contradicted | the cycle did not have a proven discard, so the contradiction is not conclusive |
 | 9 | The kernel consumed the planted bytes | post-hijack read-back | fake fops table is reachable | never observed | none | unverified | requires a passing probe first |
 | 10 | `n->nr_partial >= s->min_partial` at the emptying free | none available | — | not measurable | — | **not observable** | `/proc/slabinfo` reports cache-wide totals, not `nr_partial` (see `accounting.md`) |
-| 11 | The `mm_struct` slab geometry is read, not assumed | `KS_SURFACE geometry=measured` | the kernel's own objsize/objperslab/pagesperslab | `objsize=1024 objs_per_slab=32 pages_per_slab=8 span=32768`, `assumes_agree=1` | every cycle (slabinfo) | verified | per-cache `/sys/kernel/slab` attributes stay denied (`sysfs=denied errno=13`) |
-| 12 | The leaked object resolves to slot 1 of its 32 KiB page | `KS_OBJ_ID` | a correct address and span must land on the constructed slot | `offset=1024 slot=1 match=1` | one cycle | derived and checkable | proves the address is grid-consistent with the construction; not that the page is the burst slab |
-| 13 | Page membership for the 31 filler objects | `KS_ID_SLOT … page=unavailable` | — | not obtainable | — | **not observable** | one address per leak; every counter is cache-wide |
-| 14 | Each slot's free landed, and its counter effect | `KS_ID_SLOT d_src=measured` | a frozen page's free moves nothing; a listed page's free moves `active` by −1 | 31 × `d_active=0`, slot 31 `d_active=−1` | one cycle | demonstrated once | a zero delta is ambiguous between co-residency on a frozen page and a different full page |
-| 15 | The anchor's emptying free took `__slab_free`'s listed path | `KS_BRANCH tag=anchor` | `d_active=-1` with no slab change, which excludes fastpath, `FREE_FROZEN` and the full-page push | `paths=listed,emptied-refused page_listed=1` | one cycle (16:18) | derived from the counters | whether the page emptied and was refused or kept a live object is not separable, and `page->inuse` is not readable |
-| 16 | The tight control's free reached the list in the same cycle | `KS_BRANCH tag=control` | a listed delta | `d_active=0 state=unlisted`, so no count evidence | one cycle | measured | a control that is unlisted says nothing about `n->nr_partial` |
-| 17 | Every classified free path maps to a verified conditional in this tree | `docs/kernel-page/slub-branch-audit.md` | each path's predicate and accounting cited at one revision | 4.19.113 `86954d8`, lines 3083–3205, 3212–3252, 2424–2479, 6190–6210 | source audit | verified | line numbers move between releases; the predicates are what is used |
-| 18 | No page-resolved `inuse` observation exists on this surface | device probe, `slub-branch-audit.md` | a readable path that names the target page's inuse | `/sys/kernel/slab/*` `EACCES`; `events/kmem/kmem_cache_free/{enable,filter,id}` `EACCES`; `tracing_on=0`; `/proc/kpage{flags,count}` `EACCES` | measured 2026-11-03 | verified (negative) | `kmem_cache_free`'s `ptr` would give per-object identity if tracefs could be enabled |
-| 11 | The counter model is the vendor's, not inferred | `mm/slub.c` 6191/1859/1989/2634 read in this tree; device slabinfo geometry (32 objects, order 3) | `num_objs`+32 and `slabdata`+1 at one allocation; no movement across 31 more | holds in every burst | every cycle | verified | `active_objs` is a derived quantity (`total_objects - node-partial free`), not an allocated-object count |
-| 12 | The anchor's window contains exactly one mm free | `KS_QUIESCE` placement after sibling retirement (this pass) | `d_empty=-1` without sibling frees in the window | not yet measured on device | — | **unverified** | the code change is tested only on the host (`tests/kernel_page/gate_test.c`); needs one delivered cycle |
-| 13 | `slabdata` equals `n->nr_partial` | old comment in `kernel_page.h` | — | **false**: it is `n->nr_slabs` | — | refuted | corrected in this pass; no gate field may use it as `nr_partial` |
-| 14 | A baseline that was never proven quiet cannot pass the gate | `kp_gate_facts.baseline_ok` + host case 10 | perfect deltas with `baseline_ok=0` refuse | refuses on host | 1 case | verified on host | unexercised on device: no cycle has yet run with the new requirement |
-| 15 | Every log line that states a verdict states the same one | `gate-review.md` §3 | no line can print `discarded=1` while the gate says otherwise | three predicates collapsed into one | source + host | verified | `KS_CTL_FREE` remains its own check and is documented as such |
+| 11 | `mm_struct` has CPU-partial caching, so `add_partial()` and `remove_full()` are unreachable | `KS_FREEZE_SAMPLE active == num` after the first free of a full page, plus the cache's creation flags | a listed page would drop `active` by 31 | equality in 7 of 11 cycles; the other 4 are non-discriminating | repeatable | verified by signature | a `slub_debug=` boot argument or a root sysfs flag write is not observable; `cpu_partial=6` is derived, not read; a coincident 31-object allocation could mask the effect |
+| 12 | `build.sh` fails when the compiler fails or an artifact is missing | injected `#error`; stub-`make` contract test | nonzero status, nothing packaged | exit 2 with `Error 1`; test passes | every run since the probe | verified | the contract test stubs `make`; the real NDK build is hosted on this machine only |
 
 ## Rules this ledger imposes
 
@@ -36,7 +25,6 @@ nothing inherits confidence from a neighbouring claim.
 2. Row 10 is why the gate must be judged on the outcome (row 5), not on a
    precondition it cannot read.
 3. Any new claim gets a row before it is used to justify another change.
-4. Row 13 is not a gap to be closed by a better reading of the same counters: an
-   object identity needs an address, and the leak returns one per scan.
-5. Row 18 is why the branch line prints a path set and `inuse=unavailable`: the
-   observation that would close it is root-only on this device.
+4. Row 11 is a claim about the cache, not about one free: it licenses the
+   reachability argument in `slub-branch-audit.md`, and nothing about which
+   branch a given free took.

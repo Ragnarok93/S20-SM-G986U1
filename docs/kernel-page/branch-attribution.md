@@ -22,6 +22,10 @@ input is the cache-wide counter delta. The predicates behind every path are in
 audit). `inuse` is therefore reported `unavailable` with the residual values
 the surviving paths allow, never guessed.
 
+One input deserves the same care: `cpu_partial` is **derived** from the measured
+object size by repeating `set_cpu_partial()`'s rule, not read — the sysfs file
+is `EACCES`. The classifier does not use it; the crossing construction does.
+
 ## The line
 
 ```
@@ -50,6 +54,13 @@ lines cannot disagree:
 | `listed` | the delta matches a node-list transition; the counters cannot say whether the page kept a live object or emptied and was refused |
 | `unlisted` | no node-list transition: fastpath, `FREE_FROZEN`, or the full-page push |
 | `other` | a delta the classifier does not recognise |
+
+## Attribution rule
+
+A cache-wide counter delta is attributable to the target free only when
+competing cache activity over the same interval is excluded or independently
+accounted for. Otherwise the result is a cache-wide signature consistent with
+the target path — reported as such, never as proof of that path.
 
 ## Isolation of the measurement
 
