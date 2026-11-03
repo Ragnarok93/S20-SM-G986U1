@@ -1,9 +1,9 @@
-# Per-object identity table — specification
+# Per-object identity table — specification and emitted format
 
-Status: **specification only.** No code change and no device cycle in this
-commit. The current `KS_OBJ_ID` / `KS_ID_SLOT` / `KS_ID_SUMMARY` lines already
-emit part of this schema; the gap analysis at the end says which parts are
-missing and what each route to close them costs.
+Status: **implemented** in `src/kernel_page/identity.c` and `identity.h`. The
+host tests drive the schema; the device-side evidence is one cycle of the
+current route (**Cycle A** below). No allocator, gate or delivery behaviour is
+part of this measurement.
 
 ## Why a table rather than a verdict
 
@@ -17,58 +17,115 @@ where the surface cannot answer.
 
 | field | allowed values | class | how it is obtained |
 | --- | --- | --- | --- |
+| `window` | `<boot8>-<mono_ms>` | **M** | boot id + `CLOCK_MONOTONIC` at `kp_identity_window()` |
 | `slot` | 0–31 | — | construction (allocation order in the burst) |
-| `role` | `anchor` (slot 0) / `filler` (1–31) | — | construction |
-| `object_address` | `0x…` or `unavailable(<reason>)` | **M** | a leak dump for *this* object, or the tracepoint `ptr` |
+| `role` | `scan` (the leak child, slot 1), `target` (last slot, its exit is the emptying free), `filler` | — | construction order in `util.c` |
+| `allocated_at_freeze` | `yes` / `no` / `unknown` | **M** | `/proc/<pid>/stat` read before any free (`kp_identity_freeze`) |
+| `allocated_at_sample` | `yes` / `no` / `unavailable` | **M** | `/proc/<pid>/stat` read immediately before *this* row's free |
+| `free_observed` | `yes` / `not-in-window` / `unavailable` | **M** | live at the sample and reaped by this row's kill / already exited / no observation |
+| `object_address` | `0x…` or `unavailable(reason)` | **M** | a leak dump for *this* object, or the tracepoint `ptr` |
 | `address_source` | `leak` / `tracepoint` / `none` | — | provenance of the address; a value without one is not admissible |
-| `page_address` | `0x…` or `unresolved(<reason>)` | **D** from **M** | `object_address & ~(span − 1)`, span from measured `pagesperslab` |
-| `page_geometry_agrees` | `0` / `1` | **M** vs **D** | `span_agrees`, `assumes_agree` from `KS_SURFACE` |
+| `address_uniqueness` | `unique` / `repeated` / `none` | **M** vs rows | repeated if another row already carries the same address |
+| `geom` | `objsize/objperslab/pagesperslab/span` or `unavailable` | **M**/**D** | geometry revision the page was derived with (`span` derived) |
+| `page_address` | `0x…`, `invalid(<check>)`, or `unresolved(<reason>)` | **D** from **M** | `object_address & ~(span − 1)`, span from measured `pagesperslab` |
+| `page_geometry_agrees` | encoded by `invalid(...)` | **M** vs **D** | `span_agrees` and `assumes_agree` from `KS_SURFACE` |
 | `in_page_offset` | `0`–`span−1` or `unavailable` | **D** | `object_address & (span − 1)` |
-| `allocated_at_freeze` | `yes` / `no` / `unknown` | **M** | `/proc/<pid>/stat` before the free |
-| `free_observed` | `yes` / `no` / `unavailable` | **M** | `/proc/<pid>/stat` after the free |
-| `counter_delta` | `(d_active, d_num, d_slabs)` or `unavailable` | **M** | `/proc/slabinfo` around the free; cache-wide |
-| `delta_attribution` | `direct` / `consistent-with` / `unavailable` | — | project rule; `consistent-with` is the only honest value for a cache-wide delta |
-| `page_identity` | `exact` / `unresolved(<reason>)` | — | `exact` only when `object_address` is measured |
-| `page_occupancy_effect` | `unavailable(<reason>)` | — | no page-resolved source exists (see below) |
+| `counter_delta` | `d_active/d_num/d_slabs` or `unavailable` | **M** | `/proc/slabinfo` around the free; cache-wide |
+| `delta_attribution` | `consistent-with` / `unavailable` | — | `consistent-with` is the only honest value for a cache-wide delta |
+| `page_identity` | `exact` / `invalid(<check>)` / `unresolved(<reason>)` | — | `exact` only when `object_address` is measured and the geometry check passes |
+| `page_occupancy_effect` | `unavailable(no-page-resolved-source)` | — | no page-resolved source exists (see below) |
 
-Example of the one row the current surface can fully populate:
-
-```
-slot=1 role=filler object_address=0xffffffc1f5e08400 address_source=leak
-page_address=0xffffffc1f5e08000 page_geometry_agrees=1 in_page_offset=1024
-allocated_at_freeze=yes free_observed=yes counter_delta=(-1,0,0)
-delta_attribution=consistent-with page_identity=exact
-page_occupancy_effect=unavailable(no-page-resolved-source)
-```
-
-and of the other 31:
-
-```
-slot=0 role=anchor object_address=unavailable(no-per-object-address)
-address_source=none page_address=unresolved(no-object-address)
-allocated_at_freeze=yes free_observed=yes counter_delta=(0,0,0)
-delta_attribution=consistent-with page_identity=unresolved(no-object-address)
-page_occupancy_effect=unavailable(no-page-resolved-source)
-```
+`address_uniqueness=stale` is defined by the schema but has no emitting path:
+an address is re-checked against this run's collision set before use, and a
+failed check aborts before the table opens. `repeated` is the ambiguity the
+field exists for, and every row sharing the address is marked.
 
 ## Rules
 
 1. A row gets `page_identity=exact` only from a measured address for **that
    object** and the measured span. Never from a zero counter delta, never from
-   the anchor's address, never from `slot × objsize` arithmetic. The previous
-   milestone's mistake was exactly this inference, and it is now a rule.
+   the anchor's address, never from `slot × objsize` arithmetic.
 2. `counter_delta` is cache-wide whatever the row says. `delta_attribution`
    must therefore be `consistent-with` unless the measurement window is proved
-   exclusive; `direct` exists for a future window that is.
+   exclusive.
 3. `unavailable` always carries a reason token and is never rendered as `0`,
    `false`, `no effect` or a blank.
-4. No co-residency verdict when fewer than two rows have a measured address.
-   The summary reports `addressed=`, `page_known=`, `distinct_pages=` and
-   `co_residency=unavailable(<reason>)` in that case.
+4. No co-residency verdict when fewer than two rows have a measured page.
+   Below that the summary reports `unavailable(reason=addressed-too-few)` and
+   prints `pages_observed=` separately from `distinct_pages=`.
 5. Anchor and control rows are reported side by side, never merged: the control
    has no address and cannot borrow the anchor's.
-6. A row whose `page_geometry_agrees=0` is reported but excluded from any page
-   conclusion; the geometry check is the only falsifier in the table.
+6. A row whose geometry check fails is reported with `page_identity=invalid`
+   and excluded from every page conclusion. The check is `span_agrees`
+   (`objsize × objperslab == span`) **and** `assumes_agree` (measured fields
+   equal the burst's own constants).
+7. A derived page address keeps its source address (`addr=`), the geometry
+   revision it was computed with (`geom=`), and its calculation provenance
+   (`page_src=derived(measured-span=…)`) on the same row. A page address must
+   never survive a failed geometry check, and it is never printed without those
+   three fields.
+8. `distinct_pages` and `objects_per_page` are stated only when every slot has
+   a `page_identity=exact`; until then the summary says
+   `distinct_pages=unavailable(pages=<known>-of-<slots>)`. `pages_observed` is
+   the partial view and is labelled as such.
+9. `allocated_at_freeze` and `allocated_at_sample` are different temporal
+   claims and are never substituted for one another. The target's emptying free
+   has no state sample between the crossing and the free, so its row reports
+   `allocated_at_sample=unavailable` rather than reusing the freeze sample.
+
+## Emitted lines
+
+One window header per run:
+
+```
+KS_ID_WINDOW window=b30aed65-282878665 boot=b30aed65 opened_mono_ms=282878665
+slots=32 scope=cycle window_src=measured(boot_id,clock_monotonic)
+```
+
+The one measured address, resolved only when the geometry check passes:
+
+```
+KS_OBJ_ID window=… addr=ffffffc0a3af8400 addr_src=measured(leak)
+addr_unique=unique geom=1024/32/8/32768 geom_src=measured(slabinfo)
+page=ffffffc0a3af8000 page_src=derived(measured-span=32768) offset=1024
+slot=1 slot_src=derived constructed_slot=1 match=1 page_identity=exact
+```
+
+and, when a measured field disagrees, `page=invalid(<check>)` with
+`page_src=none` instead of a page.
+
+One row per slot:
+
+```
+KS_ID_ROW window=… slot=0 role=filler allocated_at_freeze=yes
+allocated_at_sample=yes free_observed=yes
+addr=unavailable(no-per-object-address) addr_src=none addr_unique=none
+geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none
+offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address)
+constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address)
+d_active=-1 d_num=0 d_slabs=0 d_src=measured
+delta_attribution=consistent-with
+```
+
+The addressed row carries `addr=… page=… page_identity=exact` with the same
+`geom` revision, `offset`, and `slot_in_page` it was derived with. A row whose
+task had already exited reports `free_observed=not-in-window`; a row with no
+sample reports `allocated_at_sample=unavailable`.
+
+The summary closes the table:
+
+```
+KS_ID_SUMMARY window=… slots=32 rows=32 addressed=1 page_known=1 unresolved=31
+invalid_geometry=0 duplicate_addresses=0 pages_observed=1
+distinct_pages=unavailable(pages=1-of-32) objects_per_page=unavailable(incomplete)
+co_residency=unavailable(reason=addressed-too-few) geom=1024/32/8/32768
+geom_src=measured(slabinfo) occupancy=unavailable(no-page-resolved-source)
+```
+
+`rows` counts recorded rows; a run that dies early reports fewer rows rather
+than padding the table. `unresolved` is `slots − page_known`; `invalid_geometry`
+counts rows that had an address but failed the geometry check, so the two
+failure kinds stay distinguishable.
 
 ## What the surface can supply (measured)
 
@@ -93,7 +150,7 @@ occupancy column stays `unavailable` even with a full address column.
 | one leak dump per object | 31 more independent addresses | 31 × 8–10 min ≈ 4.1–5.2 h per cycle | 32 answer files (or one keyed table), each re-checked against its own collision set; all 32 children alive across the whole run | the only route available today; it is a different experiment, not a knob |
 | privileged observer enabling `kmem_cache_free` | one `ptr` per free, with call sites | minutes | root or tracepoint access on the device; not available (`EACCES`, measured) | blocked; not planned around |
 | sysfs per-page slab counters | nothing exists to read | — | root for the directory | cannot yield identity even with access |
-| slot arithmetic from the anchor address | page of slot 0 only | free | — | valid for one row; the rule above forbids extending it |
+| slot arithmetic from the anchor address | page of slot 0 only | free | — | forbidden by rule 1; measured geometry is the only input to a page |
 
 The leak route has a consequence worth stating before anyone builds it: the
 scanning child must be alive for its dump, so 31 dumps serialize behind 31 live
@@ -105,29 +162,18 @@ a flag.
 
 ## Acceptance criteria
 
-**Cycle A — honest ceiling (current permissions).** 32 rows; exactly one
-`page_identity=exact`; 31 `unresolved(no-object-address)`; every row's
-`allocated_at_freeze`, `free_observed` and `counter_delta` measured; summary
-carries `co_residency=unavailable(reason=one-address)`; gate, allocator
-behaviour and delivery path unchanged; device alive.
+**Cycle A — honest ceiling (current permissions).** One device cycle of the
+existing route. 32 rows; exactly one `page_identity=exact`; 31
+`unresolved(no-object-address)`; every row's `allocated_at_freeze`,
+`allocated_at_sample` and `counter_delta` present; summary carries
+`co_residency=unavailable(reason=addressed-too-few)`,
+`distinct_pages=unavailable(pages=1-of-32)` and one window id that every row
+shares; gate, allocator behaviour and delivery path unchanged; device alive.
 
 **Cycle B — full table.** 32 measured addresses; `distinct_pages` and the
 per-page grouping computed from them; `page_occupancy_effect` still
 `unavailable`; only then a co-residency statement, and it replaces the
 `6e8bf6b` interpretation rather than being merged with it.
 
-## Gap against the current emission
-
-| requirement | current line | gap |
-| --- | --- | --- |
-| per-row address and provenance | `addr=`, `addr_src=` on one row only | none for the ceiling; the other 31 already say `unavailable` |
-| role | `slot=` only | add `role=` (anchor vs filler) |
-| page and offset | `page=`, `page_src=` | present |
-| allocated/free observed | `alive=` | keep, but `alive=zombie` must not read as "free observed" |
-| counter delta | `d_active/d_num/d_slabs` | present, cache-wide, labelled |
-| attribution | `effect=`, `effect_src=derived` | rename to the schema's `delta_attribution` vocabulary |
-| summary | `slots=32 addressed=1 page_known=1 unavailable=31 reason=… effect_scope=cache-wide` | add `distinct_pages=`, `co_residency=` |
-
-None of these gaps is an allocator or gate change; they are field names and one
-summary counter. They are listed here so the next pass implements the schema
-once, instead of inventing another line format per experiment.
+Neither cycle may upgrade `inuse`, `prior`, `nr_partial` or the executed free
+branch past unobserved: the table is object identity, not allocator state.

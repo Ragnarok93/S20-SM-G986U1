@@ -3,11 +3,18 @@
  * Every output line names the source of each value it prints:
  *
  *   measured     /proc/slabinfo geometry fields, the KernelSnitch object
- *                address, each slot's task state, each free's counter delta.
- *   derived      page base, in-page offset, slot index, and the reading of a
- *                delta as an occupancy effect — arithmetic on measured values.
+ *                address, each slot's task state at the freeze and at its own
+ *                free, and the cache-wide counter change that free made.
+ *   derived      page base, in-page offset, slot index: arithmetic on the
+ *                measured address with the measured geometry.  The effect
+ *                label is also derived from the measured delta.
  *   unavailable  a value this surface cannot supply, printed with its reason
  *                instead of an aggregate counter or a zero.
+ *
+ * A derived page address keeps its source address and the geometry revision
+ * it was computed with on the same row, and it never survives a failed
+ * geometry check: measured fields that disagree make the row invalid instead
+ * of silently producing a page from one of them.
  */
 #ifndef KP_IDENTITY_H
 #define KP_IDENTITY_H
@@ -23,12 +30,16 @@ struct kp_geometry {
   long objs_per_slab;  /* measured: slabinfo field 4 */
   long pages_per_slab; /* measured: slabinfo field 5 */
   long span;           /* derived: pages_per_slab * page size */
+  long assumed_objs_per_slab; /* the burst's own constant, for comparison */
+  long assumed_span;          /* the burst's own order size, for comparison */
   int measured;        /* 1 when all three fields parsed */
   int span_agrees;     /* objsize * objs_per_slab == span */
+  int assumes_agree;   /* measured fields equal the construction's constants */
 };
 
 /* One object resolved to its slab page.  addr is measured; page, offset and
- * slot are arithmetic on addr and the measured geometry. */
+ * slot are arithmetic on addr and the measured geometry.  page_exact is 0
+ * when the geometry check failed, and page_reason says which check failed. */
 struct kp_identity {
   uintptr_t addr;
   uintptr_t page;
@@ -36,7 +47,42 @@ struct kp_identity {
   long slot;
   int constructed_slot;
   int slot_match;
+  int page_exact;
+  long span;          /* measured span this page was derived with */
+  char geom[40];      /* the geometry revision, e.g. 1024/32/8/32768 */
+  const char *page_reason;
 };
+
+enum kp_co_residency {
+  KP_CO_RESIDENT = 0,
+  KP_CO_SPLIT = 1,
+  KP_CO_UNAVAILABLE = 2
+};
+
+/* What the table says, computable without parsing the log.  distinct_pages
+ * and objects_per_page are only filled when every slot got a page; the
+ * partial view is pages_observed. */
+struct kp_identity_stats {
+  size_t slots;
+  size_t rows;
+  size_t addressed;
+  size_t page_known;
+  size_t unresolved;
+  size_t invalid_geometry;
+  size_t duplicate_addresses;
+  size_t pages_observed;
+  size_t distinct_pages;
+  size_t objects_per_page;
+  int complete;      /* every slot has an exact page: only then are the
+                        grouping numbers a statement about the whole table */
+  enum kp_co_residency co_residency;
+  const char *co_reason;
+};
+
+/* Open the table for one run: records the slot count and the observation
+ * window id (boot id + monotonic open time) every row carries.  Printed once
+ * before the burst. */
+void kp_identity_window(size_t slots);
 
 /* Read the geometry.  On failure every field stays -1 and measured stays 0,
  * which is distinguishable from a parsed zero. */
@@ -44,25 +90,40 @@ void kp_identity_read(struct kp_geometry *g);
 
 /* One line: the measured geometry, where it came from, whether the payload's
  * own constants agree with it, and which surface attribute is denied.
- * Printed once per run, before the burst. */
-void kp_identity_surface(const struct kp_geometry *g,
-                         long assumed_objs_per_slab, long assumed_span);
+ * Printed once per run, before the burst.  Stores the measured values and
+ * the construction's assumptions for the geometry check. */
+void kp_identity_surface(struct kp_geometry *g, long assumed_objs_per_slab,
+                         long assumed_span);
 
 /* Resolve the one object address this run has to its slab page.  Returns 1
- * when the derived slot equals the slot the burst built. */
+ * when the derived slot equals the slot the burst built.  page_exact stays 0
+ * and page_reason names the failed check when the geometry cannot support a
+ * page identity. */
 int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
                        int constructed_slot, struct kp_identity *out);
 
-/* One table row per burst slot.  `alive` is the task state measured before
- * the free ("yes", "zombie", "gone"); with sampled set, d_* are the
- * cache-wide counter changes that free produced, the only occupancy effect a
- * cache-wide counter can report. */
-void kp_identity_slot(size_t slot, const char *alive, int sampled,
-                      long d_active, long d_num, long d_slabs,
+/* Record one slot's task state at the freeze sample, before any free.  This
+ * is `allocated_at_freeze`, a different temporal claim from the state read
+ * immediately before that slot's own free.  st is the /proc stat state char;
+ * 0 means the task was already gone. */
+void kp_identity_freeze(size_t slot, char st);
+
+/* One table row per burst slot.  state_at_sample is the task state measured
+ * immediately before this row's free ("yes", "zombie", "gone", or
+ * "unavailable" when no sample was taken).  free_seen is 1 when this row's
+ * kill is known to have reaped the task, 0 when the task was already gone
+ * before the sample, -1 when no such observation exists.  With sampled set,
+ * d_* are the cache-wide counter changes that free produced; they are never
+ * page identity. */
+void kp_identity_slot(size_t slot, const char *state_at_sample, int free_seen,
+                      int sampled, long d_active, long d_num, long d_slabs,
                       const struct kp_identity *anchor);
 
-/* Close the table: how many objects got an address, and the reason the rest
- * cannot. */
-void kp_identity_summary(size_t slots, size_t addressed);
+/* The same numbers the summary line prints. */
+void kp_identity_stats(struct kp_identity_stats *out);
+
+/* Close the table: rows against slots, pages only when complete, and the
+ * reason co-residency cannot be stated otherwise. */
+void kp_identity_summary(void);
 
 #endif /* KP_IDENTITY_H */

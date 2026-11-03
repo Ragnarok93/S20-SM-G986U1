@@ -19,6 +19,7 @@ nothing inherits confidence from a neighbouring claim.
 | 12 | `build.sh` fails when the compiler fails or an artifact is missing | injected `#error`; stub-`make` contract test | nonzero status, nothing packaged | exit 2 with `Error 1`; test passes | every run since the probe | verified | the contract test stubs `make`; the real NDK build is hosted on this machine only |
 | 13 | The comment-only source edits did not change the built artifact | `sha256=ded45234…` identical before and after, and equal to `prebuilt/preload.so` | byte-identical output | identical | one build | verified | says nothing about whether the branch argument in row 11 is sound — a separate claim |
 | 14 | A page identity is obtainable for more than one object per run | `KS_SURFACE per_object_address=unavailable reason=one-leak-one-address`; sysfs and tracepoint enable `EACCES` | another surface, or 31 more leak dumps | one address per dump; no other per-object source | measured once | verified as a limit | 31 further dumps at 8–10 min each is a different run mode (`identity-table.md`) |
+| 15 | The table reports one row per object, and a page only when that object's measured address and a passing geometry check support it | `KS_ID_WINDOW`/`KS_ID_ROW`/`KS_ID_SUMMARY`; `tests/kernel_page/identity_test.c` | 32 rows sharing one window id; exactly one `page_identity=exact` while one address exists; no grouping number until every slot has a page | host tests pass; no device cycle yet | pending Cycle A | **unverified on device** | the arithmetic is exercised on the host with the device's reported geometry; whether the device emits these rows is what Cycle A must show |
 
 ## Retractions
 
@@ -45,3 +46,5 @@ is never cited as support.
    about allocator behaviour.
 6. Claims are retracted in the table above and stay visible; a superseded
    sentence in an old document is annotated at its source as well.
+7. Row 15 licenses object identity only: never occupancy, `inuse`, or a
+   co-residency statement while fewer than two rows carry a page.
