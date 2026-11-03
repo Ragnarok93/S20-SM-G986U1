@@ -68,13 +68,14 @@ with `s->size` taken from the **measured** slabinfo fields `objsize=1024`,
 class **D** prediction. It is *not* read from
 `/sys/kernel/slab/mm_struct/cpu_partial`: every file in that directory returns
 `EACCES` to this shell (class **M**, see the observability table). An earlier
-draft of this document called it "measured"; that was wrong and is corrected
-here.
+draft of this document called it "measured"; that is retracted in the evidence
+ledger and corrected here.
 
 `set_cpu_partial()` is called once at cache creation (`__kmem_cache_create`,
 3917) and again only from the sysfs `cpu_partial_store` (5299), which refuses a
 nonzero value when `!kmem_cache_has_cpu_partial(s)` (5296). So a cache that
-shows `cpu_partial != 0` cannot be a debug cache.
+shows `cpu_partial != 0` cannot be a debug cache — but the showing itself is
+not available here.
 
 ## Both "unreachable path" claims reduce to one proposition
 
@@ -95,25 +96,44 @@ so the chain is:
    `SLAB_HWCACHE_ALIGN|SLAB_PANIC|SLAB_ACCOUNT` — no debug flag, so
    `kmem_cache_debug` was false at creation for any `CONFIG_SLUB_CPU_PARTIAL=y`
    build.
-2. **M**: the freeze sample. The anchor page is full before the 31 filler
-   frees, so its first free has `prior == NULL`. With `has_cpu_partial` false
-   that free takes the `else` branch (3126), takes the node lock and reaches
-   `add_partial` (3171): the page is listed with 31 free objects and
-   `active_objs` falls by 31. With `has_cpu_partial` true it takes 3114 and
-   `put_cpu_partial()` instead, and no counter moves. `KS_FREEZE_SAMPLE` is
-   read 2 ms after the filler frees; in **7 of the 11 recorded cycles** it
-   reads `active == num` exactly (`docs/kernel-page/logs/20261103_105018.log:385`:
-   `active=2432 num=2432`), which the `add_partial` outcome contradicts. The
-   other four cycles read `active` 94 or 126 below `num` — unrelated pages
-   were listed in that window, so those samples do not discriminate and are
-   counted neither way. Conclusion: `has_cpu_partial(mm_struct)` was **true at
-   the free itself** in those seven cycles.
+2. **M**: the freeze sample. `KS_FREEZE_SAMPLE` is read 2 ms after the 31
+   filler frees; in **7 of the 11 recorded cycles** it reads `active == num`
+   exactly (`docs/kernel-page/logs/20261103_105018.log:385`:
+   `active=2432 num=2432`). The other four read `active` 94 or 126 below `num`
+   — unrelated pages were listed in that window, so they do not discriminate
+   and are counted neither way. Three separate questions decide what the seven
+   are worth:
 
-   Caveat from the same surface: the counter is cache-wide, so a coincident
-   allocation of exactly 31 free objects off the node list inside the 2 ms
-   settle would mask the `add_partial` effect. Nothing in the logs shows such
-   activity and exact equality to the object would be required, but the
-   construction does not exclude it.
+   **A. Does the equality establish that the anchor page was full?** No. It is
+   cache-wide: it says that no page of the cache is on the node partial list at
+   that instant. The premise "the anchor page was full before the first filler
+   free" comes from the construction (ledger rows 2–3: one fresh slab per
+   burst, slot 1 verified by the leak), not from this counter. If the 32
+   allocations did not all come from one fresh slab — the uncertainty `6e8bf6b`
+   left open — the equality has no anchor page to be about.
+
+   **B. Is a 31-object decrement the non-CPU-partial outcome?** Yes, but at the
+   sample, not at the first free. With `has_cpu_partial` false, the first
+   filler free (`prior == NULL`, `new.inuse = 31`) enters the `else` branch
+   (3126), takes the node lock, skips `slab_empty:` because `new.inuse != 0`,
+   and reaches `add_partial()` (3171): the page is listed with one free object,
+   so `active` falls by **1**. Each of the next 30 frees lowers `inuse` on that
+   listed page, and `count_free(page) = objects − inuse` (2622) exposes all 31
+   free objects by the sample: `active == num − 31`. The full decrement needs
+   (i) a full page before, (ii) the page staying listed, i.e. no 32nd free
+   reaching `!new.inuse`, and (iii) no allocation consuming those free objects
+   before the sample.
+
+   **C. Can unrelated activity mask it?** Yes, in either direction: allocations
+   from the node list hide free objects, and a foreign page being listed adds
+   them. No such activity appears in the recorded 2 ms settles and the readings
+   are exact equality, but the counters cannot exclude it.
+
+   The conclusion is therefore conditional, and this is the strongest form the
+   evidence supports: *the seven cycles are consistent with `has_cpu_partial`
+   being enabled and discriminate against the alternative under the assumption
+   that no concurrent cache activity masks the expected 31-object accounting
+   change.* It is **not** a direct observation of `has_cpu_partial`.
 3. **P**: with that proposition true, `add_partial` (3171) cannot run, and at
    `slab_empty:` `n != NULL` implies the lock-taking branch was entered, which
    implies `prior != NULL` (the `!prior` case went to 3114 instead); a retried
@@ -121,17 +141,33 @@ so the chain is:
    iteration with `n` set has `prior != NULL` and takes `remove_partial()`.
    `remove_full()` is therefore unreachable for this cache.
 
+Dependency chain, so no step is mistaken for the one below it:
+
+```
+cache configuration            (C) creation flags, mm/slab.h:141, fork.c:2663
+  -> has_cpu_partial           (M+P) inferred from the freeze signature, conditional
+       -> !prior route          -> put_cpu_partial, no accounting      (P)
+       -> prior != NULL route   -> node list
+            -> !inuse && nr_partial >= min_partial -> discard          (P)
+            -> otherwise                           -> retained         (P)
+```
+
+`prior`, `page->frozen`, `page->inuse` and `n->nr_partial` remain class **U**:
+the chain says which branches are *possible* for this cache, never which one a
+given free took. The `remove_full()` exclusion is a corollary of the
+conditional proposition above, not an independent observation.
+
 **Residual (class U):** `s->flags` can still be changed after creation by a
 `slub_debug=` boot argument covering this cache, or by a root write to the
 `sanity_checks` / `trace` / `red_zone` / `poison` / `store_user` attributes
 (`mm/slub.c:5437-5540`; `validate` only runs `validate_slab_cache` and sets no
-flag, 5543). Neither is observed, the experiment performs no sysfs
-write, and the exact-packing geometry (1024 bytes × 32 objects = one order-3
-span) leaves no room for red-zone or poison padding — but `SLAB_STORE_USER`,
-`SLAB_TRACE` and `SLAB_CONSISTENCY_CHECKS` do not change geometry, so geometry
-alone cannot exclude them. If one of those were enabled, `has_cpu_partial`
-would be false, `add_partial`/`remove_full` would become reachable, and the
-`active == num` signature would have read `active == num − 31` instead.
+flag, 5543). Neither is observed, the experiment performs no sysfs write, and
+the exact-packing geometry (1024 bytes × 32 objects = one order-3 span) leaves
+no room for red-zone or poison padding — but `SLAB_STORE_USER`, `SLAB_TRACE`
+and `SLAB_CONSISTENCY_CHECKS` do not change geometry, so geometry alone cannot
+exclude them. If one of those were enabled, `has_cpu_partial` would be false,
+`add_partial`/`remove_full` would become reachable, and the freeze sample would
+have read `active == num − 31` instead.
 
 ## What the counters say about each path
 

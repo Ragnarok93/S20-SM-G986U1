@@ -26,9 +26,10 @@ what it says. Measured on this tree:
 | a missing artifact is a hard failure | both products are copied with `cp` under `set -euo pipefail` | a missing `build/$PROJECT/bin/preload.so` or `build/embed/su_daemon_aarch64_pie` exits nonzero |
 | success is artifact-backed | stub-`make` runs in `tests/test_build_script_contract.py` | exit 0 only when both artifacts exist and are copied to `prebuilt/` |
 
-An earlier note in this project claimed `build.sh` exits 0 after a compile
-error. That was an artefact of the wrapper that invoked it (the reported status
-came from a `grep` in the same pipeline), not the script. The injected-failure
+**Retracted claim (ledger R1).** An earlier note in this project claimed
+`build.sh` exits 0 after a compile error. That was an artefact of the wrapper
+that invoked it (the reported status came from a `grep` in the same pipeline),
+not the script. The injected-failure
 run above is the measurement, and `tests/test_build_script_contract.py` pins
 the contract without needing an NDK or a device.
 

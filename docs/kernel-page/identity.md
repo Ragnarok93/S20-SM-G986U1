@@ -1,5 +1,9 @@
 # Per-object slab-page identity
 
+Specification, evidence rules and the surface's ceiling:
+[identity-table.md](identity-table.md). This document describes the lines as
+implemented.
+
 What this pass measures, for every slot of the anchor burst: the object's slab
 page, whether it was allocated at the freeze, and what its free did to that
 page's occupancy. Where the surface cannot answer, the line says
