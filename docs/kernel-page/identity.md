@@ -6,7 +6,10 @@ implemented.
 
 For every slot of the anchor burst the table carries: the object's slab page
 (when the surface can prove one), whether it was allocated at the freeze and at
-its own sample, and what its free did to the cache-wide counters. Where the
+its own sample, and what its free did to the cache-wide counters. Cycle A
+(`docs/kernel-page/logs/20261103_173750.log`) emitted 32 rows with one exact
+page and 31 unresolved; the result is recorded in
+[identity-table.md](identity-table.md#cycle-a-result-2026-11-03-window-f0cf5e9a-26855883). Where the
 surface cannot answer, the line says `unavailable` with the reason; nothing is
 filled in from an aggregate counter. Every row also carries the observation
 window id, so a row can only belong to the cycle it was measured in.

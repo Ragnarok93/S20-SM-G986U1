@@ -1,9 +1,9 @@
 # Per-object identity table — specification and emitted format
 
-Status: **implemented** in `src/kernel_page/identity.c` and `identity.h`. The
-host tests drive the schema; the device-side evidence is one cycle of the
-current route (**Cycle A** below). No allocator, gate or delivery behaviour is
-part of this measurement.
+Status: **implemented** in `src/kernel_page/identity.c` and `identity.h`, and
+emitted by one device cycle of the current route (**Cycle A** below,
+`docs/kernel-page/logs/20261103_173750.log`). No allocator, gate or delivery
+behaviour is part of this measurement.
 
 ## Why a table rather than a verdict
 
@@ -177,3 +177,25 @@ per-page grouping computed from them; `page_occupancy_effect` still
 
 Neither cycle may upgrade `inuse`, `prior`, `nr_partial` or the executed free
 branch past unobserved: the table is object identity, not allocator state.
+
+## Cycle A result (2026-11-03, window `f0cf5e9a-26855883`)
+
+One page-probe cycle of the existing route. Log:
+`docs/kernel-page/logs/20261103_173750.log`.
+
+- 32 rows, all carrying the same `window=`, one line each; every slot reads
+  `allocated_at_freeze=yes`.
+- `addressed=1 page_known=1 unresolved=31 invalid_geometry=0
+  duplicate_addresses=0 pages_observed=1`.
+- The scan row: `addr=ffffffc255930400 page=ffffffc255930000 offset=1024
+  slot_in_page=1 match=1 page_identity=exact`, `geom=1024/32/8/32768`.
+- The target row: `role=target allocated_at_sample=unavailable
+  free_observed=yes d_active=-1 d_num=0 d_slabs=0`.
+- Summary: `distinct_pages=unavailable(pages=1-of-32)`,
+  `co_residency=unavailable(reason=addressed-too-few)`.
+- Gate refused (`registered=1 discarded=0 d_num=0 d_slabs=0`), the control page
+  discarded (`d_num=-32 d_slabs=-1`), the 50 ms quiet window moved nothing, and
+  the device stayed alive.
+
+The one exact page is the scan object's own page. Nothing in this cycle says
+the other 31 objects were on it, and nothing here measures occupancy.
