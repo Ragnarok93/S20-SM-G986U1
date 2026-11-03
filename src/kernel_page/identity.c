@@ -39,6 +39,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -67,6 +68,23 @@ struct kp_id_row {
   long span;
   char geom[40];
 };
+
+/* Append to a bounded line buffer.  Returns the new offset; the line is never
+ * left unterminated, and a truncated row is visibly truncated rather than
+ * spilling into the logger's next write. */
+static size_t append(char *buf, size_t cap, size_t off, const char *fmt, ...) {
+  if (off >= cap) {
+    return cap;
+  }
+  va_list ap;
+  va_start(ap, fmt);
+  int n = vsnprintf(buf + off, cap - off, fmt, ap);
+  va_end(ap);
+  if (n < 0) {
+    return off;
+  }
+  return off + (size_t)n < cap ? off + (size_t)n : cap - 1;
+}
 
 static struct kp_id_row g_rows[KP_ID_MAX_SLOTS];
 static size_t g_nrows;
@@ -345,43 +363,56 @@ void kp_identity_slot(size_t slot, const char *state_at_sample, int free_seen,
                                       : "unavailable";
   int constructed = anchor != NULL ? anchor->constructed_slot : -1;
 
-  pr_info("KS_ID_ROW window=%s slot=%zu role=%s allocated_at_freeze=%s "
-          "allocated_at_sample=%s free_observed=%s",
-          g_window, slot, role, freeze, sample, free);
+  /* One row is one log line: compose it here and write it once, so no second
+   * write can land the logger's prefix in the middle of the fields. */
+  char line[1024];
+  size_t off = 0;
+  off = append(line, sizeof(line), off,
+               "KS_ID_ROW window=%s slot=%zu role=%s allocated_at_freeze=%s "
+               "allocated_at_sample=%s free_observed=%s",
+               g_window, slot, role, freeze, sample, free);
   if (!r->has_addr) {
-    pr_info(" addr=unavailable(no-per-object-address) addr_src=none "
-            "addr_unique=none geom=%s page=unresolved(no-object-address) "
-            "page_src=none offset=unavailable(no-object-address) "
-            "slot_in_page=unavailable(no-object-address) slot_src=none "
-            "constructed_slot=%d match=unavailable "
-            "page_identity=unresolved(no-object-address)",
-            geom, constructed);
+    off = append(line, sizeof(line), off,
+                 " addr=unavailable(no-per-object-address) addr_src=none "
+                 "addr_unique=none geom=%s page=unresolved(no-object-address) "
+                 "page_src=none offset=unavailable(no-object-address) "
+                 "slot_in_page=unavailable(no-object-address) slot_src=none "
+                 "constructed_slot=%d match=unavailable "
+                 "page_identity=unresolved(no-object-address)",
+                 geom, constructed);
   } else if (!r->page_exact) {
-    pr_info(" addr=%016zx addr_src=measured(leak) addr_unique=%s geom=%s "
-            "page=invalid(%s) page_src=none "
-            "offset=unavailable(geometry-check-failed) "
-            "slot_in_page=unavailable(geometry-check-failed) slot_src=none "
-            "constructed_slot=%d match=unavailable page_identity=invalid(%s)",
-            (size_t)r->addr, r->addr_unique ? "unique" : "repeated", geom,
-            r->page_reason ? r->page_reason : "geometry-check-failed",
-            constructed, r->page_reason ? r->page_reason : "geometry-check-failed");
+    off = append(line, sizeof(line), off,
+                 " addr=%016zx addr_src=measured(leak) addr_unique=%s "
+                 "geom=%s page=invalid(%s) page_src=none "
+                 "offset=unavailable(geometry-check-failed) "
+                 "slot_in_page=unavailable(geometry-check-failed) "
+                 "slot_src=none constructed_slot=%d match=unavailable "
+                 "page_identity=invalid(%s)",
+                 (size_t)r->addr, r->addr_unique ? "unique" : "repeated",
+                 geom, r->page_reason ? r->page_reason : "geometry-check-failed",
+                 constructed,
+                 r->page_reason ? r->page_reason : "geometry-check-failed");
   } else {
-    pr_info(" addr=%016zx addr_src=measured(leak) addr_unique=%s geom=%s "
-            "page=%016zx page_src=derived(measured-span=%ld) offset=%zu "
-            "slot_in_page=%ld slot_src=derived constructed_slot=%d match=%d "
-            "page_identity=exact",
-            (size_t)r->addr, r->addr_unique ? "unique" : "repeated", geom,
-            (size_t)r->page, r->span, r->offset, r->slot_in_page, constructed,
-            r->slot_match);
+    off = append(line, sizeof(line), off,
+                 " addr=%016zx addr_src=measured(leak) addr_unique=%s "
+                 "geom=%s page=%016zx page_src=derived(measured-span=%ld) "
+                 "offset=%zu slot_in_page=%ld slot_src=derived "
+                 "constructed_slot=%d match=%d page_identity=exact",
+                 (size_t)r->addr, r->addr_unique ? "unique" : "repeated",
+                 geom, (size_t)r->page, r->span, r->offset, r->slot_in_page,
+                 constructed, r->slot_match);
   }
   if (sampled) {
-    pr_info(" d_active=%ld d_num=%ld d_slabs=%ld d_src=measured "
-            "delta_attribution=consistent-with\n",
-            d_active, d_num, d_slabs);
+    (void)append(line, sizeof(line), off,
+                 " d_active=%ld d_num=%ld d_slabs=%ld d_src=measured "
+                 "delta_attribution=consistent-with",
+                 d_active, d_num, d_slabs);
   } else {
-    pr_info(" d_active=unavailable d_num=unavailable d_slabs=unavailable "
-            "d_src=unavailable delta_attribution=unavailable\n");
+    (void)append(line, sizeof(line), off,
+                 " d_active=unavailable d_num=unavailable d_slabs=unavailable "
+                 "d_src=unavailable delta_attribution=unavailable");
   }
+  pr_info("%s\n", line);
 }
 
 void kp_identity_stats(struct kp_identity_stats *out) {
