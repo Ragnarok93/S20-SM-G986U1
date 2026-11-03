@@ -132,3 +132,38 @@ refusal says nothing about the node partial count. The label asserted a
 conclusion the measurement did not support; it was replaced by `state=`, which
 can only be derived from the deltas, and the cycle was repeated. The corrected
 run above is the one to use.
+
+## Cycle 2026-11-03 14:22 — the anchor page was full, and did not empty
+
+    KS_FILL_DELTA fillers=31 active=2528->2528 d_active=0 d_num=0 d_slabs=0 page_was_full=1
+    KS_FREEZE_SAMPLE active=2528 num=2528 slabs=79
+    KS_DRAIN_BASE active=2395 num=2528 slabs=79
+    KS_CTL_TIGHT us=4552 d_active=-1 d_num=-32 d_slabs=-1 discarded=1 state=listed-discarded
+    KS_GATE ... registered=1 discarded=0 ... d_empty=-1 d_num=0 d_slabs=0 pin_bad=1
+
+1. `page_was_full=1`: the 31 filler frees moved no counter at all. A page that
+   still had a free slot would have been on `n->partial` before the first free,
+   and each free on it would have made one more free object visible. So the
+   page was full (32 live) at the first filler free and took the freeze branch
+   (`prior == NULL`, `was_frozen == 0`).
+2. The drain unfroze it: `active` fell 133 with no page removed. The anchor's
+   31 free objects and the control's 31 are part of that; the remainder can
+   only come from pages with at least one free object each, so at least four
+   pages were added ahead of the anchor in the same head-to-tail walk.
+3. The control, freed 4.55 ms later, was listed and discarded, so the node
+   partial count was at or above `min_partial`. Its discard decrements the
+   count, and an empty page can only join invisibly via a crossing on CPU 0,
+   which the flat windows before and after do not show. The anchor's own test
+   therefore saw the count at or above the limit as well.
+4. The target's free made exactly one object visible and removed no page. On a
+   page that was full at the freeze, with all 32 of our frees delivered, the
+   page would have reached `inuse 0` and taken `slab_empty`.
+
+So at least one of the 32 burst objects is not on `base`'s page: the page was
+full, and it still held a live object after our 32 frees. This is the ownership
+defect the previous cycle could only infer; here it does not depend on the node
+partial count.
+
+The burst's per-slot `da=0` readings are not used as evidence: `da=0` cannot
+separate the fresh slab from the CPU's own active slab, so it never established
+page identity.

