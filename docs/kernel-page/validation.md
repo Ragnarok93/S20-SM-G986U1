@@ -11,7 +11,7 @@ everything at once, so a failure says little. These stages isolate the parts.
 | 2 | regression smoke | `BUDGET=78 FRESH=0 bash ~/runs/run_fast.sh` | startup, leak fork, both 32-slot bursts, `span_ok=1`, device survives | runs now (78 s) |
 | 3 | anchor construction | same smoke, `KS_PRE`/`KS_SLOT`/`KS_BURST` lines | one fresh slab per burst, per-slot provenance | runs now |
 | 4 | control slab | same smoke, `KS_CONTROL` line | second independent burst with the same signature | runs now |
-| 5 | full cycle | `BUDGET=1500 bash ~/runs/run_fast.sh` | drain, quiesce, emptying free, gate, send, punch | runs, 8-10 min |
+| 5 | full cycle | `BUDGET=1500 FRESH=0 ENVV="KS_FOPS_ROUTE=1 KS_PLANT_ALL=1" bash run_fast.sh` | drain, quiesce, emptying free, gate, send, punch | ran 2026-11-03 12:21: refused at the gate, device up — see `cycle-results.md` |
 | 6 | address recovery | `ENVV="KS_MM_TEST=1 KS_FOPS_ROUTE=0"` full cycle | recovered `mm` accepted only if it matches this run's collision set | runs, needs a full scan |
 | 7 | lifecycle model | `tests/kernel_page/run.sh` (second suite) | no skipping or reordering, refusal terminal and reasoned, delivery only from the gate, missing samples block delivery | runs now (12 cases) |
 | 8 | refusal reporting | same suite + `KS_STATE` in a cycle | a refusal is machine-readable as a refusal, and `report=1` only when the state supports the claim | runs now (host); device line unexercised |

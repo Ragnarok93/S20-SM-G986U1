@@ -105,6 +105,10 @@ which no counter exposes — see `accounting.md`.
 - `src/kernel_page/run_state.c`, `run_state.h` — the lifecycle model
   (`tests/kernel_page/state_test.c`); it observes and reports, it does not
   change any branch.
+- `src/kernel_page/address_cache.c`, `address_cache.h` — parsing and
+  validation for the saved anchor and the one-shot answer file
+  (`tests/kernel_page/cache_test.c`), moved out of `src/util.c` without
+  changing what is accepted or what is printed.
 - `src/util.c` — coordinator; observation functions removed; statuses recorded
   at the three points where a proposition becomes established.
 - `MM_STRUCT_SZ` has one definition (the target profile). The `0x500` fallback

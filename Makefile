@@ -100,6 +100,7 @@ CORE_SRCS := \
   src/kernel_page/experiment_state.c\
   src/kernel_page/gate.c\
   src/kernel_page/run_state.c\
+  src/kernel_page/address_cache.c\
   $(call pick_src,slide.c) \
   src/slide_s2.c \
   $(call pick_src,fops.c) \
@@ -109,6 +110,7 @@ PRELOAD_SRCS := $(CORE_SRCS) src/preload.c src/su_blob.S src/wallpaper_blob.S
 S2_SRCS := src/s2_main.c src/slide_s2.c src/util.c src/s2_support.c  \
 	src/kernel_page/allocator_observation.c src/kernel_page/experiment_state.c \
 	src/kernel_page/gate.c src/kernel_page/run_state.c \
+	src/kernel_page/address_cache.c \
 	src/dso_start.S
 S2_OUTDIR := build/alioth/bin
 S2_PRELOAD := $(S2_OUTDIR)/preload_slide_h1a_s2.so
@@ -124,12 +126,14 @@ S2_GUARD = @test "$(S2_CC_OK)" = "1" || { echo "secondary target unverified and 
 S3_SRCS := src/s3_main.c src/slide_s3.c src/util.c src/s2_support.c  \
 	src/kernel_page/allocator_observation.c src/kernel_page/experiment_state.c \
 	src/kernel_page/gate.c src/kernel_page/run_state.c \
+	src/kernel_page/address_cache.c \
 	src/dso_start.S
 S3_PRELOAD := $(S2_OUTDIR)/preload_slide_h1a_s3.so
 ROOTCHAIN_SRCS := src/rootchain_bridge.c src/slide_s3.c src/util.c \
 	src/s2_support.c src/fops.c src/pipe.c src/root.c src/preload.c \
 	src/kernel_page/allocator_observation.c src/kernel_page/experiment_state.c \
 	src/kernel_page/gate.c src/kernel_page/run_state.c \
+	src/kernel_page/address_cache.c \
 	src/su_blob.S src/wallpaper_blob.S src/dso_start.S
 ROOTCHAIN_PRELOAD := $(S2_OUTDIR)/preload_rootchain_bridge.so
 CLOSED_LOOP_SRCS := src/closed_loop/phase_controller.c \
@@ -228,7 +232,9 @@ $(EMBED_SU): src/su_daemon.c | $(EMBEDDIR)
 	$(TARGET_CC) $(TARGET_FLAGS) $(PIE_CFLAGS) $(TARGET_CFLAGS) \
 	  $< $(TARGET_PIE_LDFLAGS) -o $@
 
-$(PRELOAD): $(PRELOAD_SRCS) $(EMBED_SU) $(WALLPAPER) $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h $(SAMSUNG_PROFILE_STAMP) | $(OUTDIR)
+# Makefile is a prerequisite so a source-list change relinks instead of
+# leaving the previous (possibly incomplete) link in place.
+$(PRELOAD): $(PRELOAD_SRCS) Makefile $(EMBED_SU) $(WALLPAPER) $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h $(SAMSUNG_PROFILE_STAMP) | $(OUTDIR)
 	$(TARGET_CC) $(TARGET_FLAGS) $(SO_CFLAGS) $(WARN_CFLAGS) $(TARGET_CFLAGS) \
 	  $(PRELOAD_SRCS) $(TARGET_COMMON_LDFLAGS) \
 	  -shared -o $@ -pthread

@@ -23,6 +23,8 @@ src/kernel_page/allocator_observation.c
 src/kernel_page/experiment_state.c
 src/kernel_page/gate.c
 src/kernel_page/run_state.c
+src/kernel_page/address_cache.c
+src/kernel_page/address_cache.c
 src/s2_support.c
 src/fops.c
 src/pipe.c
