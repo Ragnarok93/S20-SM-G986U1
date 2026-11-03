@@ -14,12 +14,24 @@
  *     nr_free  += count_partial(count_free)
  *     active_objs = num_objs - nr_free
  *
- * so every counter counts ONLY pages on n->partial.  A page frozen on a
- * CPU's c->partial list, the CPU's active page, and a full page on no list
- * are invisible to all three.  slabdata is literally n->nr_partial, the
- * quantity __slab_free() compares against s->min_partial
- * (mm/slub.c:3154), which is why it is also the right place to read the
- * discard precondition.
+ * node_nr_slabs() and node_nr_objs() read per-node counters maintained by
+ * inc_slabs_node()/dec_slabs_node() in allocate_slab()/free_slab()
+ * (mm/slub.c:1859, 1989), so both are cache-wide totals over every page that
+ * currently exists - full, partial, frozen or active.  Only nr_free is
+ * narrower: count_partial() walks n->partial and nothing else.
+ *
+ * The consequence that matters for every line the payload prints: a page
+ * listed on n->partial contributes exactly its inuse to active_objs, and an
+ * unlisted page contributes all of its objects.  Freeing an object on a
+ * frozen (or active, or full) page therefore moves no counter at all; the
+ * same free on a listed page moves active_objs by -1; discarding a page
+ * moves num_objs by -objects and slabdata by -1 whatever it contained.
+ *
+ * slabdata is NOT n->nr_partial.  The discard precondition
+ * (n->nr_partial >= s->min_partial at the free) cannot be read from
+ * /proc/slabinfo, and the mm_struct attributes under /sys/kernel/slab are
+ * denied to the shell user on this device (measured).  Only the outcome is
+ * observable.
  */
 #ifndef KERNEL_PAGE_H
 #define KERNEL_PAGE_H

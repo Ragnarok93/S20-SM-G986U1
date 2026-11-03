@@ -81,10 +81,16 @@ when the existing head's accumulated `pobjects` exceeds `s->cpu_partial`;
 
 Two arithmetic facts worth stating because the payload used to assume otherwise:
 
-1. **Adding** a listed page with `inuse=1` changes `active_objs` by **−31**
-   (31 free objects become visible), not by +1.
-2. **Discarding an empty page** changes `active_objs` by **0**: `num_objs` and
-   `nr_free` both fall by 32. Only `num_objs`/`slabdata` move (−32/−1).
+1. A page on `n->partial` contributes **exactly its `inuse`** to
+   `active_objs`; a page on no list contributes all of its objects. So
+   **adding** a listed page with `inuse=1` changes `active_objs` by **−31**
+   (its 31 free objects become visible), not by +1, and freezing that same
+   page moves nothing at all.
+2. Discarding a page whose `inuse` was `k` therefore reads `d_active = −k`,
+   `d_num = −32`, `d_slabs = −1`. The anchor's page (one live object) gives
+   `−1/−32/−1`; an empty unlisted page gives `−32/−32/−1`. The two are
+   distinguishable, which is what the gate's new `registered` requirement
+   uses.
 
 So the emptying free, when it lands on a listed page and the page is then
 discarded, gives exactly `d_empty=-1, d_num=-32, d_slabs=-1`; and when the page
@@ -125,19 +131,50 @@ the same behaviour sampled at different instants:
   unrelated frees on other CPUs can discard pages from that same list and take
   the count back below 5. That is the whole discrepancy.
 
+## Device-side confirmation
+
+`/proc/slabinfo` itself reports the geometry the payload assumes:
+
+```
+mm_struct            620    768   1024   32    8 : tunables    0    0    0 : slabdata     24     24      0
+```
+
+`objsize` is `s->size` (mm/slab_common.c:1344 prints it directly), so
+`mm_objs_per_slab = 32768/1024 = 32` and the order is 3 — measured, not
+assumed. The `tunables` triplet is all zeros because this build's
+`slabinfo_show_stats()` is empty; it carries no limits.
+
+The sysfs attributes that would expose the limits are denied to the `shell`
+user (measured):
+
+```
+cat: /sys/kernel/slab/mm_struct/min_partial: Permission denied
+cat: /sys/kernel/slab/mm_struct/cpu_partial: Permission denied
+```
+
+so `min_partial`/`cpu_partial` remain derived from `s->size` by the vendor
+formulae (`set_min_partial`: `ilog2(size)/2` clamped to [5,10] → 5;
+`set_cpu_partial`: `size >= 1024` → 6) rather than read.
+
 ## Conclusion of the audit
 
 1. The counters are now understood and documented against this kernel; the
-   userspace comments that claimed "only node-partial pages are counted" are
-   wrong and have been replaced (see `src/kernel_page.h`).
+   comments that claimed "only node-partial pages are counted" were wrong and
+   have been replaced in `src/kernel_page.h` and
+   `src/kernel_page/allocator_observation.c`.
 2. The precondition that decides `discard_slab()` — `n->nr_partial >=
    s->min_partial` at the free — **cannot be measured from userspace on this
    kernel**. Only the outcome (`d_num`, `d_slabs`) is observable.
-3. Therefore a gate that requires the precondition to be *proved* before the
-   free is asking for evidence the surface cannot supply, and cycles that pass
-   it are passing on timing. The gate should be judged on the outcome
-   (`d_num == -32 && d_slabs == -1` in the emptying-free window) and must not
-   claim the precondition.
+3. A gate that requires the precondition to be *proved* before the free is
+   asking for evidence the surface cannot supply. The outcome is the only
+   honest basis, and the outcome has two halves: one object
+   (`active_objs −1`) **and** one page (`num_objs −32`, `slabdata −1`). Both
+   are now required (`src/kernel_page/gate.c`, tested in
+   `tests/kernel_page/gate_test.c`).
 4. Any future attempt to *hold* `nr_partial` must hold it by construction
    (pages that cannot be discarded before the free), because it cannot be
    confirmed by reading.
+5. The measured `d_empty=-2` is not a discard failure: it is one discard plus
+   one unrelated object freed on a listed page, and the unrelated object was
+   a retired sibling's `mm_struct` landing inside the window. The baseline has
+   been moved past that retirement — see `instrumentation.md`.

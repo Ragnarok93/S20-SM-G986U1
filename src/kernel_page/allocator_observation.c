@@ -9,8 +9,12 @@
  *                    nr_objs   = sum(node_nr_objs)    -> num_objs
  *                    nr_free   = count_partial(free)  -> active_objs
  *                                   = num_objs - nr_free
- * and every one of them counts only pages on n->partial.  Frozen pages on a
- * CPU partial list, the active page, and pages on no list do not appear.
+ * nr_slabs and nr_objs are cache-wide: inc_slabs_node()/dec_slabs_node()
+ * run in allocate_slab()/free_slab(), so a page counts from the moment buddy
+ * hands it over until it is returned, whether it is full, frozen, partial or
+ * active.  Only nr_free is scoped to n->partial (count_partial()).  A listed
+ * page therefore contributes its inuse to active_objs; an unlisted one
+ * contributes all of its objects.
  */
 #include "common.h"
 #include "kernel_page.h"

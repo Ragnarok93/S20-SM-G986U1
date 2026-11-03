@@ -15,6 +15,9 @@ nothing inherits confidence from a neighbouring claim.
 | 8 | The fragment's page is `base` | zero-image differential | the panic address moves off `+0x304` | unchanged (`+0x304`) in the one cycle run | single cycle | unverified / contradicted | the cycle did not have a proven discard, so the contradiction is not conclusive |
 | 9 | The kernel consumed the planted bytes | post-hijack read-back | fake fops table is reachable | never observed | none | unverified | requires a passing probe first |
 | 10 | `n->nr_partial >= s->min_partial` at the emptying free | none available | — | not measurable | — | **not observable** | `/proc/slabinfo` reports cache-wide totals, not `nr_partial` (see `accounting.md`) |
+| 11 | The counter model is the vendor's, not inferred | `mm/slub.c` 6191/1859/1989/2634 read in this tree; device slabinfo geometry (32 objects, order 3) | `num_objs`+32 and `slabdata`+1 at one allocation; no movement across 31 more | holds in every burst | every cycle | verified | `active_objs` is a derived quantity (`total_objects - node-partial free`), not an allocated-object count |
+| 12 | The anchor's window contains exactly one mm free | `KS_QUIESCE` placement after sibling retirement (this pass) | `d_empty=-1` without sibling frees in the window | not yet measured on device | — | **unverified** | the code change is tested only on the host (`tests/kernel_page/gate_test.c`); needs one delivered cycle |
+| 13 | `slabdata` equals `n->nr_partial` | old comment in `kernel_page.h` | — | **false**: it is `n->nr_slabs` | — | refuted | corrected in this pass; no gate field may use it as `nr_partial` |
 
 ## Rules this ledger imposes
 

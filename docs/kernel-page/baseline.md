@@ -99,5 +99,11 @@ which no counter exposes — see `accounting.md`.
 - `src/kernel_page/allocator_observation.c` — the only reader of
   `/proc/slabinfo`.
 - `src/kernel_page/experiment_state.c` — independent statuses, `KS_RESULT` line.
+- `src/kernel_page/gate.c`, `gate.h` — the verdict arithmetic, pure and
+  host-tested (`tests/kernel_page/gate_test.c`); `src/util.c` passes it two
+  samples and prints `KS_GATE` exactly as before.
 - `src/util.c` — coordinator; observation functions removed; statuses recorded
   at the three points where a proposition becomes established.
+- `MM_STRUCT_SZ` has one definition (the target profile). The `0x500` fallback
+  in `common.h` would have made `mm_objs_per_slab` 25 instead of 32 and is
+  gone.
