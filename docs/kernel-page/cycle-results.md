@@ -85,3 +85,50 @@ used as evidence that the anchor's page discarded.
   in that window, and the counters moved at that kill, but the counters cannot
   name the page).
 - Placement, and everything that depends on it.
+
+## Cycle 2026-11-03 13:53 — the count is not the blocker
+
+Same chain as the 13:41 cycle, with one measurement change: the control page is
+freed 5.4 ms after the anchor's free instead of 50 ms later, and it reports its
+own state from its own deltas (`listed-discarded`, `listed-refused`, `frozen`,
+`other`).
+
+    KS_CTL_TIGHT us=5429 d_active=-1 d_num=-32 d_slabs=-1 discarded=1 state=listed-discarded
+    KS_GATE span_ok=1 crossed_at=128 min_partial=5 empty_cpu=1 registered=1 discarded=0 image=3 gap_ms=0.061 d_empty=-1 d_num=0 d_slabs=0 pin_bad=1 slot_partial=0 preconditions=0
+    KS_SETTLE ms=50 ... d_from_empty=-1/-32/-1 d_from_ctl=0/0/0
+
+Reading, from `__slab_free()`/`unfreeze_partials()` and these deltas:
+
+1. The control was **on `n->partial`** (`d_active=-1`: its last free made one
+   free object visible) and it **discarded** (`-32/-1`). That branch requires
+   `!new.inuse && n->nr_partial >= s->min_partial`, so the node partial count
+   was at or above the limit 5.4 ms after the anchor's free.
+2. The anchor's free also made exactly one object visible and removed no slab.
+   A listed page whose `inuse` reached 0 at that same count would have taken
+   the same `slab_empty` branch and discarded. It did not.
+3. Nothing raises the count invisibly in that gap: an empty page joining
+   `n->partial` is the only counter-silent addition, and it needs a crossing on
+   CPU 0 while the parent is pinned there doing one `/proc` read. The 50 ms
+   after the control is flat (`d_from_ctl=0/0/0`).
+
+Therefore the anchor page was **not empty** when its fillers and target were
+freed: at least one of its 32 objects belonged to a process outside the burst.
+`nr_partial` was never the blocker, which is why every hold experiment refused.
+
+Superseded: the earlier conclusion that the anchor's free found
+`nr_partial < min_partial` and that the control's later discard showed the
+count recovering. The count is measurable this way, and at the anchor's free it
+was already high enough.
+
+## Cycle 2026-11-03 13:41 — the probe that could not answer
+
+The first run of the tight control printed
+
+    KS_CTL_TIGHT us=4487 d_active=0 d_num=0 d_slabs=0 discarded=0
+
+and labelled it `count_at_free=below-min`. That label was wrong: a control
+whose free moves **no** counter was still frozen on a per-CPU list, so its
+refusal says nothing about the node partial count. The label asserted a
+conclusion the measurement did not support; it was replaced by `state=`, which
+can only be derived from the deltas, and the cycle was repeated. The corrected
+run above is the one to use.

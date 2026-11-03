@@ -162,18 +162,21 @@ formulae (`set_min_partial`: `ilog2(size)/2` clamped to [5,10] → 5;
    comments that claimed "only node-partial pages are counted" were wrong and
    have been replaced in `src/kernel_page.h` and
    `src/kernel_page/allocator_observation.c`.
-2. The precondition that decides `discard_slab()` — `n->nr_partial >=
-   s->min_partial` at the free — **cannot be measured from userspace on this
-   kernel**. Only the outcome (`d_num`, `d_slabs`) is observable.
-3. A gate that requires the precondition to be *proved* before the free is
-   asking for evidence the surface cannot supply. The outcome is the only
-   honest basis, and the outcome has two halves: one object
-   (`active_objs −1`) **and** one page (`num_objs −32`, `slabdata −1`). Both
-   are now required (`src/kernel_page/gate.c`, tested in
-   `tests/kernel_page/gate_test.c`).
-4. Any future attempt to *hold* `nr_partial` must hold it by construction
-   (pages that cannot be discarded before the free), because it cannot be
-   confirmed by reading.
+2. The count can be read indirectly, at 32-object granularity, with a page of
+   the same construction freed within milliseconds. `d_active < 0` proves the
+   page was on `n->partial`; a discard then proves `n->nr_partial >=
+   s->min_partial` at that instant. A page whose free moves nothing was still
+   frozen and answers nothing (measured 2026-11-03 13:41). Measured 13:53:
+   `KS_CTL_TIGHT … state=listed-discarded`, 5.4 ms after the anchor's free.
+3. With the count known, the anchor's own free separates the remaining
+   failures: one object visible and no page removed means the page still held a
+   live object. That is what 13:53 measured, so the count was not the blocker
+   and no `nr_partial` hold could have helped; the next defect is anchor-slab
+   ownership, not the threshold.
+4. The gate's two halves stay as they are — one object (`active_objs −1`)
+   **and** one page (`num_objs −32`, `slabdata −1`), in
+   `src/kernel_page/gate.c`, tested in `tests/kernel_page/gate_test.c`. Nothing
+   in this correction weakens it.
 5. The measured `d_empty=-2` is not a discard failure: it is one discard plus
    one unrelated object freed on a listed page, and the unrelated object was
    a retired sibling's `mm_struct` landing inside the window. The baseline has
