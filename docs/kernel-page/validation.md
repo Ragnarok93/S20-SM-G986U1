@@ -15,6 +15,7 @@ everything at once, so a failure says little. These stages isolate the parts.
 | 6 | address recovery | `ENVV="KS_MM_TEST=1 KS_FOPS_ROUTE=0"` full cycle | recovered `mm` accepted only if it matches this run's collision set | runs, needs a full scan |
 | 7 | lifecycle model | `tests/kernel_page/run.sh` (second suite) | no skipping or reordering, refusal terminal and reasoned, delivery only from the gate, missing samples block delivery | runs now (12 cases) |
 | 8 | refusal reporting | same suite + `KS_STATE` in a cycle | a refusal is machine-readable as a refusal, and `report=1` only when the state supports the claim | runs now (host); device line unexercised |
+| 9 | page attribution | `KS_SETTLE` (50 ms quiet window) between the gate sample and the control free | separates the anchor page from the control page in the same cycle | ran 2026-11-03 12:54: flat, so the one page lost belongs to the control — see `cycle-results.md` |
 
 ## Notes
 

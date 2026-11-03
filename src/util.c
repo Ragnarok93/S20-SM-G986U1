@@ -3610,6 +3610,24 @@ uintptr_t prepare_kernel_page(int payload_mode) {
                   cross_active, cross_num, cross_slabs);
           pr_info("KS_SAMPLE2 tag=empty active=%ld num=%ld slabs=%ld\n",
                   empty_active, empty_num, empty_slabs);
+          /* Quiet-window differential.  An empty page left on n->partial has
+           * no live object, so no later free can discard it: only an
+           * allocation can take it, and then the process holding it has to
+           * exit for it to empty again.  If the counters are flat across this
+           * window, the page that leaves in the control window below is the
+           * control's page, not the anchor's.  Measurement only: nothing is
+           * allocated or freed here, and no existing sample moves. */
+          if (crossed && post_f != NULL) {
+            long settle_a = -1, settle_n = -1, settle_s = -1;
+            usleep(50000);
+            rewind(post_f);
+            (void)mm_slab_scan(post_f, &settle_a, &settle_n, &settle_s);
+            pr_info("KS_SETTLE ms=50 active=%ld num=%ld slabs=%ld "
+                    "d_from_empty=%ld/%ld/%ld\n", settle_a, settle_n, settle_s,
+                    settle_a - empty_active, settle_n - empty_num,
+                    settle_s - empty_slabs);
+          }
+
           /* Diagnostic only, and after every sample: the control page was
            * built exactly like the anchor and is killed here to show that the
            * same mechanics still discard.  It used to run before the anchor's
