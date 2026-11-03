@@ -50,7 +50,7 @@ int main(void) {
   d = delta(-1, -32, -1);
   kp_free_classify(&d, &v);
   CHECK(v.paths == KP_PATH_DISCARD);
-  CHECK(v.page_listed == 1);
+  CHECK(v.listed_signature == 1);
   CHECK(v.inuse_at_free == 1 && v.inuse_exact == 1);
   CHECK(strcmp(v.state, "listed-discarded") == 0);
 
@@ -60,7 +60,7 @@ int main(void) {
   d = delta(-1, 0, 0);
   kp_free_classify(&d, &v);
   CHECK(v.paths == (KP_PATH_LISTED | KP_PATH_LISTED_REFUSED));
-  CHECK(v.page_listed == 1);
+  CHECK(v.listed_signature == 1);
   CHECK(v.inuse_at_free == -1 && v.inuse_exact == 0);
   CHECK(strcmp(v.state, "listed") == 0);
 
@@ -69,7 +69,7 @@ int main(void) {
   d = delta(0, 0, 0);
   kp_free_classify(&d, &v);
   CHECK(v.paths == (KP_PATH_FASTPATH | KP_PATH_FROZEN | KP_PATH_FREEZE_PUSH));
-  CHECK(v.page_listed == 0);
+  CHECK(v.listed_signature == 0);
   CHECK(v.inuse_at_free == -1);
   CHECK(strcmp(v.state, "unlisted") == 0);
 
@@ -78,7 +78,7 @@ int main(void) {
   d.sampled = 0;
   kp_free_classify(&d, &v);
   CHECK(v.paths == KP_PATH_UNKNOWN);
-  CHECK(v.page_listed == -1);
+  CHECK(v.listed_signature == -1);
   CHECK(v.inuse_at_free == -1);
   CHECK(strcmp(v.state, "other") == 0);
 

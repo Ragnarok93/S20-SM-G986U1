@@ -1,9 +1,10 @@
-/* branch.h — which __slab_free() path a measured free took.
+/* branch.h — which __slab_free() path a measured free is consistent with.
  *
  * The kernel does not expose page->inuse, page->frozen or the node partial
  * count to this process, so a free is classified by what the cache-wide
- * counters did and the classifier names the paths that remain.  It never
- * returns a single path where the counters cannot separate two.
+ * counters did and the classifier names the paths CONSISTENT WITH that delta.
+ * It is not a trace of the branch executed, and it never returns a single
+ * path where the counters cannot separate two.
  *
  * mm/slub.c (4.19.113) branches this way for a free on a page that is not
  * this CPU's active slab:
@@ -46,12 +47,14 @@ struct kp_free_delta {
 };
 
 struct kp_free_verdict {
-  unsigned paths;      /* bitmask of enum kp_free_path */
-  int page_listed;     /* 1 listed, 0 not on any node list, -1 unknown */
-  int inuse_at_free;   /* 1, 2 (means >= 2), or -1 when not derivable */
-  int inuse_exact;     /* 1 only when the branch fixes inuse to 1 */
+  unsigned paths;       /* bitmask of enum kp_free_path: consistent with */
+  int listed_signature; /* 1: the delta matches a node-list transition,
+                         * 0: it matches none, -1: no sample.  A signature,
+                         * not an observation of the page's list membership. */
+  int inuse_at_free;    /* 1, 2 (means >= 2), or -1 when not derivable */
+  int inuse_exact;      /* 1 only when the path fixes inuse to 1 */
   const char *path_names;  /* stable text for a log line */
-  const char *state;       /* the legacy four-state token */
+  const char *state;       /* the four-state token */
 };
 
 void kp_free_classify(const struct kp_free_delta *d,
