@@ -90,7 +90,7 @@ used as evidence that the anchor's page discarded.
 
 Same chain as the 13:41 cycle, with one measurement change: the control page is
 freed 5.4 ms after the anchor's free instead of 50 ms later, and it reports its
-own state from its own deltas (`listed-discarded`, `listed-refused`, `frozen`,
+own state from its own deltas (`listed-discarded`, `listed`, `unlisted`,
 `other`).
 
     KS_CTL_TIGHT us=5429 d_active=-1 d_num=-32 d_slabs=-1 discarded=1 state=listed-discarded

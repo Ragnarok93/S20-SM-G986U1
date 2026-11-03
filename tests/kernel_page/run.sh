@@ -18,10 +18,15 @@ cc -std=gnu11 -Wall -Wextra -Werror -I src \
   -DTARGET_CONFIG_H=targets/samsung-g986u1-4.19.113/target.h \
   src/kernel_page/identity.c tests/kernel_page/identity_test.c \
   -o build/host/identity_test
+cc -std=gnu11 -Wall -Wextra -Werror -I src \
+  -DTARGET_CONFIG_H=targets/samsung-g986u1-4.19.113/target.h \
+  src/kernel_page/branch.c tests/kernel_page/branch_test.c \
+  -o build/host/branch_test
 ./build/host/gate_test
 ./build/host/state_test
 ./build/host/cache_test
 ./build/host/identity_test
+./build/host/branch_test
 
 # A shared library links happily with unresolved kernel_page symbols, and the
 # device then refuses to load it.  Catch that here.

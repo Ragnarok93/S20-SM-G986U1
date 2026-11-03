@@ -5,6 +5,7 @@
 #include "kernel_page/run_state.h"
 #include "kernel_page/address_cache.h"
 #include "kernel_page/identity.h"
+#include "kernel_page/branch.h"
 #include <dirent.h>
 
 /* The emptying free must run on a CPU whose c->page is not base, or
@@ -3058,6 +3059,8 @@ uintptr_t prepare_kernel_page(int payload_mode) {
       long core_active = -1, core_num = -1, core_slabs = -1;
       long empty_active = -1, empty_num = -1, empty_slabs = -1;
       long ctl_active = -1, ctl_num = -1, ctl_slabs = -1;
+      long ctl_ds = 0, ctl_us = -1;
+      int ctl_ran = 0;
       double free_done_t0 = -1;
       long free_wait_ms = 20;
       int image_done = -1;
@@ -3766,7 +3769,8 @@ uintptr_t prepare_kernel_page(int payload_mode) {
                                                    : ks_now_ms())) *
                                1000.0);
               long da, dn, ds;
-              const char *state;
+              struct kp_free_delta cfd;
+              struct kp_free_verdict cfv;
               rewind(post_f);
               (void)mm_slab_scan(post_f, &ca, &cn, &cs);
               da = ca - empty_active;
@@ -3775,22 +3779,22 @@ uintptr_t prepare_kernel_page(int payload_mode) {
               ctl_active = ca;
               ctl_num = cn;
               ctl_slabs = cs;
-              /* Only two of these four states answer the min_partial question;
-               * the frozen state means the control's free never reached the
-               * list and must not be read as a refusal. */
-              if (dn == -(long)mm_objs_per_slab && ds == -1 && da < 0) {
-                state = "listed-discarded";      /* count was >= min */
-              } else if (da < 0 && ds == 0) {
-                state = "listed-refused";        /* count was < min */
-              } else if (da == 0 && dn == 0 && ds == 0) {
-                state = "frozen";                /* says nothing about count */
-              } else {
-                state = "other";
-              }
+              ctl_ds = ds;
+              ctl_us = us;
+              ctl_ran = 1;
+              cfd.d_active = da;
+              cfd.d_num = dn;
+              cfd.d_slabs = ds;
+              cfd.objects = (int)mm_objs_per_slab;
+              cfd.sampled = 1;
+              kp_free_classify(&cfd, &cfv);
               pr_info("KS_CTL_TIGHT us=%ld active=%ld num=%ld slabs=%ld "
                       "d_active=%ld d_num=%ld d_slabs=%ld discarded=%d "
                       "state=%s\n",
-                      us, ca, cn, cs, da, dn, ds, ds == -1 ? 1 : 0, state);
+                      us, ca, cn, cs, da, dn, ds, ds == -1 ? 1 : 0, cfv.state);
+              /* The same classifier the anchor's free gets, so the two
+               * lines are compared on identical evidence. */
+              kp_free_report("control", &cfd, &cfv, -1, -1);
             }
           }
           /* Quiet window after BOTH frees.  d_from_empty includes the control's
@@ -3909,6 +3913,23 @@ uintptr_t prepare_kernel_page(int payload_mode) {
                        empty_active - cross_active, empty_num - cross_num,
                        empty_slabs - cross_slabs, &kp_anchor);
       kp_identity_summary(pre_ctx.mm_cnt, kp_anchor.page ? 1 : 0);
+      /* Which __slab_free path the anchor's emptying free took, from the
+       * same two samples the gate used, next to the control's own
+       * attribution taken microseconds later. */
+      {
+        struct kp_free_delta afd;
+        struct kp_free_verdict afv;
+        afd.d_active = empty_active - cross_active;
+        afd.d_num = empty_num - cross_num;
+        afd.d_slabs = empty_slabs - cross_slabs;
+        afd.objects = (int)mm_objs_per_slab;
+        afd.sampled = (empty_active >= 0 && cross_active >= 0 &&
+                       empty_num >= 0 && cross_num >= 0 &&
+                       empty_slabs >= 0 && cross_slabs >= 0);
+        kp_free_classify(&afd, &afv);
+        kp_free_report("anchor", &afd, &afv,
+                       ctl_ran ? (ctl_ds == -1 ? 1 : 0) : -1, ctl_us);
+      }
       if (empty_registered) {
         kp_result_mark(KP_ALLOCATOR_TRANSITION_VERIFIED);
       }
