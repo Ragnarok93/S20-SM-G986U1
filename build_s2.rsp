@@ -16,5 +16,7 @@
 src/s2_main.c
 src/slide_s2.c
 src/util.c
+src/kernel_page/allocator_observation.c
+src/kernel_page/experiment_state.c
 src/s2_support.c
 src/dso_start.S

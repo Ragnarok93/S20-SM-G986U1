@@ -111,6 +111,12 @@
 #define FAKE_WAITER_WAKE_STATE_OFF 0x60
 #define FAKE_WAITER_WW_CTX_OFF 0x68
 
+/* struct rt_mutex: raw_spinlock_t is 4 bytes here (no
+ * CONFIG_DEBUG_QSPINLOCK_OWNER), so waiters/leftmost/owner are 0x08/0x10/0x18. */
+#define RT_MUTEX_WAITERS_OFF 0x08
+#define RT_MUTEX_LEFTMOST_OFF 0x10
+#define RT_MUTEX_OWNER_OFF 0x18
+
 #define FAKE_TASK_USAGE_OFF 0x68
 #define FAKE_TASK_PRIO_OFF 0xac
 #define FAKE_TASK_NORMAL_PRIO_OFF 0xb4

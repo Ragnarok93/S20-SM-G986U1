@@ -15,6 +15,31 @@ SAMSUNG_KERNEL_SOURCE ?= $(HOME)/s20_kernel_chxl1
 SAMSUNG_SOURCE_CONFIG ?= $(SAMSUNG_KERNEL_SOURCE)/out-stock-layout/.config
 SAMSUNG_CONFIG_STRICT ?= 0
 SAMSUNG_DEVICE_PROFILE := src/targets/$(SAMSUNG_PROJECT)/device-profile.json
+SAMSUNG_LAYOUT_JSON ?= $(HOME)/firmware-check/g986u1-layout.json
+# VMEMMAP_START = PAGE_OFFSET - VMEMMAP_SIZE with
+#   VMEMMAP_SIZE = 1 << (VA_BITS - PAGE_SHIFT - 1 + STRUCT_PAGE_MAX_SHIFT)
+#                = 1 << (39 - 12 - 1 + 6) = 4 GiB
+# Confirmed in the shipped image: mem_init materialises 0xffffffbf00000000.
+SAMSUNG_VMEMMAP_START ?= 0xffffffbf00000000
+SAMSUNG_PROBE_BUILD ?= build/$(SAMSUNG_PROJECT)/probe
+SAMSUNG_PROBE_CC ?= $(HOME)/toolchains-for-snapdragon/llvm-arm-toolchain-ship-10.0-master/bin/clang
+SAMSUNG_PROBE_CROSS ?= aarch64-linux-gnu-
+SAMSUNG_KERNEL_ARCH ?= arm64
+# Names whose Samsung value is derived from the build but legitimately equals
+# another profile's (struct/ABI determined, not inherited).
+SAMSUNG_IGNORE_COPY ?= KMALLOC_PIPE_INDEX KMALLOC_PIPE_OBJ_SIZE FAKE_TASK_USAGE_OFF FAKE_TASK_PRIO_OFF FAKE_TASK_NORMAL_PRIO_OFF
+# Staged device validation. inventory/canary are read-only on the phone;
+# fops writes kernel memory and needs SAMSUNG_ALLOW_WRITE=1, root additionally
+# needs SAMSUNG_ALLOW_ROOT=1.
+SAMSUNG_STAGE ?= inventory
+SAMSUNG_BACKUP ?= 0
+SAMSUNG_DEVICE_OUT ?= build/device-validation
+# Per-command budget. The KS_W1_TEST stage runs the KernelSnitch collision scan
+# before the fops write, which takes minutes on this device, so the default is
+# generous rather than fast.
+SAMSUNG_DEVICE_TIMEOUT ?= 900
+SAMSUNG_ALLOW_WRITE ?= 0
+SAMSUNG_ALLOW_ROOT ?= 0
 ADB ?= adb
 ADB_SERIAL ?=
 UPSTREAM_GENERATOR_ROOT ?= /tmp/ghostlock-profile-gen
@@ -28,7 +53,7 @@ TARGET_DIR := src/targets/$(PROJECT)
 TARGET_HEADER := $(TARGET_DIR)/target.h
 REQUESTED_GOALS := $(if $(strip $(MAKECMDGOALS)),$(MAKECMDGOALS),preload)
 PAYLOAD_GOALS := all preload s2 s3 rootchain closed-loop hello-dso
-UTILITY_GOALS := list-projects list-device-profiles clean info samsung-info samsung-inspect samsung-verify samsung-source-check samsung-config-compare samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-generator-fail-closed-runtime-check samsung-debug-metadata samsung-device-check samsung-stock-kernel-check
+UTILITY_GOALS := list-projects list-device-profiles clean info samsung-info samsung-inspect samsung-verify samsung-source-check samsung-config-compare samsung-test-tools samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-generator-fail-closed-runtime-check samsung-debug-metadata samsung-device-check samsung-device-validation samsung-device-backup samsung-profile-check samsung-profile-gate samsung-profile-derive samsung-pc-solve samsung-layout-probe samsung-stock-kernel-check
 
 ifeq ($(strip $(PROJECT)),)
 ifneq ($(filter $(UTILITY_GOALS),$(MAKECMDGOALS)),)
@@ -48,6 +73,17 @@ $(error unknown PROJECT=$(PROJECT), missing $(TARGET_HEADER))
 endif
 endif
 
+ifeq ($(PROJECT),$(SAMSUNG_PROJECT))
+# A Samsung payload may only build after the evidence gate passes. The stamp is
+# re-validated whenever the header or the validator changes.
+SAMSUNG_PROFILE_STAMP := build/$(SAMSUNG_PROJECT)/.target-profile-validated
+
+$(SAMSUNG_PROFILE_STAMP): $(TARGET_HEADER) tools/verify_samsung_target_profile.py tools/target_profile_schema.py
+	@mkdir -p $(@D)
+	python3 tools/verify_samsung_target_profile.py "$(TARGET_HEADER)" --mode build --quiet \
+	  $(foreach macro,$(SAMSUNG_IGNORE_COPY),--ignore-copy $(macro))
+	@touch $@
+endif
 
 define pick_src
 $(if $(wildcard $(TARGET_DIR)/$(1)),$(TARGET_DIR)/$(1),src/$(1))
@@ -60,6 +96,8 @@ WALLPAPER := assets/wallpaper.webp
 CORE_SRCS := \
   $(call pick_src,main.c) \
   $(call pick_src,util.c) \
+  src/kernel_page/allocator_observation.c\
+  src/kernel_page/experiment_state.c\
   $(call pick_src,slide.c) \
   src/slide_s2.c \
   $(call pick_src,fops.c) \
@@ -145,9 +183,9 @@ COMMON_CFLAGS := -O2 -g0 -Wall -Wextra -Isrc
 PIE_CFLAGS := -fPIE -pie $(COMMON_CFLAGS)
 SO_CFLAGS := -fPIC $(COMMON_CFLAGS)
 WARN_CFLAGS := -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function
-TARGET_CFLAGS := -DTARGET_CONFIG_H=\"targets/$(PROJECT)/target.h\"
+TARGET_CFLAGS := -DTARGET_CONFIG_H=targets/$(PROJECT)/target.h
 
-.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects list-device-profiles samsung-info samsung-inspect samsung-verify samsung-config-compare samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-generator-fail-closed-runtime-check samsung-debug-metadata samsung-device-check samsung-source-check samsung-test-tools samsung-stock-kernel-check
+.PHONY: all preload s2 s3 rootchain closed-loop hello-dso clean info list-projects list-device-profiles samsung-info samsung-inspect samsung-verify samsung-config-compare samsung-generator-audit samsung-generator-verify samsung-generator-legacy-patch-check samsung-generator-legacy-patch samsung-generator-pe-stub-patch-check samsung-generator-pe-stub-patch samsung-generator-fail-closed-patch-check samsung-generator-fail-closed-patch samsung-generator-patches-check samsung-generator-patches samsung-generator-fail-closed-runtime-check samsung-debug-metadata samsung-device-check samsung-device-validation samsung-device-backup samsung-pc-solve samsung-source-check samsung-test-tools samsung-profile-check samsung-profile-gate samsung-profile-derive samsung-stock-kernel-check
 
 all: preload
 
@@ -176,7 +214,7 @@ $(EMBED_SU): src/su_daemon.c | $(EMBEDDIR)
 	$(TARGET_CC) $(TARGET_FLAGS) $(PIE_CFLAGS) $(TARGET_CFLAGS) \
 	  $< $(TARGET_PIE_LDFLAGS) -o $@
 
-$(PRELOAD): $(PRELOAD_SRCS) $(EMBED_SU) $(WALLPAPER) $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h | $(OUTDIR)
+$(PRELOAD): $(PRELOAD_SRCS) $(EMBED_SU) $(WALLPAPER) $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h $(SAMSUNG_PROFILE_STAMP) | $(OUTDIR)
 	$(TARGET_CC) $(TARGET_FLAGS) $(SO_CFLAGS) $(WARN_CFLAGS) $(TARGET_CFLAGS) \
 	  $(PRELOAD_SRCS) $(TARGET_COMMON_LDFLAGS) \
 	  -shared -o $@ -pthread
@@ -208,7 +246,7 @@ $(HELLO_DSO): $(HELLO_SRCS) $(S2_EXPORT_MAP) | $(S2_OUTDIR)
 
 info:
 	@echo "PROJECT=$(PROJECT)"
-	@echo "PROFILE_STATUS=$(if $(filter $(SAMSUNG_PROJECT),$(PROJECT)),evidence-only,executable-profile)"
+	@echo "PROFILE_STATUS=$(if $(filter $(SAMSUNG_PROJECT),$(PROJECT)),$(if $(wildcard $(TARGET_HEADER)),target-derived,evidence-only),executable-profile)"
 	@echo "ANDROID_API=$(API)"
 	@echo "TARGET_DIR=$(TARGET_DIR)"
 	@echo "TARGET_CC=$(TARGET_CC)"
@@ -221,7 +259,7 @@ info:
 	@echo "CORE_SRCS=$(CORE_SRCS)"
 
 samsung-info:
-	@echo "PROFILE_STATUS=evidence-only"
+	@echo "PROFILE_STATUS=$(if $(wildcard $(TARGET_HEADER)),target-derived,evidence-only)"
 	@echo "PROJECT=$(SAMSUNG_PROJECT)"
 	@echo "DEVICE=$(SAMSUNG_DEVICE)"
 	@echo "MODEL=$(SAMSUNG_MODEL)"
@@ -232,10 +270,76 @@ samsung-info:
 	@echo "CONFIG_ARM64_VA_BITS_$(SAMSUNG_VA_BITS)=y"
 	@echo "PROFILE_DOC=src/targets/$(SAMSUNG_PROJECT)/PROFILE.md"
 	@echo "DEVICE_PROFILE=$(SAMSUNG_DEVICE_PROFILE)"
-	@echo "TARGET_HEADER_STATUS=missing; device-specific payload build is intentionally blocked"
+	@echo "TARGET_HEADER_STATUS=$(if $(wildcard $(TARGET_HEADER)),derived; see the header provenance,missing; device-specific payload build is intentionally blocked)"
+
+# Derive the Samsung target.h from firmware and source evidence. Nothing is
+# written unless every symbol and layout value resolves.
+samsung-profile-derive:
+	python3 tools/derive_samsung_target.py \
+	  --elf "$(SAMSUNG_VENDOR_ELF)" \
+	  --image "$(SAMSUNG_RAW_IMAGE)" \
+	  --config "$(SAMSUNG_KERNEL_CONFIG)" \
+	  --layout "$(SAMSUNG_LAYOUT_JSON)" \
+	  --va-bits $(SAMSUNG_VA_BITS) \
+	  $(if $(strip $(SAMSUNG_VMEMMAP_START)),--vmemmap-start $(SAMSUNG_VMEMMAP_START),) \
+	  --out "$(TARGET_DIR)/target.h"
+
+# Evidence-only review: assumption tags and missing tags are reported.
+samsung-profile-check:
+	python3 tools/verify_samsung_target_profile.py "$(TARGET_DIR)/target.h" --mode evidence
+
+# The gate the payload build enforces: no assumptions, no copied values, no
+# missing provenance.
+samsung-profile-gate:
+	python3 tools/verify_samsung_target_profile.py "$(TARGET_DIR)/target.h" --mode build \
+	  $(foreach macro,$(SAMSUNG_IGNORE_COPY),--ignore-copy $(macro))
+
+# Compile tools/samsung_probe against the vendor tree with the stock .config
+# and convert the offsets into $(SAMSUNG_LAYOUT_JSON).  The probe is never
+# loaded; it only carries offsetof() results in .rodata.
+samsung-layout-probe:
+	@test -d "$(SAMSUNG_KERNEL_SOURCE)" || { echo "missing kernel source: $(SAMSUNG_KERNEL_SOURCE)"; exit 2; }
+	rm -rf "$(SAMSUNG_PROBE_BUILD)"
+	mkdir -p "$(SAMSUNG_PROBE_BUILD)"
+	cp tools/samsung_probe/Makefile tools/samsung_probe/samsung_layout_probe.c "$(SAMSUNG_PROBE_BUILD)/"
+	$(MAKE) -C "$(SAMSUNG_KERNEL_SOURCE)" O="$(abspath $(SAMSUNG_KERNEL_SOURCE))/out-stock-layout" \
+	  M="$(abspath $(SAMSUNG_PROBE_BUILD))" ARCH=$(SAMSUNG_KERNEL_ARCH) \
+	  CC="$(SAMSUNG_PROBE_CC)" CLANG_TRIPLE=$(SAMSUNG_PROBE_CROSS) \
+	  CROSS_COMPILE=$(SAMSUNG_PROBE_CROSS) modules
+	python3 tools/read_samsung_layout.py "$(SAMSUNG_PROBE_BUILD)/samsung_layout_probe.ko" \
+	  --kernel-source "$(SAMSUNG_KERNEL_SOURCE)" --output "$(SAMSUNG_LAYOUT_JSON)"
+
+# Host-side KernelSnitch solve for an exported collision set.  The answer is
+# only a candidate: the payload re-checks it against the collisions it measured
+# before using it.  Override SAMSUNG_COLLISIONS with a ks_collisions*.txt path.
+SAMSUNG_COLLISIONS ?= $(SAMSUNG_DEVICE_OUT)/evidence/ks_collisions.txt
+SAMSUNG_PC_ANSWER ?=
+SAMSUNG_PC_ANSWER_FLAG = $(if $(strip $(SAMSUNG_PC_ANSWER)),--answer "$(SAMSUNG_PC_ANSWER)")
+samsung-pc-solve:
+	python3 tools/kernelsnitch_pc_solver.py --collisions "$(SAMSUNG_COLLISIONS)" $(SAMSUNG_PC_ANSWER_FLAG)
 
 samsung-device-check:
 	python3 tools/verify_samsung_device.py --profile "$(SAMSUNG_DEVICE_PROFILE)" --adb "$(ADB)" $(if $(strip $(ADB_SERIAL)),--serial "$(ADB_SERIAL)",)
+
+# Staged on-device validation with a written report. Every stage reruns the
+# read-only pre-flight first, so stale evidence can never authorise a write.
+samsung-device-validation:
+	python3 tools/samsung_device_validation.py \
+	  --stage $(SAMSUNG_STAGE) \
+	  --profile "$(SAMSUNG_DEVICE_PROFILE)" \
+	  --target-header "$(TARGET_DIR)/target.h" \
+	  --so "$(OUTDIR)/preload.so" \
+	  --out "$(SAMSUNG_DEVICE_OUT)" \
+	  --timeout $(SAMSUNG_DEVICE_TIMEOUT) \
+	  --adb "$(ADB)" $(if $(strip $(ADB_SERIAL)),--serial "$(ADB_SERIAL)",) \
+	  $(if $(filter 1 yes true,$(SAMSUNG_ALLOW_WRITE)),--allow-kernel-write,) \
+	  $(if $(filter 1 yes true,$(SAMSUNG_ALLOW_ROOT)),--allow-root-install,) \
+	  $(if $(filter 1 yes true,$(SAMSUNG_BACKUP)),--backup,)
+
+# Read-only device state snapshot (getprop, config, mounts, battery, logs).
+# This is not a user-data backup; nothing outside /data/local/tmp is written.
+samsung-device-backup:
+	$(MAKE) samsung-device-validation SAMSUNG_STAGE=inventory SAMSUNG_BACKUP=1
 
 samsung-source-check:
 	python3 tools/verify_samsung_kernel_source.py --profile "$(SAMSUNG_DEVICE_PROFILE)" --source-root "$(SAMSUNG_KERNEL_SOURCE)"

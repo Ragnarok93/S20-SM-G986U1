@@ -1,6 +1,6 @@
 # Samsung Galaxy S20+ target-profile scaffold
 
-**Status: documentation-only; not build-ready.** This directory intentionally does not contain `target.h`, so the existing Makefile cannot select it as an executable target. Do not copy the K40 `target.h` here and treat it as a Samsung profile.
+**Status: target-derived and buildable; on-device behaviour unvalidated.** `target.h` is generated from the recorded firmware and kernel tree by `make samsung-layout-probe` + `make samsung-profile-derive`, and `make samsung-profile-gate` enforces its evidence tags before any link. See [Derived target profile](#derived-target-profile-2026-10-30). Do not hand-edit the header or copy the K40 table.
 
 The device facts and pinned artifact/configuration expectations now live in [`device-profile.json`](device-profile.json), which is consumed by `tools/verify_samsung_firmware.py`. Run `make samsung-device-check` for a read-only ADB check of the connected device identity, Android build, ABI, and kernel release. Run `make samsung-source-check` to record the local kernel tree revision/origin, confirm its `4.19.113` source baseline, and list likely device defconfigs. The source-tree check is deliberately read-only and distinguishes source-version compatibility from proof that this source tree exactly matches the shipped firmware. These checks add repeatable compatibility gates; they do not by themselves mark the device port complete. Run `make samsung-config-compare` to compare the extracted stock `kernel.config` with `~/s20_kernel_chxl1/out-stock-layout/.config`; differences in SoC selection, ARM64 layout, futex/scheduler, symbol/debug, and security-hardening groups are core compatibility blockers, while other device/project changes are listed for explicit review. Add `SAMSUNG_CONFIG_STRICT=1` to fail on any config delta.
 
@@ -37,7 +37,7 @@ The repository's `make samsung-inspect` target was run against the extracted fir
 
 The byte comparison establishes that the payload selected by the legacy header parser matches the separately extracted raw Image. The BTF scan is only a byte-pattern heuristic: zero hits do not independently prove the absence of valid BTF metadata. Likewise, a config option not listed in the parsed file is not equivalent to a positive proof about every possible external metadata source.
 
-This inspection validates input layout and provenance only. It does not establish the runtime memory map, structure layouts, or device-specific constants. The Samsung directory remains documentation-only and deliberately has no `target.h`.
+This inspection validates input layout and provenance only. It does not by itself establish the runtime memory map or structure layouts; those are derived separately from the vendor ELF and the matching kernel tree in the section below.
 
 ## KernelSU-Next / SUSFS compatibility assessment
 
@@ -86,7 +86,7 @@ The user reported **PASS** for `make samsung-verify` after the real-image inspec
 - Android NDK r27c/API 33 AArch64 PIE and shared-library smoke tests;
 - the eleven-method read-only inspection/build-guard regression suite, including all seven enumerated payload build goals.
 
-The reported pass is evidence that these checks completed successfully in the user's WSL environment at that revision. It does **not** mean a Samsung payload is buildable or its runtime memory-layout assumptions are verified. The Samsung profile remains documentation-only and has no `target.h`.
+The reported pass is evidence that these checks completed successfully in the user's WSL environment at that revision. At that revision the profile had no `target.h`; the derived header now in this directory is a later, separately gated step. The historical pass does **not** by itself validate runtime behaviour.
 
 ## Boot-header reference
 
@@ -96,7 +96,7 @@ This repository's inspector has exercised the observed v2 image and v3/v4 synthe
 
 ## Build-guard regression coverage
 
-The build-guard test checks all seven Makefile payload goals (`all`, `preload`, `s2`, `s3`, `rootchain`, `closed-loop`, and `hello-dso`) in dry-run mode and expects each to fail with the evidence-only guard while this profile has no `target.h`. The full `make samsung-verify` command was reported as passing after this test and the real-image inspection were integrated.
+The build-guard test now checks both states: with the derived `target.h` present the evidence guard must not fire and the port path must parse; with the header temporarily removed all seven payload goals must fail with the evidence-only message. The full `make samsung-verify` command was reported as passing after the earlier guard test and the real-image inspection were integrated.
 
 ## Repeatable generator preflight
 
@@ -121,6 +121,32 @@ The audit does **not** import or execute the external generator and does not wri
 
 The source audit is a lightweight static preflight, not a substitute for reviewing changes to the generator source if its implementation changes.
 
+## Derivation and build gate (2026-10-30)
+
+The pipeline is now complete: `target.h` is generated from this build's ELF, config and source tree, and a header that is incomplete, untagged or inherited from another device still cannot reach a build.
+
+```bash
+make samsung-profile-derive \
+  SAMSUNG_VMEMMAP_START=0x... \
+  SAMSUNG_LAYOUT_JSON="$HOME/firmware-check/g986u1-layout.json"
+make samsung-profile-check     # evidence review: reports remaining [D] assumptions
+make samsung-profile-gate      # what the payload build enforces
+```
+
+`tools/derive_samsung_target.py` composes the header from three sources and refuses to write anything if a value is missing:
+
+| Source | Tag | Where it comes from |
+|---|---|---|
+| Symbol offsets | `[A]` | `.symtab` of the pinned vendor ELF (or a `System.map`) |
+| Struct/allocator layout | `[B]` | `--layout` JSON derived from the matching source tree |
+| Address-space geometry | `[C]` | 4.19 arm64 layout from `--va-bits`/`--text-offset`/`--phys-offset`/`--vmemmap-start` |
+
+Undefined or zero-valued ELF symbols are rejected rather than resolved, `VMEMMAP_START` is never inferred, and target-selector/config flags are checked first. The emitted header records the SHA-256 of every input.
+
+`tools/verify_samsung_target_profile.py --mode build` is the gate. It fails when a macro required by the payload is missing, untagged, still tagged `[D]`, numerically identical to another profile's build-specific value, inconsistent with the fixed 4.19 field order, or inconsistent with `KIMAGE_TEXT_BASE + <offset>`. The Makefile runs it automatically before any Samsung payload link, so a copied or guessed header cannot produce a binary.
+
+Still required before the first build: the vendor ELF, `kernel.config`, and a layout JSON derived from the G986U1 source tree. Until they exist, `make PROJECT=samsung-g986u1-4.19.113 preload` continues to fail closed.
+
 ## Upstream generator compatibility audit (2026-10-28)
 
 The findings immediately below describe the unpatched upstream baseline. The local WSL checkout was subsequently patched and tested; see **Current external-generator verification** below.
@@ -143,7 +169,7 @@ Reviewed the generator source from `woshimaniubi8/CVE-2026-43499-root-KernelSU`:
 
 - In the pristine upstream baseline, the generator's boot parser is incompatible with this Samsung image's confirmed v2 header.
 - In that baseline, the no-BTF fallback can still emit a nominally successful header with inherited or assumed values; this must be separately corrected even after parser compatibility is added.
-- The Samsung branch keeps the target profile documentation-only. Parser tests, firmware checks, and ABI smoke tests do not establish runtime memory layout or justify carrying forward values from another device.
+- Parser tests, firmware checks, and ABI smoke tests do not establish runtime memory layout; the derived header is a separate evidence tier. Values are never carried forward from another device.
 
 ## Local generator parser patch status (2026-10-28)
 
@@ -170,7 +196,7 @@ python3 -m unittest discover -s tests \
   -p 'test_patch_optional_arm64_pe_stub.py' -v
 ```
 
-The combined check target must report either `ALREADY_PATCHED` or `READY` for both legacy-v2 parser files, then report `already patched` or `patchable` for the optional PE-stub block. These checks make no source changes. After reviewing the complete check output, `make samsung-generator-patches UPSTREAM_GENERATOR_ROOT=/tmp/ghostlock-profile-gen` applies both source-only parser patches, with separate backups. Neither target runs profile generation or creates `target.h`; the Samsung profile remains documentation-only.
+The combined check target must report either `ALREADY_PATCHED` or `READY` for both legacy-v2 parser files, then report `already patched` or `patchable` for the optional PE-stub block. These checks make no source changes. After reviewing the complete check output, `make samsung-generator-patches UPSTREAM_GENERATOR_ROOT=/tmp/ghostlock-profile-gen` applies both source-only parser patches, with separate backups. Neither target runs profile generation or touches the derived `target.h` in this profile.
 
 ## Debug-metadata inventory (read-only)
 
@@ -273,7 +299,76 @@ The reference profile targets a different device/build: Qualcomm 4.19.157-perf, 
 - kernel-specific fake-object / spray geometry;
 - end-to-end runtime behavior.
 
-A future `target.h` must be created only after each required value has explicit evidence tied to this exact Samsung build. Never fill unresolved fields by copying constants from `oplus-4.19.157-perf`.
+The derived `target.h` exists only because each required value has explicit evidence tied to this exact Samsung build. Never fill unresolved fields by copying constants from `oplus-4.19.157-perf`; the build gate rejects identical build-specific values.
+## Derived target profile (2026-10-30)
+
+`target.h` is generated, not hand-written, from the artifacts recorded above.
+
+| Input | Pinned value |
+|---|---|
+| Vendor ELF | `~/firmware-check/vmlinux.elf`, sha256 `531444e3c98f8f7c4d2baefeda1386aca2b60a42030fcb1f4393c5e10b9154b4` |
+| Raw Image | `kernel.bin`, sha256 `ffbc90af676558557eb917687736c11f15b560dbb3cb9ca237224da5acb14123` |
+| Stock config | `kernel.config`, sha256 `ec6da4cfe412f7d0669c7d621751753375e32197a2602f98627eb95e71b9c0b2` |
+| Layout source | `~/s20_kernel_chxl1` (no VCS metadata; key headers hashed below) |
+| Layout JSON | `~/firmware-check/g986u1-layout.json`, sha256 `20d3f3ac0bd6f9b40dcb875e3f295d315d9b1217199b5dd21a3f0a7671015cae` |
+
+Derivation chain:
+
+1. `make samsung-layout-probe` copies `tools/samsung_probe/` under `build/`, compiles it as an out-of-tree module against `out-stock-layout` with clang 10.0.6 (the compiler named in the stock kernel banner) and the stock config, then `tools/read_samsung_layout.py` converts the `offsetof` data into the layout JSON. The reader fails if the tree does not match the recorded firmware anchors.
+2. `make samsung-profile-derive` resolves 51 symbol values from `.symtab`, 107 layout values and 10 architecture constants. It writes nothing until all 166 required macros resolve.
+3. `make samsung-profile-gate` (also a prerequisite of the `preload` link) enforces tags, ordering, alias arithmetic and the no-copy rule.
+
+Values confirmed directly in the shipped image by disassembly, not only from the source tree:
+
+| Field | Value | Evidence |
+|---|---|---|
+| `_text` / `KIMAGE_TEXT_BASE` | `0xffffff8008080000` | `.symtab` `_text` |
+| `VMEMMAP_START` | `0xffffffbf00000000` | `mem_init` materialises the constant (`mov #0xffbf00000000`, `movk #0xffff, lsl #48`) |
+| `TASK_REAL_CRED_OFF` | `0x7f0` | `get_task_cred`: `ldr x20, [x19, #2032]` |
+| `TASK_PI_LOCK_OFF` | `0x8c8` | `task_blocks_on_rt_mutex`: `add x24, x2, #0x8c8` |
+| `PIPE_NRBUFS_OFF` / `PIPE_BUFS_OFF` | `0x60` / `0xa0` | `pipe_write`: `[x20, #96]`, `[x20, #160]` |
+| `MM_STRUCT_SZ` | `0x400` | SLUB object stride: `sizeof(struct mm_struct)` is `0x3c8`, but `SLAB_HWCACHE_ALIGN` rounds the cache to `ALIGN(0x3c8, 0x40) = 0x400`. The KernelSnitch scan walks this stride from a 32KB slab base, so a `0x3c8` grid never lands on a real object. Proven offline against the 2026-10-30 device export: at `0x400` with the kernel futex key order exactly one candidate in the 11GB direct map agrees 16/16 (`0xffffffc18f2e1400`, bucket `0x34c`); at `0x3c8`, or with the old swapped key order, none does. |
+| `PIPE_INODE_INFO_STRUCT_SIZE` | `0xb0` | `sizeof(struct pipe_inode_info)` in the matching tree |
+
+### Reviewed coincidences
+
+Five derived values legitimately equal another profile's, so a pure no-copy rule
+cannot tell them apart from inherited values. They are not exempted by name: each
+is pinned to the exact reviewed value in
+[`coincidence-review.json`](coincidence-review.json), together with the site in
+the shipped image that confirms it. Build mode fails if a pin and the header
+disagree, and it fails if a macro is exempted without a pin (or pinned without
+being exempted), so an exemption cannot absorb a value nobody checked.
+
+| Macro | Value | Independent confirmation in the shipped image |
+|---|---|---|
+| `FAKE_TASK_USAGE_OFF` | `0x68` | `copy_process`: `str w8, [x20, #104]` initialises the task refcount |
+| `FAKE_TASK_PRIO_OFF` | `0xac` | `set_user_nice` reads `static_prio` at `[x19, #176]` and `state` sits at `[x19, #168]`; `prio` precedes `static_prio` |
+| `FAKE_TASK_NORMAL_PRIO_OFF` | `0xb4` | `static_prio` = `0xb0`, and `normal_prio` follows it |
+| `KMALLOC_PIPE_INDEX` | `0xa` | `alloc_pipe_info` sizes the ring as `n * 40` bytes (16 buffers = 640 B → cache index 10) |
+| `KMALLOC_PIPE_OBJ_SIZE` | `0x400` | Same ring allocation: 640 B rounds up to the `0x400` kmalloc cache |
+
+Key header hashes for the layout source (no `.git` is present in the supplied tree):
+
+```text
+ashmem.c       ade1f53b488ea092bf585c090245a2b0f6f4590cf3a282d6beb15ffe42f62a7d
+hooks.c        60f99267a319cc802c9dced4bec52bc668f775ed416d7d57e74d0d8a8993544c
+configfs/file  ecb9d77982bb42f1dc92d0c5b2e6304cf52785a57efb2971af9733430f07b746
+sched.h        8afa0e078f953ec84b5f088e90e81a9d4212a4464f16f2a516a3f402e3f8a3e7
+pipe_fs_i.h    907650c7b139ecb4e45933ba2450a8f484b53c3cfcabea1a047bad299b9e9395
+memory.h       82db467c3cd3fb0ecc14473aa05b3c59116fdc4a512132a7178aa994a140d5fe
+```
+
+### Vendor divergences that needed code, not just numbers
+
+- **SELinux.** This tree keeps the legacy `int selinux_enforcing` (not `selinux_state.enforcing`) and places it in `.kdp_ro` with `CONFIG_KDP_NS/DMAP/CRED=y`. A write from EL1 would fault, so `root.c` skips it when `SELINUX_ENFORCING_KDP_RO=1` and relies on the cred-SID patch.
+- **ashmem name prefix.** The driver writes `dev/ashmem/` (11 bytes) at `struct ashmem_area.name`, so `ASHMEM_NAME_PREFIX_LEN=11` and every fake `configfs_buffer` field is shifted by 11. `configfs_buffer.count` (offset 0) is the fixed prefix and cannot be written; it remains a large positive value, which `simple_read_from_buffer` treats as an effectively unlimited source.
+- **No `random_boot_id`.** The symbol is absent from this build (and from the whole image), so `SLIDE_BOOTID_DATA_PRESENT=0` and the cosmetic boot-id restore is compiled out. The slide route is unsupported on this target; the FOPS/configfs/pipe route is the port path.
+- **kmalloc geometry.** `NR_KMALLOC_TYPES=2` (no `CONFIG_ZONE_DMA`; 4.19 has no per-memcg kmalloc cache dimension). The pipe-buffer array is 16 x 0x28 = 0x280 bytes, so `KMALLOC_PIPE_INDEX=10` and `KMALLOC_PIPE_OBJ_SIZE=0x400`.
+
+### Build result
+
+`make PROJECT=samsung-g986u1-4.19.113 preload` produces `build/samsung-g986u1-4.19.113/bin/preload.so` (ELF64 AArch64 shared object, `NEEDED libc.so` and `libdl.so`). This is a build-level result only. No on-device run has been performed. The staged procedure that must be followed, including the read-only pre-flight that blocks the first kernel write, is [the device-validation runbook](../../../docs/targets/samsung-g986u1-4.19.113-device-validation.md); its runtime gates remain unclaimed.
 
 ## Stock-kernel port preflight
 

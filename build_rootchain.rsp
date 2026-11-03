@@ -19,6 +19,8 @@
 src/rootchain_bridge.c
 src/slide_s3.c
 src/util.c
+src/kernel_page/allocator_observation.c
+src/kernel_page/experiment_state.c
 src/s2_support.c
 src/fops.c
 src/pipe.c

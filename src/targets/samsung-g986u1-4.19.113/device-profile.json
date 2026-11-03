@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "profile_id": "samsung-g986u1-4.19.113",
-  "status": "identity-check-only",
+  "status": "target-derived",
   "device": {
     "manufacturer": "Samsung",
     "marketing_name": "Galaxy S20+",
@@ -81,5 +81,15 @@
     ],
     "preferred_device_config": "vendor/y2q_usa_singlew_defconfig",
     "candidate_config_path": "out-stock-layout/.config"
+  },
+  "target_profile": {
+    "status": "derived",
+    "header": "target.h",
+    "header_sha256": "a992e0133f64ab14f3c445f13b67fb60b8674cb5639e2745a09c5ce6e7c8ec1f",
+    "layout_json_sha256": "20d3f3ac0bd6f9b40dcb875e3f295d315d9b1217199b5dd21a3f0a7671015cae",
+    "derived_symbols": 51,
+    "derived_layout": 107,
+    "derived_arch": 10,
+    "device_validation": "not run"
   }
 }

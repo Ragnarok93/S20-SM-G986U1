@@ -1,0 +1,38 @@
+{
+  "_comment": [
+    "Reviewed coincidences for samsung-g986u1-4.19.113.",
+    "",
+    "A macro whose Samsung value happens to equal alioth's or oplus's cannot be",
+    "told apart from an inherited value by comparison alone. Each entry below",
+    "pins the reviewed value and the site in the shipped kernel image",
+    "(vmlinux.elf, sha256 531444e3c98f8f7c4d2baefeda1386aca2b60a42030fcb1f4393c5e10b9154b4)",
+    "that confirms it, so SAMSUNG_IGNORE_COPY can only exempt a value that was",
+    "checked. Changes to a pinned value must be re-reviewed here.",
+    "",
+    "A macro may only be exempted while it has an entry here, and every entry",
+    "here must also be exempted; tools/verify_samsung_target_profile.py enforces",
+    "both directions in build mode."
+  ],
+  "reviewed": {
+    "FAKE_TASK_NORMAL_PRIO_OFF": {
+      "value": "0xb4",
+      "evidence": "set_user_nice reads p->static_prio at [x19,#176] (0xffffff80080fb710); struct task_struct orders prio, static_prio, normal_prio, so normal_prio = 0xb0 + 4"
+    },
+    "FAKE_TASK_PRIO_OFF": {
+      "value": "0xac",
+      "evidence": "set_user_nice reads p->static_prio at [x19,#176] = 0xb0 (0xffffff80080fb710) and copy_process writes p->state at [x20,#168] = 0xa8 (0xffffff80080b6610); prio precedes static_prio by 4"
+    },
+    "FAKE_TASK_USAGE_OFF": {
+      "value": "0x68",
+      "evidence": "copy_process initialises the task refcount with str w8,[x20,#104] = 0x68 before account_kernel_stack (0xffffff80080b6610)"
+    },
+    "KMALLOC_PIPE_INDEX": {
+      "value": "0xa",
+      "evidence": "alloc_pipe_info sizes the pipe ring as n*40 bytes (add x8,x22,x22,lsl#2; lsl x0,x8,#3 at 0xffffff80082e80ac); 16 default buffers = 640 bytes, which kmalloc_index maps to cache index 10"
+    },
+    "KMALLOC_PIPE_OBJ_SIZE": {
+      "value": "0x400",
+      "evidence": "alloc_pipe_info allocates the 16-slot ring of 40-byte pipe_buffer entries (0xffffff80082e80ac-0xffffff80082e80b8); 640 bytes rounds up to the 0x400 kmalloc cache"
+    }
+  }
+}

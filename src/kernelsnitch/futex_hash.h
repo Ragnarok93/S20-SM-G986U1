@@ -169,10 +169,14 @@ typedef union {
         unsigned int offset;
     } shared;
     struct {
-        /* Linux 4.19: private.address @0, private.mm @8.  both.word aliases
-         * address and both.ptr aliases mm. */
-        unsigned long address;
+        /* Linux 4.19 get_futex_key(): private.mm @0, private.address @8.
+         * both.ptr aliases mm and both.word aliases the page-aligned address.
+         * Verified against ~/s20_kernel_chxl1/include/linux/futex.h and
+         * re-validated offline on the 2026-10-30 G986U1 collision export: only
+         * this word order yields a candidate that agrees 16/16, the swapped
+         * order yields none in the whole 39-bit kernel range. */
         void *mm;
+        unsigned long address;
         unsigned int offset;
     } private;
     struct {

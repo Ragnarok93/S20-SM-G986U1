@@ -7,20 +7,24 @@
 
 #define ROOTCHAIN_BUILD_LABEL "rootchain_bridge_alioth_419_run22gate1_20260916"
 #define ROOTCHAIN_MM_PATH_ENV "ROOTCHAIN_MM_PATH"
-#define ROOTCHAIN_MM_DEFAULT_PATH "/data/local/tmp/ks_mm_answer.txt"
+#define ROOTCHAIN_MM_DEFAULT_PATH ghostlock_path("ks_mm_answer.txt")
 #define ROOTCHAIN_MM_BOOT_ID_PATH_ENV "ROOTCHAIN_MM_BOOT_ID_PATH"
-#define ROOTCHAIN_MM_BOOT_ID_DEFAULT_PATH "/data/local/tmp/ks_mm_boot_id.txt"
+#define ROOTCHAIN_MM_BOOT_ID_DEFAULT_PATH \
+  ghostlock_path("ks_mm_boot_id.txt")
 #define ROOTCHAIN_RUN22_GATE_PATH_ENV "ROOTCHAIN_RUN22_GATE_PATH"
-#define ROOTCHAIN_RUN22_GATE_DEFAULT_PATH "/data/local/tmp/ks_run22_gate.txt"
-#define ROOTCHAIN_BOOT_LOCK "/data/local/tmp/rootchain_bridge_boot.lock"
+#define ROOTCHAIN_RUN22_GATE_DEFAULT_PATH \
+  ghostlock_path("ks_run22_gate.txt")
+#define ROOTCHAIN_BOOT_LOCK \
+  ghostlock_path("rootchain_bridge_boot.lock")
 #define ROOTCHAIN_MANIFEST_PATH_ENV "ROOTCHAIN_MANIFEST_PATH"
-#define ROOTCHAIN_MANIFEST_DEFAULT_PATH "/data/local/tmp/rootchain_manifest.txt"
+#define ROOTCHAIN_MANIFEST_DEFAULT_PATH \
+  ghostlock_path("rootchain_manifest.txt")
 #define ROOTCHAIN_ARTIFACT_PATH_ENV "ROOTCHAIN_ARTIFACT_PATH"
 #define ROOTCHAIN_PIPE_PAGE_ENV "KS_ROOTCHAIN_PIPE_PAGE"
 #define ROOTCHAIN_PIPE_BOOT_ENV "KS_ROOTCHAIN_PIPE_BOOT_ID"
-#define ROOTCHAIN_SU_LOCAL "/data/local/tmp/su"
-#define ROOTCHAIN_SU_SOCK "/data/local/tmp/temp_su.sock"
-#define ROOTCHAIN_SU_LOG "/data/local/tmp/su_daemon.log"
+#define ROOTCHAIN_SU_LOCAL ghostlock_path("su")
+#define ROOTCHAIN_SU_SOCK ghostlock_path("temp_su.sock")
+#define ROOTCHAIN_SU_LOG ghostlock_path("su_daemon.log")
 #define ROOTCHAIN_PROOF_OFF 0x7000
 #define ROOTCHAIN_PHYS64_OFF 0x100
 #define ROOTCHAIN_READ_TAG "nebusec_70687973727730"

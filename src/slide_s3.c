@@ -459,7 +459,8 @@ static int s2_readback_evidence(void) {
     memcpy(&ft_root, rbuf + bias + FAKE_TASK_OFF + FAKE_TASK_PI_WAITERS_OFF,
            sizeof(ft_root));
     memcpy(&lock_wait_lock, rbuf + bias + LOCK_OFF, sizeof(lock_wait_lock));
-    memcpy(&lock_owner, rbuf + bias + LOCK_OFF + 0x18, sizeof(lock_owner));
+    memcpy(&lock_owner, rbuf + bias + LOCK_OFF + RT_MUTEX_OWNER_OFF,
+           sizeof(lock_owner));
     pr_info("%s readback proxy_tree_self=%d proxy_pi_self=%d "
             "ft_pi_root=%016llx\n",
             s2_log_tag,

