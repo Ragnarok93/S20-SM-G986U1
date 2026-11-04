@@ -73,6 +73,29 @@ field exists for, and every row sharing the address is marked.
    has no state sample between the crossing and the free, so its row reports
    `allocated_at_sample=unavailable` rather than reusing the freeze sample.
 
+## Geometry and alignment (checked, not assumed)
+
+The page base is `addr & ~(span − 1)`.  That is exact only under two conditions,
+and the table checks both before it derives anything:
+
+1. **`span` is a power of two.**  A slab of three pages has no mask that yields
+   its base; such a geometry reports `page=invalid(non-power-of-two-span)`
+   instead of masking with `span − 1`.  This device measures
+   `pagesperslab=8`, so `span = 32768`, and an order-3 compound page is
+   naturally aligned to that span — the mask recovers the compound head
+   exactly.
+2. **`objsize × objperslab == span`.**  A span that disagrees with its own
+   object count means one of the three slabinfo fields is not what it claims;
+   the row is invalid rather than resolved from the fields that happen to
+   agree.
+
+`identity_test.c` independently asserts the consequences on the resolved row:
+`page % span == 0`, `offset < span`, and `0 ≤ slot_in_page < objperslab`.  A
+derived slot outside the object count is reported as `match=0`; it is never
+re-clamped into range.  Only the addressed row carries `page`, `offset` and
+`slot_in_page`; every unresolved row prints them as `unavailable` with the
+reason, so they cannot be read as identity, let alone occupancy.
+
 ## Emitted lines
 
 One window header per run:
@@ -197,5 +220,44 @@ One page-probe cycle of the existing route. Log:
   discarded (`d_num=-32 d_slabs=-1`), the 50 ms quiet window moved nothing, and
   the device stayed alive.
 
+Same cycle, the control page was killed microseconds after the anchor's free:
+
+| measurement | anchor row | control (`KS_CTL_TIGHT`) |
+| --- | --- | --- |
+| `d_active` | −1 | −1 |
+| `d_num` | 0 | −32 |
+| `d_slabs` | 0 | −1 |
+| discard | no | yes |
+
+What that comparison is: same cycle, same cache, same allocator configuration,
+with the control's fillers frozen the same way. What it is not: proof of
+equivalent page state. The control's discard proves that a page was reclaimed
+on these mechanics; it does not establish that the anchor's page was empty, or
+that the two frees met the same `slab_empty` decision. The quiet window
+(0/0/0) bounds the claim to the measured interval, not to the state.
+
 The one exact page is the scan object's own page. Nothing in this cycle says
 the other 31 objects were on it, and nothing here measures occupancy.
+
+## Whether Cycle B is worth building
+
+**Decision: defer.** Build the 32-dump run only if the next engineering step
+turns on whether the burst shares one slab page.
+
+- It would answer co-residency, which would revise `6e8bf6b`'s inference (that
+  inference came from a drain delta, not from per-object addresses).
+- It would not answer `page->inuse`, `n->nr_partial`, `prior`, or the retention
+  reason. Occupancy stays `unavailable` even with 32 addresses.
+- It costs 31 leak dumps at 8–10 minutes each plus the cycle, roughly 4–5 hours
+  with all 32 children alive across the series — a different run mode, not a
+  flag on this one.
+
+Criterion to start it: a following experiment whose branch depends on "one page
+or several". If the retention question can be attacked without the grouping —
+as the same-cycle control differential now allows — those hours buy no
+decision.
+
+One consequence for the code: the complete-table grouping branch
+(`distinct_pages`, `objects_per_page`, `co_residency=co-resident/split`) cannot
+be reached while one address exists per run. It is deliberately unexercised
+here, and Cycle B must bring the regression that covers it.

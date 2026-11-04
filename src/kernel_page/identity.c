@@ -240,6 +240,13 @@ int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
   const char *reason = NULL;
   if (!g->measured || g->span <= 0 || g->objsize <= 0) {
     reason = "no-slab-geometry";
+  } else if ((g->span & (g->span - 1)) != 0) {
+    /* page = addr & ~(span - 1) is exact only when span is a power of two:
+     * a slab of, say, 3 pages has no single mask that yields its base.  The
+     * device reports 8 pages (order 3), whose compound page is naturally
+     * aligned to 32768, but the table must not assume that of another
+     * geometry it did not measure. */
+    reason = "non-power-of-two-span";
   } else if (!g->span_agrees) {
     reason = "geometry-self-inconsistent";
   } else if (!g->assumes_agree) {
@@ -454,15 +461,17 @@ void kp_identity_stats(struct kp_identity_stats *out) {
   }
   out->unresolved = g_slots >= out->page_known ? g_slots - out->page_known : 0;
   out->pages_observed = npages;
-  for (size_t k = 0; k < npages; k++) {
-    if (counts[k] > out->objects_per_page) {
-      out->objects_per_page = counts[k];
-    }
-  }
   out->complete = (out->slots > 0 && out->rows == out->slots &&
                    out->page_known == out->slots);
   if (out->complete) {
+    /* Grouping numbers exist only for the whole table: an interrupted scan
+     * must not leave a page count that reads like a result. */
     out->distinct_pages = npages;
+    for (size_t k = 0; k < npages; k++) {
+      if (counts[k] > out->objects_per_page) {
+        out->objects_per_page = counts[k];
+      }
+    }
   }
   if (out->rows < out->slots) {
     out->co_residency = KP_CO_UNAVAILABLE;

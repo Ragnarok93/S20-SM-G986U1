@@ -91,6 +91,12 @@ int main(void) {
   CHECK(id.page_exact == 1);
   CHECK(id.span == 8 * 4096);
   CHECK(id.page_reason == NULL);
+  /* The mask is only exact for a span-aligned page: the derived base is a
+   * multiple of the measured span, the offset stays inside it, and the
+   * derived slot stays inside the object count. */
+  CHECK((id.page & (uintptr_t)(8 * 4096 - 1)) == 0);
+  CHECK(id.offset < (size_t)(8 * 4096));
+  CHECK(id.slot >= 0 && id.slot < 32);
 
   /* The object one stride lower is slot 0 and does not match slot 1. */
   CHECK(kp_identity_anchor(&g, 0xffffffc0a3af8000ULL, 1, &id) == 0);
@@ -131,6 +137,26 @@ int main(void) {
           strcmp(id.page_reason, "geometry-self-inconsistent") == 0);
   }
 
+  /* A span that is not a power of two cannot be masked at all, even when its
+   * own fields agree; the table must refuse a page rather than mask with
+   * 12287. */
+  {
+    struct kp_geometry np = measured();
+    np.objsize = 1024;
+    np.objs_per_slab = 12;
+    np.pages_per_slab = 3;
+    np.span = 3 * 4096;
+    np.assumed_objs_per_slab = 12;
+    np.assumed_span = 3 * 4096;
+    np.span_agrees = 1;
+    np.assumes_agree = 1;
+    CHECK(kp_identity_anchor(&np, 0xffffffc0a3af8400ULL, 1, &id) == 0);
+    CHECK(id.page == 0);
+    CHECK(id.page_exact == 0);
+    CHECK(id.page_reason != NULL &&
+          strcmp(id.page_reason, "non-power-of-two-span") == 0);
+  }
+
   /* Measured geometry that disagrees with the burst's constants is a failed
    * check too: the page would be arithmetically valid but about a page the
    * construction did not build. */
@@ -163,6 +189,32 @@ int main(void) {
     CHECK(st.co_residency == KP_CO_UNAVAILABLE);
     CHECK(st.co_reason != NULL &&
           strcmp(st.co_reason, "addressed-too-few") == 0);
+    kp_identity_summary();
+  }
+
+  /* An interrupted scan: rows stop early, and no grouping number may appear.
+   * `unresolved` is slots minus known pages, so it stays 31 even though only
+   * seven rows were recorded; the missing rows are visible as rows<slots. */
+  {
+    struct kp_identity_stats st;
+    kp_identity_window(32);
+    for (size_t i = 0; i < 3; i++) {
+      kp_identity_freeze(i, 'S');
+    }
+    (void)kp_identity_anchor(&g, 0xffffffc0a3af8400ULL, 1, &id);
+    for (size_t i = 0; i < 7; i++) {
+      kp_identity_slot(i, "yes", 1, 1, 0, 0, 0, &id);
+    }
+    kp_identity_stats(&st);
+    CHECK(st.rows == 7);
+    CHECK(st.slots == 32);
+    CHECK(st.page_known == 1);
+    CHECK(st.unresolved == 31);
+    CHECK(st.complete == 0);
+    CHECK(st.distinct_pages == 0);
+    CHECK(st.objects_per_page == 0);
+    CHECK(st.co_residency == KP_CO_UNAVAILABLE);
+    CHECK(st.co_reason != NULL && strcmp(st.co_reason, "rows-missing") == 0);
     kp_identity_summary();
   }
 
