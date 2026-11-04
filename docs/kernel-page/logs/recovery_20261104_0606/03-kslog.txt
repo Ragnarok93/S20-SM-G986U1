@@ -1,0 +1,18 @@
+== host date (pre-pull)
+2026-11-04T06:09:14-06:00
+== device ls
+-rw-rw-rw- 1 shell shell 47566 2026-11-03 20:19 /data/local/tmp/ks_log.txt
+== device stat
+size=47566
+stat: 'mtime=%Y': No such file or directory
+stat: 'mode=%a': No such file or directory
+== device sha256
+2547b66423f7dad4bd46d2cbf824fe22e7baa0709d204919e9482389102674da  /data/local/tmp/ks_log.txt
+== pull
+/data/local/tmp/ks_log.txt: 1 file pulled, 0 skipped. 6.4 MB/s (47566 bytes in 0.007s)
+== host date (post-pull)
+2026-11-04T06:09:14-06:00
+== host stat
+size=47566 mtime=1793794154 mode=644
+== host sha256
+2547b66423f7dad4bd46d2cbf824fe22e7baa0709d204919e9482389102674da  /home/ubuntu/S20-SM-G986U1/docs/kernel-page/logs/recovery_20261104_0606/ks_log.txt

@@ -133,9 +133,13 @@ between. What survives is this table, and nothing wider:
 
 | run | loss mode | completion |
 | --- | --- | --- |
-| 10:09 | kernel panic, supported by the boot-reason transition | none |
-| 18:46 | unresolved; panic possible | none |
-| 20:02 | unresolved; panic possible | none |
+| 10:09 | kernel panic, measured (`_KP` entry 10:19:57) | none |
+| 18:46 | kernel panic, measured (`_KP` entry 19:04:48); punch entered | none |
+| 20:02 | kernel panic, measured (`_KP` entry 20:21:00) plus a 16 s boot bracket | none |
+
+All three carry `Oops PC = rt_mutex_adjust_prio_chain+0x304/0x858`
+(`recovery-20261104.md` §4). The boot-transition argument above is retained as
+the weaker derivation of the 10:09 row, now confirmed.
 
 18:46 and 20:02 stay unresolved for a different reason: `kernel_panic,null` would
 be identical whether the phone rebooted again or never rebooted at all, and no
@@ -154,6 +158,9 @@ What this already excludes for 10:09, and suggests for the other two:
 | lockup / watchdog reset | unlikely: those carry a different reason string on this bootloader (**S**, not exercised) | open |
 
 ## 4. Recovery checklist (no experiment, no payload)
+
+**Executed once on 2026-11-04 06:07–06:10; results in
+`recovery-20261104.md`.** The checklist is kept as the procedure of record.
 
 Ordered by cost. Every item is a read of state the device already holds.
 

@@ -1,0 +1,33 @@
+== host date
+2026-11-04T06:09:37-06:00
+== dropbox entries mentioning kernel panic / last kmsg
+2026-11-03 08:05:00 SYSTEM_LAST_KMSG_-1_20261103_080500_NP (compressed text, 16690 bytes)
+2026-11-03 08:16:50 SYSTEM_LAST_KMSG_-1_20261103_081650_NP (compressed text, 16654 bytes)
+2026-11-03 08:16:50 SYSTEM_LAST_KMSG_-1_20261103_081650_NP (compressed text, 24697 bytes)
+2026-11-03 08:29:23 SYSTEM_LAST_KMSG_-1_20261103_082923_NP (compressed text, 17059 bytes)
+2026-11-03 08:29:23 SYSTEM_LAST_KMSG_-1_20261103_082923_NP (compressed text, 23978 bytes)
+2026-11-03 08:46:55 SYSTEM_LAST_KMSG_-1_20261103_084655_NP (compressed text, 16573 bytes)
+2026-11-03 08:55:55 SYSTEM_LAST_KMSG_-1_20261103_085555_NP (compressed text, 16612 bytes)
+2026-11-03 08:55:55 SYSTEM_LAST_KMSG_-1_20261103_085555_NP (compressed text, 25259 bytes)
+2026-11-03 09:09:39 SYSTEM_LAST_KMSG_-1_20261103_090939_NP (compressed text, 16564 bytes)
+2026-11-03 09:09:39 SYSTEM_LAST_KMSG_-1_20261103_090939_NP (compressed text, 23296 bytes)
+2026-11-03 09:22:57 SYSTEM_LAST_KMSG_-1_20261103_092257_NP (compressed text, 17029 bytes)
+2026-11-03 09:22:57 SYSTEM_LAST_KMSG_-1_20261103_092257_NP (compressed text, 26486 bytes)
+2026-11-03 09:35:48 SYSTEM_LAST_KMSG_-1_20261103_093548_NP (compressed text, 17055 bytes)
+2026-11-03 09:35:48 SYSTEM_LAST_KMSG_-1_20261103_093548_NP (compressed text, 25271 bytes)
+2026-11-03 10:19:57 SYSTEM_LAST_KMSG_399_20261103_101957_KP (compressed text, 17158 bytes)
+2026-11-03 10:19:57 SYSTEM_LAST_KMSG_399_20261103_101957_KP (compressed text, 23651 bytes)
+2026-11-03 19:04:48 SYSTEM_LAST_KMSG_400_20261103_190448_KP (compressed text, 17159 bytes)
+2026-11-03 19:04:48 SYSTEM_LAST_KMSG_400_20261103_190448_KP (compressed text, 21413 bytes)
+2026-11-03 20:21:00 SYSTEM_LAST_KMSG_401_20261103_202100_KP (compressed text, 17145 bytes)
+2026-11-03 20:21:00 SYSTEM_LAST_KMSG_401_20261103_202100_KP (compressed text, 18770 bytes)
+== pstore listing
+ls: /sys/fs/pstore: Permission denied
+== dmesg (first and last lines)
+dmesg: klogctl: Permission denied
+dmesg: klogctl: Permission denied
+== logcat crash buffer
+== LAST_KMSG file variants
+ls: /proc/last_kmsg: Permission denied
+ls: /sys/fs/pstore/console-ramoops: No such file or directory
+== exit=1

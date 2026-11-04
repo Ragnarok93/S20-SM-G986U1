@@ -29,7 +29,7 @@ Flags in the table: `A` = `KS_PLANT_ALL=1`, `F` = `KS_FOPS_ROUTE=1`,
 | 16:18:18 | A F | `KS_DELIVERY skipped=1 reason=gate-preconditions` | gate | 255 | ALIVE |
 | 17:37:50 | A P | `KS_DELIVERY skipped=1 reason=gate-preconditions` | gate (after a page probe) | 255 | ALIVE |
 | 18:25:04 | A P D W | `KS_PUNCH_SKIPPED page=0: fake-page preparation failed` | dumps, then page-prep failure | 255 | ALIVE |
-| 18:46:22 | A P D W | `waiter futex returned ret=-1 errno=110` | plant | 0 | LOST |
+| 18:46:22 | A P D W | `consumer punch enter tid=24878` (persisted; the host stream ended at `waiter futex returned`) | punch entered | 0 | LOST |
 | 20:02:34 | A P D W | `consumer punch enter tid=5202` | punch entered | 0 | LOST |
 
 ## 2. Counts, and what has never happened
@@ -40,8 +40,9 @@ Flags in the table: `A` = `KS_PLANT_ALL=1`, `F` = `KS_FOPS_ROUTE=1`,
 | control cycle, harness timeout | 1 |
 | dumps completed, punch skipped | 1 |
 | plant stage entered | 3 (10:09, 18:46, 20:02) |
-| `KS_PLANT_SHALLOW` / `KS_PLANT_LANES` | 1 (20:02) |
-| punch entered | 1 (20:02) |
+| `KS_PLANT_SHALLOW` / `KS_PLANT_LANES` | 2 (18:46 persisted, 20:02 both) |
+| punch entered, delivered on the host stream | 1 (20:02) |
+| punch entered, persisted on the device | 2 (18:46, 20:02) |
 | **punch returned** (`consumer punch done`) | **0** |
 | **route completed** (`main route done`) | **0** |
 | **summary printed** (`pipe-physrw-summary`) | **0** |
@@ -49,7 +50,9 @@ Flags in the table: `A` = `KS_PLANT_ALL=1`, `F` = `KS_FOPS_ROUTE=1`,
 
 The punch call has never returned on this device, in any recorded run. Every
 claim about what happens after it returns — the marker read, the route
-completion, the five-second tail, the process exit — is source-only.
+completion, the five-second tail, the process exit — is source-only. Two runs
+entered it: 20:02 on both streams, and 18:46 only in the persistent log
+(`recovery-20261104.md` §3).
 
 ## 3. What each boundary establishes
 
@@ -58,8 +61,8 @@ completion, the five-second tail, the process exit — is source-only.
 | gate | 11 | preparation and the refusal are safe: 11 refusals, 13 survivors | anything about the plant or punch |
 | control | 1 | a 32-allocation cycle completes under the harness timeout | why it timed out |
 | dumps then skip | 1 | the collector can complete and then decline to plant | that the collector is safe in a run that does plant (20:02 lost) |
-| plant | 2 | the loss occurs between the futex return and the first plant log | whether the plant copy ran, or whether `pi_blocked_on` was non-null |
-| punch | 1 | the loss occurs after the punch is entered and before it returns | which step inside the walk ran, or whether it faulted or hung |
+| plant | 1 | 10:09 stops after the futex return, before its first plant line | whether the plant copy ran in 10:09 |
+| punch | 2 | both runs die after entering the punch and before it returns, at the same PC | which instruction inside the walk faults, beyond the offset in `recovery-20261104.md` §4 |
 
 ## 4. Evidence strength per operation
 
@@ -88,19 +91,20 @@ more.
 ## 5. The causal boundary, restated
 
 - Pre-plant: 11 gate runs and one control cycle. No plant, no loss.
-- Plant: 10:09 and 18:46. The futex returned, the plant routine began, and the
-  device stopped before its first log line.
-- Punch: 20:02. The plant was logged, the lanes were logged, the punch was
-  entered, and the device stopped before the syscall returned.
+- Plant: 10:09. The futex returned and the device stopped before the first
+  plant line; its execution depth is unrecoverable.
+- Punch: 18:46 and 20:02. Both planted, both printed `consumer punch enter`,
+  and both stopped before `consumer punch first ret` — 18:46 only in the
+  persistent log, 20:02 in both streams.
 - Post-punch: never observed. Every statement about it — the fops install, the
   dangling page, the watchdog's fate — is a source property awaiting a run that
   returns, not a description of anything that happened.
 
-`bootreason=kernel_panic,null` is not used above as a per-run field: it appears
-on all 13 survivors as well. It does classify one loss when read across a boot
-boundary — 10:09 starts on `reboot,shell`, 10:50 starts on `kernel_panic,null`,
-and no run lies between them (`failure-boundary.md` §3). The other two losses
-cannot be placed on a boot, because no boot identity was recorded.
+`bootreason=kernel_panic,null` is no longer needed for classification: dropbox
+holds one `_KP` entry per loss, each carrying
+`Oops PC = rt_mutex_adjust_prio_chain+0x304/0x858`
+(`recovery-20261104.md` §4). The boot-transition reading that classified 10:09
+in `failure-boundary.md` §3 is confirmed by it and kept as the weaker derivation.
 
 ## 6. What would tighten this table
 

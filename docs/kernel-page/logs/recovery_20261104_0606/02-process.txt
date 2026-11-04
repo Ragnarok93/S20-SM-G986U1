@@ -1,0 +1,1009 @@
+== host date
+2026-11-04T06:08:22-06:00
+== sys.boot_completed
+1
+== pid argv (one pid per line, NUL -> space)
+/proc/1 /system/bin/init second_stage 
+/proc/10 
+/proc/100 
+/proc/1007 /vendor/bin/hw/android.hardware.audio.service 
+/proc/1008 /system/bin/hw/android.hidl.allocator@1.0-service 
+/proc/1009 /vendor/bin/hw/android.hardware.bluetooth@1.0-service 
+/proc/101 
+/proc/1010 /vendor/bin/hw/android.hardware.configstore@1.1-service 
+/proc/1011 /vendor/bin/hw/android.hardware.drm@1.3-service.clearkey 
+/proc/1012 /vendor/bin/hw/android.hardware.drm@1.3-service.widevine 
+/proc/1013 /vendor/bin/hw/android.hardware.gatekeeper@1.0-service 
+/proc/1014 /vendor/bin/hw/android.hardware.gnss@2.1-service-qti 
+/proc/1015 /vendor/bin/hw/android.hardware.health@2.1-service-samsung 
+/proc/1016 /vendor/bin/hw/android.hardware.memtrack@1.0-service 
+/proc/1017 /vendor/bin/hw/android.hardware.neuralnetworks@1.3-service-qti 
+/proc/1018 /vendor/bin/hw/android.hardware.secure_element@1.1-service 
+/proc/1019 /vendor/bin/hw/android.hardware.sensors@2.0-service.multihal 
+/proc/102 
+/proc/1020 /vendor/bin/hw/android.hardware.usb@1.3-service.coral 
+/proc/1027 /vendor/bin/hw/android.hardware.wifi@1.0-service 
+/proc/1028 /vendor/bin/hw/vendor.samsung.hardware.hyper-service 
+/proc/103 
+/proc/1030 /vendor/bin/hw/vendor.samsung.hardware.light-service 
+/proc/1032 /vendor/bin/hw/mppserver 
+/proc/1034 /vendor/bin/hw/android.hardware.power.samsung-service 
+/proc/1035 /vendor/bin/hw/samsung.software.media.c2@1.0-service 
+/proc/1036 /vendor/bin/hw/vendor.display.color@1.0-service 
+/proc/1037 /vendor/bin/cdsprpcd 
+/proc/1039 /vendor/bin/hw/vendor.qti.hardware.capabilityconfigstore@1.0-service 
+/proc/104 
+/proc/1041 /vendor/bin/hw/vendor.qti.hardware.display.allocator-service 
+/proc/1045 /vendor/bin/hw/vendor.qti.hardware.display.composer-service 
+/proc/1046 
+/proc/1048 
+/proc/105 
+/proc/1052 /vendor/bin/dspservice 
+/proc/1053 /vendor/bin/hw/vendor.qti.hardware.perf@2.2-service 
+/proc/1055 /vendor/bin/hw/vendor.qti.hardware.qteeconnector@1.0-service 
+/proc/1057 /vendor/bin/hw/vendor.qti.hardware.servicetracker@1.2-service 
+/proc/10586 com.android.vending:background                                                                     
+/proc/106 
+/proc/1067 /vendor/bin/hw/vendor.qti.hardware.tui_comm@1.0-service-qti 
+/proc/1068 /vendor/bin/hw/vendor.samsung.hardware.camera.provider@4.0-service_64 
+/proc/107 
+/proc/1070 /vendor/bin/hw/vendor.samsung.hardware.media.converter@1.0-service 
+/proc/1071 /vendor/bin/hw/vendor.samsung.hardware.miscpower@2.0-service 
+/proc/1076 /vendor/bin/hw/vendor.samsung.hardware.securesnap-service 
+/proc/1077 /vendor/bin/hw/vendor.samsung.hardware.security.drk@2.0-service 
+/proc/1078 /vendor/bin/hw/vendor.samsung.hardware.security.hdcp.keyprovisioning@1.0-service 
+/proc/108 
+/proc/1080 /vendor/bin/hw/vendor.samsung.hardware.snap-service 
+/proc/1082 /vendor/bin/hw/vendor.samsung.hardware.sysinput@1.3-service 
+/proc/1083 /vendor/bin/hw/vendor.samsung.hardware.thermal@1.0-service 
+/proc/1088 /vendor/bin/hw/vendor.samsung.hardware.vibrator@2.2-service 
+/proc/109 
+/proc/1095 /vendor/bin/hw/vendor.samsung.hardware.wifi@2.0-service 
+/proc/1097 /vendor/bin/qrtr-ns -f 
+/proc/11 
+/proc/110 
+/proc/1101 /vendor/bin/sscrpcd 
+/proc/1104 /vendor/bin/pd-mapper 
+/proc/1105 /vendor/bin/pm-service 
+/proc/1109 /vendor/bin/factory.ssc 
+/proc/111 
+/proc/1113 /system/bin/heimdalld 
+/proc/1114 /system/bin/audioserver 
+/proc/1115 /system/bin/credstore /data/misc/credstore 
+/proc/112 
+/proc/1122 /system/bin/gpuservice 
+/proc/11254 
+/proc/1128 kumiho.decoder ihodecoder 
+/proc/113 
+/proc/114 
+/proc/1143 
+/proc/1145 /system/bin/perfmond 
+/proc/1146 
+/proc/1148 /system/bin/surfaceflinger 
+/proc/115 
+/proc/1155 /vendor/bin/tftp_server 
+/proc/1157 /vendor/bin/mdm_helper 
+/proc/116 
+/proc/117 
+/proc/1170 
+/proc/1175 
+/proc/1176 
+/proc/1177 
+/proc/1178 
+/proc/118 
+/proc/119 
+/proc/12 
+/proc/120 
+/proc/12090 
+/proc/12091 
+/proc/121 
+/proc/122 
+/proc/1225 /system/bin/dsms 
+/proc/1234 /vendor/bin/pm-proxy 
+/proc/1238 /system/bin/drmserver 
+/proc/1239 /system/bin/ewlogd 
+/proc/124 
+/proc/1241 /system/bin/traced_probes 
+/proc/1246 /system/bin/traced 
+/proc/125 
+/proc/1256 system_server                                                                                      
+/proc/126 
+/proc/127 
+/proc/12875 
+/proc/1294 
+/proc/1296 
+/proc/13 
+/proc/1300 
+/proc/1301 
+/proc/1302 /system/bin/sdp_cryptod 
+/proc/13070 com.google.android.gms.learning                                                                    
+/proc/1314 /system/vendor/bin/shsusrd 0x002819000 
+/proc/1315 /system/bin/ss_conn_daemon2 
+/proc/13162 com.google.android.gms:snet                                                                        
+/proc/1317 /system/bin/cameraserver 
+/proc/1319 /system/bin/imsd 
+/proc/1327 /system/bin/incidentd 
+/proc/1331 /system/bin/smdexe 
+/proc/1332 /system/bin/ddexe 
+/proc/1333 /system/bin/connfwexe 
+/proc/1334 /system/bin/installd 
+/proc/1335 media.extractor aextractor 
+/proc/1339 media.metrics diametrics 
+/proc/1342 /system/bin/mediaserver 
+/proc/1344 /system/bin/speg_helper 
+/proc/1345 /system/bin/spqr_service 
+/proc/1346 /system/bin/storaged 
+/proc/1348 /system/bin/wificond 
+/proc/1351 /system_ext/bin/perfservice 
+/proc/1352 media.codec hw/android.hardware.media.omx@1.0-service 
+/proc/1356 /vendor/bin/hw/rild 
+/proc/1359 /vendor/bin/thermal-engine 
+/proc/1362 /system/vendor/bin/ipacm-diag 
+/proc/1365 /vendor/bin/adsprpcd 
+/proc/1366 /vendor/bin/adsprpcd audiopd 
+/proc/1368 media.swcodec oid.media.swcodec/bin/mediaswcodec 
+/proc/1369 /system/vendor/bin/loc_launcher 
+/proc/13744 com.samsung.android.sm.provider                                                                    
+/proc/1375 /system/bin/gatekeeperd /data/misc/gatekeeper 
+/proc/13766 com.samsung.android.fmm                                                                            
+/proc/1386 /vendor/bin/hw/vendor.samsung.hardware.biometrics.face@2.0-service 
+/proc/1388 /vendor/bin/hw/vendor.samsung.hardware.biometrics.fingerprint@3.0-service 
+/proc/13886 com.android.settings.intelligence                                                                  
+/proc/13888 com.android.chrome                                                                                 
+/proc/13891 com.google.android.googlequicksearchbox:search                                                     
+/proc/13910 com.samsung.cmh                                                                                    
+/proc/1394 lowi-server 
+ 
+/proc/1395 xtra-daemon 
+ 
+/proc/14 
+/proc/14027 com.google.process.gservices                                                                       
+/proc/14068 com.google.android.partnersetup                                                                    
+/proc/14082 
+/proc/14083 
+/proc/14090 com.google.android.googlequicksearchbox:googleapp                                                  
+/proc/14176 com.google.process.gapps                                                                           
+/proc/14555 com.samsung.android.privacydashboard                                                               
+/proc/14654 android.process.acore                                                                              
+/proc/14690 
+/proc/14780 com.samsung.android.game.gos                                                                       
+/proc/15 
+/proc/150 
+/proc/151 
+/proc/152 
+/proc/153 
+/proc/155 
+/proc/156 
+/proc/15631 com.google.android.googlequicksearchbox:interactor                                                 
+/proc/15723 com.google.android.setupwizard                                                                     
+/proc/15738 com.samsung.android.app.sharelive                                                                  
+/proc/15794 com.osp.app.signin                                                                                 
+/proc/16 
+/proc/16015 
+/proc/16051 
+/proc/16155 
+/proc/16161 com.google.android.verifier                                                                        
+/proc/16163 com.github.android                                                                                 
+/proc/16330 
+/proc/16332 
+/proc/16541 com.android.vending:quick_launch                                                                   
+/proc/16645 
+/proc/16705 
+/proc/16709 
+/proc/16751 
+/proc/16768 
+/proc/16769 
+/proc/16773 
+/proc/16781 com.android.vending                                                                                
+/proc/16851 
+/proc/16912 com.samsung.android.dqagent                                                                        
+/proc/17 
+/proc/17065 
+/proc/17100 
+/proc/17114 
+/proc/17121 
+/proc/17167 
+/proc/17196 
+/proc/17199 
+/proc/17215 
+/proc/17218 com.sec.phone                                                                                      
+/proc/1723 
+/proc/1724 
+/proc/17247 
+/proc/17249 
+/proc/17258 
+/proc/1726 
+/proc/1729 /vendor/bin/ks -m -p /dev/mhi_0306_02.01.00_pipe_10 -w /dev/block/bootdevice/by-name/ -t -1 -l -g mdm1 
+/proc/17620 /system/bin/sh -c for p in /proc/[0-9]*; do printf "%s " "$p"; tr "\0" " " < "$p/cmdline"; echo; done 
+/proc/1793 
+/proc/18 
+/proc/19 
+/proc/195 
+/proc/196 
+/proc/197 
+/proc/198 
+/proc/199 
+/proc/2 
+/proc/20 
+/proc/200 
+/proc/201 
+/proc/202 
+/proc/204 
+/proc/205 
+/proc/206 
+/proc/207 
+/proc/208 
+/proc/209 
+/proc/21 
+/proc/210 
+/proc/211 
+/proc/212 
+/proc/2128 
+/proc/213 
+/proc/214 
+/proc/215 
+/proc/216 
+/proc/217 
+/proc/218 
+/proc/219 
+/proc/220 
+/proc/221 
+/proc/222 
+/proc/223 
+/proc/224 
+/proc/2247 /system/bin/multiclientd -s 2 
+/proc/225 
+/proc/226 
+/proc/227 
+/proc/228 
+/proc/229 
+/proc/230 
+/proc/231 
+/proc/232 
+/proc/233 
+/proc/234 
+/proc/235 
+/proc/236 
+/proc/237 
+/proc/238 
+/proc/239 
+/proc/24 
+/proc/240 
+/proc/241 
+/proc/2415 com.android.phone                                                                                  
+/proc/242 
+/proc/243 
+/proc/244 
+/proc/2448 com.sec.imsservice                                                                                 
+/proc/245 
+/proc/246 
+/proc/247 
+/proc/2471 com.android.systemui                                                                               
+/proc/248 
+/proc/25 
+/proc/250 
+/proc/251 
+/proc/253 
+/proc/2534 com.android.networkstack.process                                                                   
+/proc/254 
+/proc/255 
+/proc/256 
+/proc/2565 
+/proc/257 
+/proc/258 
+/proc/2598 
+/proc/26 
+/proc/2614 /vendor/bin/hw/wpa_supplicant -O/data/vendor/wifi/wpa/sockets -dd -puse_p2p_group_interface=1 -g@android:wpa_wlan0 
+/proc/263 
+/proc/264 
+/proc/265 
+/proc/266 
+/proc/267 
+/proc/268 
+/proc/269 
+/proc/27 
+/proc/270 
+/proc/2706 webview_zygote                                                                                     
+/proc/271 
+/proc/272 
+/proc/2729 com.sec.sve                                                                                        
+/proc/273 
+/proc/28 
+/proc/2831 com.android.bluetooth                                                                              
+/proc/2856 .qtidataservices                                                                                   
+/proc/2868 com.android.nfc                                                                                    
+/proc/2873 com.android.se                                                                                     
+/proc/29 
+/proc/2903 com.google.android.ext.services                                                                    
+/proc/294 
+/proc/295 
+/proc/2956 com.sec.android.app.launcher                                                                       
+/proc/296 
+/proc/2966 /vendor/bin/hw/nxp.android.hardware.nfc@1.2-service 
+/proc/297 
+/proc/298 
+/proc/299 
+/proc/3 
+/proc/301 
+/proc/302 
+/proc/303 
+/proc/304 
+/proc/305 
+/proc/306 
+/proc/307 
+/proc/308 
+/proc/309 
+/proc/310 
+/proc/311 
+/proc/313 
+/proc/314 
+/proc/315 
+/proc/316 
+/proc/318 
+/proc/319 
+/proc/32 
+/proc/320 
+/proc/323 
+/proc/325 
+/proc/326 
+/proc/327 
+/proc/3272 com.google.android.gms                                                                             
+/proc/328 
+/proc/329 
+/proc/33 
+/proc/330 
+/proc/331 
+/proc/334 
+/proc/338 
+/proc/339 
+/proc/34 
+/proc/340 
+/proc/3403 /vendor/bin/argosd 
+/proc/3406 /system/bin/pageboostd 
+/proc/3418 /system/bin/perfsdkserver 
+/proc/342 
+/proc/3426 
+/proc/343 
+/proc/344 
+/proc/345 
+/proc/3456 
+/proc/346 
+/proc/347 
+/proc/348 
+/proc/349 
+/proc/3499 /vendor/bin/ssgtzd 
+/proc/35 
+/proc/350 
+/proc/3502 /apex/com.android.adbd/bin/adbd --root_seclabel=u:r:su:s0 --tim_seclabel=u:r:adbd_tradeinmode:s0 
+/proc/352 
+/proc/353 
+/proc/354 
+/proc/3543 com.samsung.android.mcfserver                                                                      
+/proc/355 
+/proc/356 
+/proc/357 
+/proc/358 
+/proc/359 
+/proc/36 
+/proc/360 
+/proc/361 
+/proc/3613 
+/proc/362 
+/proc/363 
+/proc/3635 
+/proc/365 
+/proc/366 
+/proc/368 
+/proc/369 
+/proc/37 
+/proc/370 
+/proc/371 
+/proc/372 
+/proc/373 
+/proc/374 
+/proc/375 
+/proc/376 
+/proc/377 
+/proc/3775 com.google.android.providers.media.module                                                          
+/proc/378 
+/proc/3781 com.openai.chatgpt                                                                                 
+/proc/379 
+/proc/3799 com.sec.android.sdhms                                                                              
+/proc/380 
+/proc/381 
+/proc/382 
+/proc/383 
+/proc/384 
+/proc/385 
+/proc/386 
+/proc/387 
+/proc/389 
+/proc/39 
+/proc/390 
+/proc/391 
+/proc/392 
+/proc/393 
+/proc/394 
+/proc/395 
+/proc/396 
+/proc/3965 com.akslabs.circletosearch                                                                         
+/proc/397 
+/proc/398 
+/proc/399 
+/proc/4 
+/proc/40 
+/proc/400 
+/proc/401 
+/proc/402 
+/proc/403 
+/proc/404 
+/proc/405 
+/proc/406 
+/proc/407 
+/proc/408 
+/proc/409 
+/proc/41 
+/proc/410 
+/proc/411 
+/proc/412 
+/proc/413 
+/proc/414 
+/proc/415 
+/proc/416 
+/proc/417 
+/proc/4191 android.process.media                                                                              
+/proc/42 
+/proc/422 
+/proc/423 
+/proc/424 
+/proc/4284 com.samsung.android.lool                                                                           
+/proc/43 
+/proc/44 
+/proc/45 
+/proc/4522 
+/proc/4525 com.samsung.android.mdx.kit                                                                        
+/proc/457 
+/proc/458 
+/proc/459 
+/proc/460 
+/proc/462 
+/proc/463 
+/proc/464 
+/proc/465 
+/proc/466 
+/proc/467 
+/proc/468 
+/proc/4683 
+/proc/4684 com.sec.android.app.dexonpc                                                                        
+/proc/4688 
+/proc/469 
+/proc/47 
+/proc/470 
+/proc/471 
+/proc/472 
+/proc/473 
+/proc/474 
+/proc/475 
+/proc/477 
+/proc/478 
+/proc/479 
+/proc/48 
+/proc/480 
+/proc/481 
+/proc/482 
+/proc/483 
+/proc/484 
+/proc/4851 com.samsung.android.honeyboard                                                                     
+/proc/486 
+/proc/488 
+/proc/489 
+/proc/49 
+/proc/490 
+/proc/491 
+/proc/492 
+/proc/493 
+/proc/494 
+/proc/495 
+/proc/496 
+/proc/497 
+/proc/498 
+/proc/499 
+/proc/50 
+/proc/500 
+/proc/501 
+/proc/502 
+/proc/503 
+/proc/504 
+/proc/505 
+/proc/506 
+/proc/507 
+/proc/508 
+/proc/509 
+/proc/51 
+/proc/510 
+/proc/511 
+/proc/512 
+/proc/514 
+/proc/515 
+/proc/516 
+/proc/517 
+/proc/518 
+/proc/519 
+/proc/52 
+/proc/520 
+/proc/521 
+/proc/522 
+/proc/525 
+/proc/526 
+/proc/527 
+/proc/528 
+/proc/529 
+/proc/53 
+/proc/530 
+/proc/531 
+/proc/532 
+/proc/533 
+/proc/534 
+/proc/535 
+/proc/536 
+/proc/537 
+/proc/538 
+/proc/539 
+/proc/5429 
+/proc/543 
+/proc/544 
+/proc/546 
+/proc/547 
+/proc/5472 com.samsung.android.server.wifi.mobilewips                                                         
+/proc/5474 com.samsung.android.game.gamehome:notification                                                     
+/proc/548 
+/proc/549 
+/proc/55 
+/proc/551 /system/bin/init subcontext u:r:vendor_init:s0 14 
+/proc/553 /system/bin/ueventd 
+/proc/56 
+/proc/568 
+/proc/569 
+/proc/57 
+/proc/571 
+/proc/572 
+/proc/574 
+/proc/575 
+/proc/577 
+/proc/578 
+/proc/579 
+/proc/58 
+/proc/580 
+/proc/583 
+/proc/584 
+/proc/586 
+/proc/587 
+/proc/588 
+/proc/59 
+/proc/590 
+/proc/591 
+/proc/593 
+/proc/594 
+/proc/595 
+/proc/596 
+/proc/60 
+/proc/602 
+/proc/607 
+/proc/608 
+/proc/609 
+/proc/61 
+/proc/610 
+/proc/611 
+/proc/612 
+/proc/613 
+/proc/614 
+/proc/615 
+/proc/616 
+/proc/63 
+/proc/635 /system/bin/logd 
+/proc/636 /system/bin/lmkd 
+/proc/637 /system/bin/servicemanager 
+/proc/638 /system/bin/hwservicemanager 
+/proc/639 /vendor/bin/vndservicemanager /dev/vndbinder 
+/proc/64 
+/proc/641 
+/proc/65 
+/proc/652 
+/proc/654 /vendor/bin/hw/android.hardware.keymaster@4.0-strongbox-service-qti 
+/proc/655 /vendor/bin/qseecomd 
+/proc/656 /vendor/bin/hw/vendor.qti.hardware.qseecom@1.0-service 
+/proc/657 /system/bin/vold --blkid_context=u:r:blkid:s0 --blkid_untrusted_context=u:r:blkid_untrusted:s0 --fsck_context=u:r:fsck:s0 --fsck_untrusted_context=u:r:fsck_untrusted:s0 
+/proc/6584 com.google.android.gms.unstable                                                                    
+/proc/66 
+/proc/663 
+/proc/664 
+/proc/67 
+/proc/674 
+/proc/675 
+/proc/676 
+/proc/677 
+/proc/679 
+/proc/68 
+/proc/680 
+/proc/688 
+/proc/689 
+/proc/69 
+/proc/691 
+/proc/692 
+/proc/696 
+/proc/697 
+/proc/699 
+/proc/700 
+/proc/702 
+/proc/703 
+/proc/705 
+/proc/706 
+/proc/709 /vendor/bin/iod 
+/proc/716 
+/proc/717 
+/proc/718 
+/proc/719 
+/proc/72 
+/proc/720 
+/proc/721 
+/proc/722 
+/proc/723 
+/proc/724 
+/proc/725 
+/proc/726 
+/proc/727 
+/proc/728 
+/proc/73 
+/proc/730 /vendor/bin/spdaemon 
+/proc/731 /vendor/bin/sec_nvm 
+/proc/733 /system/bin/hw/android.system.suspend@1.0-service 
+/proc/734 /system/bin/keystore2 /data/misc/keystore 
+/proc/735 /vendor/bin/hw/android.hardware.atrace@1.0-service 
+/proc/736 /vendor/bin/hw/android.hardware.gatekeeper@1.0-service-qti 
+/proc/737 /vendor/bin/hw/android.hardware.keymaster@4.0-service 
+/proc/738 /vendor/bin/vendor.samsung.hardware.security.engmode@1.0-service 
+/proc/739 /vendor/bin/sscrpcd sensorspd 
+/proc/74 
+/proc/740 
+/proc/75 
+/proc/76 
+/proc/761 
+/proc/762 
+/proc/764 
+/proc/765 /vendor/bin/vendor.samsung.hardware.security.proca@2.0-service 
+/proc/766 /vendor/bin/vaultkeeperd 
+/proc/767 /vendor/bin/vendor.samsung.hardware.security.vaultkeeper@2.0-service 
+/proc/77 
+/proc/777 /system/bin/tombstoned 
+/proc/78 
+/proc/790 
+/proc/791 
+/proc/792 
+/proc/793 
+/proc/794 
+/proc/795 
+/proc/796 
+/proc/797 
+/proc/798 
+/proc/799 
+/proc/800 
+/proc/801 
+/proc/802 
+/proc/803 
+/proc/804 
+/proc/805 
+/proc/806 
+/proc/807 
+/proc/808 
+/proc/809 
+/proc/81 
+/proc/810 
+/proc/811 
+/proc/812 
+/proc/8122 android:drmService                                                                                 
+/proc/813 
+/proc/814 
+/proc/815 
+/proc/816 
+/proc/817 
+/proc/818 
+/proc/819 
+/proc/82 
+/proc/820 
+/proc/821 
+/proc/822 
+/proc/823 
+/proc/824 
+/proc/825 
+/proc/826 
+/proc/827 
+/proc/828 
+/proc/829 
+/proc/830 
+/proc/831 
+/proc/832 
+/proc/833 
+/proc/834 
+/proc/835 
+/proc/836 
+/proc/837 
+/proc/838 
+/proc/839 
+/proc/84 
+/proc/840 
+/proc/841 
+/proc/842 
+/proc/843 
+/proc/844 
+/proc/845 
+/proc/846 
+/proc/847 
+/proc/848 
+/proc/849 
+/proc/85 
+/proc/850 
+/proc/851 
+/proc/852 
+/proc/853 
+/proc/854 
+/proc/855 
+/proc/856 
+/proc/857 
+/proc/858 
+/proc/859 
+/proc/86 
+/proc/860 
+/proc/861 
+/proc/862 
+/proc/863 
+/proc/864 
+/proc/865 
+/proc/866 
+/proc/867 
+/proc/868 
+/proc/869 
+/proc/870 
+/proc/871 
+/proc/872 
+/proc/873 
+/proc/874 
+/proc/875 
+/proc/876 
+/proc/877 
+/proc/878 
+/proc/879 
+/proc/880 
+/proc/881 
+/proc/882 
+/proc/883 
+/proc/884 
+/proc/885 
+/proc/886 
+/proc/887 
+/proc/888 
+/proc/889 
+/proc/899 /system/vendor/bin/ipacm 
+/proc/9 
+/proc/90 
+/proc/91 
+/proc/913 /vendor/bin/cass 
+/proc/914 /vendor/bin/emservice 
+/proc/915 /vendor/bin/time_daemon 
+/proc/9182 com.android.settings                                                                               
+/proc/92 
+/proc/927 /apex/com.android.os.statsd/bin/statsd 
+/proc/928 /system/bin/netd 
+/proc/929 zygote64                                                                                           
+/proc/93 
+/proc/930 zygote                                                                                                       
+/proc/9303 
+/proc/94 
+/proc/95 
+/proc/955 
+/proc/956 
+/proc/958 
+/proc/959 
+/proc/96 
+/proc/960 
+/proc/962 
+/proc/963 /system/bin/iptables-restore --noflush -w -v 
+/proc/964 /system/bin/ip6tables-restore --noflush -w -v 
+/proc/97 
+/proc/98 
+/proc/99 
+== payload survivors matching /system/bin/id
+/proc/19401/cmdline
+== preload survivors in maps
+grep: /proc/1/maps: Permission denied
+grep: /proc/1007/maps: Permission denied
+grep: /proc/1008/maps: Permission denied
+grep: /proc/1009/maps: Permission denied
+grep: /proc/1010/maps: Permission denied
+grep: /proc/1011/maps: Permission denied
+grep: /proc/1012/maps: Permission denied
+grep: /proc/1013/maps: Permission denied
+grep: /proc/1014/maps: Permission denied
+grep: /proc/1015/maps: Permission denied
+grep: /proc/1016/maps: Permission denied
+grep: /proc/1017/maps: Permission denied
+grep: /proc/1018/maps: Permission denied
+grep: /proc/1019/maps: Permission denied
+grep: /proc/1020/maps: Permission denied
+grep: /proc/1027/maps: Permission denied
+grep: /proc/1028/maps: Permission denied
+grep: /proc/1030/maps: Permission denied
+grep: /proc/1032/maps: Permission denied
+grep: /proc/1034/maps: Permission denied
+grep: /proc/1035/maps: Permission denied
+grep: /proc/1036/maps: Permission denied
+grep: /proc/1037/maps: Permission denied
+grep: /proc/1039/maps: Permission denied
+grep: /proc/1041/maps: Permission denied
+grep: /proc/1045/maps: Permission denied
+grep: /proc/1052/maps: Permission denied
+grep: /proc/1053/maps: Permission denied
+grep: /proc/1055/maps: Permission denied
+grep: /proc/1057/maps: Permission denied
+grep: /proc/10586/maps: Permission denied
+grep: /proc/1067/maps: Permission denied
+grep: /proc/1068/maps: Permission denied
+grep: /proc/1070/maps: Permission denied
+grep: /proc/1071/maps: Permission denied
+grep: /proc/1076/maps: Permission denied
+grep: /proc/1077/maps: Permission denied
+grep: /proc/1078/maps: Permission denied
+grep: /proc/1080/maps: Permission denied
+grep: /proc/1082/maps: Permission denied
+grep: /proc/1083/maps: Permission denied
+grep: /proc/1088/maps: Permission denied
+grep: /proc/1095/maps: Permission denied
+grep: /proc/1097/maps: Permission denied
+grep: /proc/1101/maps: Permission denied
+grep: /proc/1104/maps: Permission denied
+grep: /proc/1105/maps: Permission denied
+grep: /proc/1109/maps: Permission denied
+grep: /proc/1113/maps: Permission denied
+grep: /proc/1114/maps: Permission denied
+grep: /proc/1115/maps: Permission denied
+grep: /proc/1122/maps: Permission denied
+grep: /proc/1128/maps: Permission denied
+grep: /proc/1145/maps: Permission denied
+grep: /proc/1148/maps: Permission denied
+grep: /proc/1155/maps: Permission denied
+grep: /proc/1157/maps: Permission denied
+grep: /proc/1225/maps: Permission denied
+grep: /proc/1234/maps: Permission denied
+grep: /proc/1238/maps: Permission denied
+grep: /proc/1239/maps: Permission denied
+grep: /proc/1241/maps: Permission denied
+grep: /proc/1246/maps: Permission denied
+grep: /proc/1256/maps: Permission denied
+grep: /proc/1302/maps: Permission denied
+grep: /proc/13070/maps: Permission denied
+grep: /proc/1314/maps: Permission denied
+grep: /proc/1315/maps: Permission denied
+grep: /proc/13162/maps: Permission denied
+grep: /proc/1317/maps: Permission denied
+grep: /proc/1319/maps: Permission denied
+grep: /proc/1327/maps: Permission denied
+grep: /proc/1331/maps: Permission denied
+grep: /proc/1332/maps: Permission denied
+grep: /proc/1333/maps: Permission denied
+grep: /proc/1334/maps: Permission denied
+grep: /proc/1335/maps: Permission denied
+grep: /proc/1339/maps: Permission denied
+grep: /proc/1342/maps: Permission denied
+grep: /proc/1344/maps: Permission denied
+grep: /proc/1345/maps: Permission denied
+grep: /proc/1346/maps: Permission denied
+grep: /proc/1348/maps: Permission denied
+grep: /proc/1351/maps: Permission denied
+grep: /proc/1352/maps: Permission denied
+grep: /proc/1356/maps: Permission denied
+grep: /proc/1359/maps: Permission denied
+grep: /proc/1362/maps: Permission denied
+grep: /proc/1365/maps: Permission denied
+grep: /proc/1366/maps: Permission denied
+grep: /proc/1368/maps: Permission denied
+grep: /proc/1369/maps: Permission denied
+grep: /proc/13744/maps: Permission denied
+grep: /proc/1375/maps: Permission denied
+grep: /proc/13766/maps: Permission denied
+grep: /proc/1386/maps: Permission denied
+grep: /proc/1388/maps: Permission denied
+grep: /proc/13886/maps: Permission denied
+grep: /proc/13888/maps: Permission denied
+grep: /proc/13891/maps: Permission denied
+grep: /proc/13910/maps: Permission denied
+grep: /proc/1394/maps: Permission denied
+grep: /proc/1395/maps: Permission denied
+grep: /proc/14027/maps: Permission denied
+grep: /proc/14068/maps: Permission denied
+grep: /proc/14090/maps: Permission denied
+grep: /proc/14176/maps: Permission denied
+grep: /proc/14555/maps: Permission denied
+grep: /proc/14654/maps: Permission denied
+grep: /proc/14780/maps: Permission denied
+grep: /proc/15631/maps: Permission denied
+grep: /proc/15723/maps: Permission denied
+grep: /proc/15738/maps: Permission denied
+grep: /proc/15794/maps: Permission denied
+grep: /proc/16161/maps: Permission denied
+grep: /proc/16163/maps: Permission denied
+grep: /proc/16541/maps: Permission denied
+grep: /proc/16781/maps: Permission denied
+grep: /proc/16912/maps: Permission denied
+grep: /proc/17218/maps: Permission denied
+grep: /proc/1729/maps: Permission denied
+grep: /proc/2247/maps: Permission denied
+grep: /proc/2415/maps: Permission denied
+grep: /proc/2448/maps: Permission denied
+grep: /proc/2471/maps: Permission denied
+grep: /proc/2534/maps: Permission denied
+grep: /proc/2614/maps: Permission denied
+grep: /proc/2706/maps: Permission denied
+grep: /proc/2729/maps: Permission denied
+grep: /proc/2831/maps: Permission denied
+grep: /proc/2856/maps: Permission denied
+grep: /proc/2868/maps: Permission denied
+grep: /proc/2873/maps: Permission denied
+grep: /proc/2903/maps: Permission denied
+grep: /proc/2956/maps: Permission denied
+grep: /proc/2966/maps: Permission denied
+grep: /proc/3272/maps: Permission denied
+grep: /proc/3403/maps: Permission denied
+grep: /proc/3406/maps: Permission denied
+grep: /proc/3418/maps: Permission denied
+grep: /proc/3499/maps: Permission denied
+grep: /proc/3502/maps: Permission denied
+grep: /proc/3543/maps: Permission denied
+grep: /proc/3775/maps: Permission denied
+grep: /proc/3781/maps: Permission denied
+grep: /proc/3799/maps: Permission denied
+grep: /proc/3965/maps: Permission denied
+grep: /proc/4191/maps: Permission denied
+grep: /proc/4284/maps: Permission denied
+grep: /proc/4525/maps: Permission denied
+grep: /proc/4684/maps: Permission denied
+grep: /proc/4851/maps: Permission denied
+grep: /proc/5472/maps: Permission denied
+grep: /proc/5474/maps: Permission denied
+grep: /proc/551/maps: Permission denied
+grep: /proc/553/maps: Permission denied
+grep: /proc/635/maps: Permission denied
+grep: /proc/636/maps: Permission denied
+grep: /proc/637/maps: Permission denied
+grep: /proc/638/maps: Permission denied
+grep: /proc/639/maps: Permission denied
+grep: /proc/654/maps: Permission denied
+grep: /proc/655/maps: Permission denied
+grep: /proc/656/maps: Permission denied
+grep: /proc/657/maps: Permission denied
+grep: /proc/6584/maps: Permission denied
+grep: /proc/709/maps: Permission denied
+grep: /proc/730/maps: Permission denied
+grep: /proc/731/maps: Permission denied
+grep: /proc/733/maps: Permission denied
+grep: /proc/734/maps: Permission denied
+grep: /proc/735/maps: Permission denied
+grep: /proc/736/maps: Permission denied
+grep: /proc/737/maps: Permission denied
+grep: /proc/738/maps: Permission denied
+grep: /proc/739/maps: Permission denied
+grep: /proc/765/maps: Permission denied
+grep: /proc/766/maps: Permission denied
+grep: /proc/767/maps: Permission denied
+grep: /proc/777/maps: Permission denied
+grep: /proc/8122/maps: Permission denied
+grep: /proc/899/maps: Permission denied
+grep: /proc/913/maps: Permission denied
+grep: /proc/914/maps: Permission denied
+grep: /proc/915/maps: Permission denied
+grep: /proc/9182/maps: Permission denied
+grep: /proc/927/maps: Permission denied
+grep: /proc/928/maps: Permission denied
+grep: /proc/929/maps: Permission denied
+grep: /proc/930/maps: Permission denied
+grep: /proc/963/maps: Permission denied
+grep: /proc/964/maps: Permission denied
+== exit=2

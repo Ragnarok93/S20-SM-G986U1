@@ -1,0 +1,23 @@
+== host date
+2026-11-04T06:07:40-06:00
+== adb devices
+List of devices attached
+R5CN102RCQZ            device usb:1-1 product:y2quew model:SM_G986U1 device:y2q transport_id:52
+
+== uptime (s since boot, incl. suspend on 4.19)
+35244.32 277524.11
+== boot_id
+4e68793c-8dc7-4d60-a1ff-1418b984b2e5
+== ro.boot.bootreason
+kernel_panic,null
+== ro.boot.bootloader
+G986U1UESCHXL1
+== sys.boot_completed
+1
+== uname -a
+Linux localhost 4.19.113-27095354 #1 SMP PREEMPT Fri Dec 27 14:53:28 KST 2024 aarch64 Toybox
+== ro.build.fingerprint
+samsung/y2quew/y2q:13/TP1A.220624.014/G986U1UESCHXL1:user/release-keys
+== ro.build.display.id
+TP1A.220624.014.G986U1UESCHXL1
+== exit=0

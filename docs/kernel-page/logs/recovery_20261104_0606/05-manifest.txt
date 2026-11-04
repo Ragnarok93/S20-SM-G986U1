@@ -1,0 +1,13 @@
+== host date
+2026-11-04T06:10:11-06:00
+== files
+total 488
+-rw-r--r-- 1 ubuntu ubuntu    656 Nov  4 06:07 01-boot.txt
+-rw-r--r-- 1 ubuntu ubuntu  28384 Nov  4 06:08 02-process.txt
+-rw-r--r-- 1 ubuntu ubuntu    721 Nov  4 06:09 03-kslog.txt
+-rw-r--r-- 1 ubuntu ubuntu   2217 Nov  4 06:09 04-crash.txt
+-rw-r--r-- 1 ubuntu ubuntu 132716 Nov  4 06:10 04-kp-SYSTEM_LAST_KMSG_399_20261103_101957_KP.txt
+-rw-r--r-- 1 ubuntu ubuntu 132708 Nov  4 06:10 04-kp-SYSTEM_LAST_KMSG_400_20261103_190448_KP.txt
+-rw-r--r-- 1 ubuntu ubuntu 132642 Nov  4 06:10 04-kp-SYSTEM_LAST_KMSG_401_20261103_202100_KP.txt
+-rw-r--r-- 1 ubuntu ubuntu     48 Nov  4 06:10 05-manifest.txt
+-rw-r--r-- 1 ubuntu ubuntu  47566 Nov  4 06:09 ks_log.txt
