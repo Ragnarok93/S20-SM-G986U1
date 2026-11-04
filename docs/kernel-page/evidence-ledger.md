@@ -125,4 +125,7 @@ is never cited as support.
     from the target's `target.h` constants: the two planted words, the two
     values they must hold, and their distances. A distance quoted in prose is
     never authority, and a document that disagrees with the constants fails
-    the verifier.
+    the verifier. Such an address is derived, never observed: `payload_base+0x2258`
+    is where the load would read if both planted words held, not evidence that
+    the CPU accessed it, mapped that page, or reached that instruction with
+    those operands.

@@ -116,11 +116,16 @@ The registers then read:
 `0x2220 - 0x1350 = 0xed0`, and the effective address is `0x2258 - 0x1350 =
 0xf08`. Both field offsets are also the immediates in this window (`#24` and
 `#56`), so the arithmetic is checked against the image as well as the header.
+`0x2258` is the address the load **would** use if both words held their planted
+values; it is not a record that the CPU accessed it, which only the runtime `x8`
+could show, and that is absent.
+
 All four addresses lie inside the same 32 KiB page, which is a property of the
 *intended* addresses — not a statement about the values the registers actually
-held, and not a claim that either word still held its planted value at the fault.
-`verify_symbol.py` recomputes all four addresses and both stored values from the
-`target.h` constants.
+held, not a claim that either word still held its planted value at the fault, and
+not a claim that the page was mapped, retained, or accessible when the panic
+occurred. `verify_symbol.py` recomputes all four addresses and both stored values
+from the `target.h` constants.
 
 ## 6. What the frame excludes
 
@@ -177,11 +182,15 @@ Ordered by cost, and none of them proposed as the next run:
 
 ## 10. Where this sits in the record
 
-| claim | status |
+Three tiers, kept separate:
+
+| claim | tier |
 | --- | --- |
-| `x21` is the `next_lock` argument on entry | **verified from the image** |
-| every iteration re-checks `x21 == pi_blocked_on->lock` | **verified from the image** |
-| the load reads `*(x21+0x18) + 0x38` | **verified from the image** |
-| the intended graph keeps both operands in one page | **derived from source** |
-| which family produced the panic | **unresolved** |
-| runtime `x21`, `x8`, `FAR`, `ESR`, backtrace | **unavailable** |
+| `x21` is the `next_lock` argument on entry | **image-verified** |
+| every iteration re-checks `x21 == pi_blocked_on->lock` | **image-verified** |
+| the load reads `*(x21+0x18) + 0x38` | **image-verified** |
+| the two planted words sit at `0x1368` and `0x2258` and hold `0x2220` and `0x1350` | **header-derived** |
+| the load's effective address under that graph is `payload_base+0x2258` (`+0xf08`) | **header-derived, not accessed** |
+| both operands, and the intended load, fall inside one `0x8000` page | **header-derived** |
+| which family produced the panic, and which iteration | **runtime-unresolved** |
+| runtime `x21`, `x8`, `FAR`, `ESR`, backtrace | **runtime-unresolved** |

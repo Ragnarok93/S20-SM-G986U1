@@ -138,7 +138,9 @@ at `payload_base+0x1368` (`lock+0x18`) holds `payload_base+0x2220`, and the word
 at `payload_base+0x2258` (`waiter+0x38`) holds `payload_base+0x1350`. Both must
 survive to make the `cmp` at `+0x308` succeed. The two objects are `0xed0` apart
 and both inside one 32 KiB page, because both are `payload_base + offset` with
-the order-3 base the leak supplied. `verify_symbol.py` recomputes both addresses
+the order-3 base the leak supplied.
+It is a layout property, and not a mapping or retention claim: nothing in the
+record shows the page was mapped, or that the load reached `payload_base+0x2258`. `verify_symbol.py` recomputes both addresses
 and both stored values from the target's own `target.h` constants rather than
 from this prose.
 
