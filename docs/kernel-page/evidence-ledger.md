@@ -43,6 +43,7 @@ nothing inherits confidence from a neighbouring claim.
 | 36 | The device's `+0x304` is `ldr x8, [x8, #56]` in the stock image, the `w->lock` read inside `rt_mutex_top_waiter()` | byte chain `boot.img.lz4` → `boot.img` → `kernel.bin` (at `+0x1000`) → `vmlinux.elf`; symbol `ffffff8008146ca4`; `rtmutex_common.h:52-63` inlined at `rtmutex.c:661` | the next symbol is `0x858` later, which is the size the device printed | `f9401d08` at `ffffff8008146fa8`; `brk #0x800` at `+0x838` | one image, three independent agreements: build string, symbol size, `.kernel` bytes | **verified** | a static read: it says what the PC is, never what the registers held |
 | 37 | The recorded PC is the load at `+0x304`, not the `BUG_ON` trap | the disassembly window in `symbol-resolution.md` §1 | a `BUG_ON` panic would report `+0x310` or `+0x838` | PC is `+0x304`; the trap is `brk #0x800` at `+0x838` | one image | **verified** | the oops status line that would name the abort class is not in any capture |
 | 38 | At the panic, `lock->waiters.rb_leftmost` held a pointer that was not dereferenceable | `+0x2f8` reads `[lock,#0x18]` and succeeded; `+0x304` reads `[x8,#0x38]` and faulted | a mapped planted page would make the second read readable | the fault requires the word, the lock identity, or the mapping to have differed from the payload's intended image | source + one image | **derived, not measured** | candidates A–C in `symbol-resolution.md` §5; registers, `FAR` and `ESR` are unavailable, so none can be selected |
+| 39 | At the fault, `x21` is a lock the kernel has just re-validated against a task's `pi_blocked_on`, and the tree-root word it reads is the planted one only on the first iteration | `register-dataflow.md`; image instructions at `+0x40`, `+0x8c-0x94`, `+0x2f8`; `rtmutex.c:507,518,537,585,613,661,759`; plant at `util.c:1876-1878,1911` | `x21 == task->pi_blocked_on->lock` before any tree read; `x8 = *(x21+0x18)` | the image enforces the check; the plant keeps `fake_lock`, `fake_w0` and the loaded field in one page | static, from the verified image | **verified from the image; runtime values unresolved** | the iteration is not identifiable from the PC, and the four families in `register-dataflow.md` §7 remain |
 
 ## Retractions
 
@@ -93,6 +94,10 @@ is never cited as support.
     panic as proof that the planted page was reached, owned, or mapped: that
     requires `x21`, `x8`, `FAR` or a memory snapshot, and none exists.
 15. A symbol resolution must come from the image whose own kallsyms produced the
+16. Row 39 is a static constraint. It may narrow which pointer could have been
+    wrong; it can never say that `x21` was `fake_lock`, that the page was owned by
+    the program, or which family occurred. Only `x21`, `x8`, `FAR`, `ESR` or a memory
+    snapshot could, and none was preserved.
     offset, evidenced by the printed size. A same-version rebuild (row 35) can
     never be substituted, and its `System.map` cannot resolve an intra-function
     offset even in principle.

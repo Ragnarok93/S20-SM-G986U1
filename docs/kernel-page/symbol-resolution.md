@@ -51,10 +51,11 @@ The chain below is byte-level, not a version-string comparison.
 | build string | inside that image | `Linux version 4.19.113-27095354 (dpi@21DJ7C20) (clang version 10.0.6 for Android NDK) #1 SMP PREEMPT Fri Dec 27 14:53:28 KST 2024` | equals the device's `uname -v` and `/proc/version` |
 | **size agreement** | device printed `/0x858` | next symbol in this image is `0x858` away | **matches** |
 
-The last row is the decisive one. `/0x858` is produced by the device's own kallsyms
-lookup, which stores no sizes: it reports the distance to the next symbol. The same
-distance in this image means its symbol layout, at this function, is the layout the
-device was using when it formatted the panic.
+The identification rests on the byte comparisons and the embedded build metadata; the
+size agreement is corroboration, not unique proof. `/0x858` is produced by the
+device's own kallsyms lookup, which stores no sizes and reports the distance to the
+next symbol, so an equal distance is consistent with this being the image that
+formatted the panic — it is not independently sufficient on its own.
 
 | file | bytes | sha256 |
 | --- | ---: | --- |
@@ -140,27 +141,37 @@ addresses are `0xee0` apart and both inside one 32 KiB page, because both are
 ## 5. The contradiction the instruction creates
 
 A read at `lock+0x18` (`+0x2f8`) **succeeded** and a read at `leftmost+0x38`
-(`+0x304`) **faulted**, in the same frame. If `lock` were the planted lock and the
-word at `lock+0x18` were the planted `fake_w0`, both reads would be in the same
-mapped 32 KiB page and the second could not fault.
+(`+0x304`) **faulted**, in the same frame. If `lock` were the planted lock *and*
+the word at `lock+0x18` were the planted `fake_w0`, the second read would land in
+the same 32 KiB page as the first and would be readable — so the fault requires
+that at least one of those two conditions did not hold at that moment.
 
-So at least one of the following was true when the panic happened:
+Same-page is a property of the *intended* addresses, not of the values the registers
+actually held, so it constrains the explanation without settling it. Four families
+survive, and `register-dataflow.md` derives them from the verified path:
 
-| candidate | would explain the fault by | needs |
+| family | claim | what only a runtime record could show |
 | --- | --- | --- |
-| A. the word at `lock+0x18` was not `fake_w0` | a non-pointer value (poison, a freed base, another allocation's data) read as a waiter | the value of `x8` at `+0x304` |
-| B. `lock` was not the planted lock | a real lock whose tree root was corrupted, or a second lock in the walk | the value of `x21` |
-| C. the page was mapped and the access still faulted | a permission/level fault (for example a user-range pointer with PAN in force) rather than a translation fault | `FAR`/`ESR` |
+| wrong `leftmost` value | `lock+0x18` did not hold `fake_w0` | `x8`, or `FAR` |
+| wrong lock pointer | `x21` was not the planted `fake_lock` | `x21` |
+| invalid waiter pointer | the word named memory that is not readable | `FAR`/`ESR` |
+| translation or permission fault | the access failed at the MMU rather than by value | `ESR` |
 
-None of the three can be selected from what was preserved. The crash records contain
+None of the four can be selected from what was preserved. The crash records contain
 the bootloader's summary and per-CPU idle context saves only; the kernel's own oops
 text, the faulting CPU's registers, `FAR` and `ESR` are not readable in any of the
 three 132 KB captures, and `pimem_esr` is the bootloader's own register, `0x0`.
 
 This is a sharper statement than "the walk died": the recorded PC is inconsistent with
-the image the payload intends *unless* the state at that word differed from the intent.
-Candidate A is the one the project's own history makes plausible — the same page-state
-question as the missing 31 identities — but it is a hypothesis, not a measurement.
+the image the program intends *unless* the state at that word differed from the intent.
+The first family is the one the project's own history makes plausible — the same
+page-state question as the missing 31 identities — but it is a hypothesis, not a
+measurement.
+
+Three evidence categories are kept apart throughout: **measured** (three records report
+the same symbol and offset), **verified against the device image** (the offset resolves
+to `ldr x8, [x8, #56]`), and **unresolved** (the register values, the effective address,
+the exception syndrome, and the identity of the lock and waiter).
 
 ## 6. What this settles, and what it does not
 
@@ -217,7 +228,8 @@ aarch64-linux-gnu-objdump -d \
 ```
 
 The host verifier `verify_symbol.py` (kept with the other pass verifiers, not in the
-repository) re-runs the same checks and fails if any of them stops holding.
+repository) re-runs the same checks and fails if any of them stops holding. The
+register-level follow-up is `register-dataflow.md`.
 
 ## 9. Two notes for the record
 
