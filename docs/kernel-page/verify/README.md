@@ -24,6 +24,19 @@ python3 docs/kernel-page/verify/verify_lifecycle.py
 Expected output: `problems: 0`; `boundary ok: 20 citations, 16 logs, 15
 panic-boot starts, 7 tables`; `problems: 0`; `bad citations: 0`.
 
+## Mutation check
+
+`verify_workflow.py` extracts the selected commit into temporary directories,
+copies the pinned inputs, and drives the workflow's hash gate and verifier block
+through the five failure cases. It writes only under the system temporary
+directory and needs `git` plus the toolchain above.
+
+```sh
+python3 docs/kernel-page/verify/verify_workflow.py --fw /path/to/firmware-check --ksrc /path/to/s20_kernel_chxl1
+```
+
+Pass `--commit <sha>` to pin a commit other than `HEAD`.
+
 ## CI inputs
 
 `inputs.sha256` pins the five firmware files and the two kernel source files the
