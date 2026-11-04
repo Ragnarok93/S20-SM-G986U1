@@ -164,14 +164,21 @@ Ordered by cost. Every item is a read of state the device already holds.
 | 3 | dropbox `SYSTEM_LAST_KMSG` | `dumpsys dropbox --print <ID>` | shell, may deny | the panic backtrace: `pc`, `lr`, faulting function — the only record that names *where* the kernel died |
 | 4 | pstore | `ls /sys/fs/pstore; cat console-ramoops` | root | same as 3 if the shell is denied; unavailable to this shell today (`lifecycle-matrix.md` §4) |
 | 5 | `logcat -b crash` | `adb logcat -b crash -d` | shell | userspace aborts only; cannot show a kernel fault |
+| 6 | current process state | `adb shell 'grep -la /system/bin/id /proc/[0-9]*/cmdline 2>/dev/null; getprop sys.boot_completed'` | shell | whether a payload survivor exists, read before anything is restarted; a heuristic, because `cmdline` alone cannot show the preload and `/proc/<pid>/environ` is not readable across uids |
 
-Item 1 is the cheapest and is decisive for the 20:02 run, with one bound: the host
+Item 1 is the cheapest and is decisive for the 20:02 run, with two bounds. The host
 clock is trustworthy, so `uptime < (now − 20:20:00)` proves a boot after 20:20 —
 provided `uptime` counts suspend time, which 4.19's `fs/proc/uptime.c` does by
 using boot time (**S**, upstream 4.19, not audited in this tree). It dates the boot to
-the elapsed window, not to an instant. A longer uptime proves no reboot, which is
-equally useful: it would make the 20:02 loss a transport loss with the payload
-possibly still running.
+the elapsed window, not to an instant.
+
+A longer uptime is equally useful and equally bounded: it proves no reboot since
+before 20:02, which rules out a reboot as the cause of that loss. It does **not**
+show the payload is still running — the process could have exited, aborted in
+userspace, or be stuck while only the transport failed. Item 6 and the persistent
+log are what separate those. `boot_id` separates boots only against a value recorded
+earlier; read for the first time now, it cannot place any historical run on either
+side of a boot.
 
 Item 2 is decisive for 10:09 and 18:46 in the opposite direction. If the file's
 tail ends on the same line as the host log, execution really stopped there and
@@ -190,3 +197,6 @@ delivery of their lines was lost.
   the faulting code, not the anchor page's `inuse`.
 - It does not make `bootreason` a diagnosis on its own: with no `boot_id` in the
   record, 18:46 and 20:02 remain consistent with several modes.
+- It does not authenticate a kernel-path hypothesis. The verifier checks that this
+  document matches the pinned source and the 16 logs; it says nothing about which
+  allocator branch a free took or where a panic originated.
