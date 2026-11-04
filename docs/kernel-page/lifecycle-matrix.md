@@ -129,7 +129,8 @@ can be tested separately.
 | record | distinguishes | reachable | status |
 | --- | --- | --- | --- |
 | harness exit code | 0 ⇔ lost, non-zero ⇔ alive | host | **measured, 3/3 and 13/13**; the 255/124 values have no matching payload exit path, so codes cannot be mapped to payload paths |
-| `ro.boot.bootreason` | reboot cause | shell | **stale**: `kernel_panic,null` appears on survivors too (`20261103_182504.log`) |
+| `ro.boot.bootreason` | reboot cause | shell | **per boot, not per run**: the same string on 15 consecutive starts, so it classifies only a *transition* (`failure-boundary.md` §3); no boot id was recorded |
+| `/data/local/tmp/ks_log.txt` | last executed line (fsync per line) | shell (0666) | **never retrieved**; written by all 16 runs from offset 0, without truncation |
 | `dumpsys dropbox` `SYSTEM_LAST_KMSG` | panic vs none | shell (used by `~/quick_kp.sh`) | needs reconnect |
 | pstore / `console-ramoops` | panic or lockup residue | root | not available to the shell |
 | `dmesg`, `logcat -b kernel` | fault vs lockup | unverified | needs a device and a capability check |

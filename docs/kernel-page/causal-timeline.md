@@ -1,6 +1,6 @@
 # Causal timeline of the recorded runs
 
-Status: offline consolidation at `8c261c9`. No device run, no code change.
+Status: offline consolidation at `8c261c9`; §5 corrected against `4d5a8dd`. No device run, no code change.
 
 Rule for every row: **the last line the payload wrote is the furthest event that
 run is credited with.** Nothing after it is inferred, and no run is credited
@@ -96,8 +96,11 @@ more.
   dangling page, the watchdog's fate — is a source property awaiting a run that
   returns, not a description of anything that happened.
 
-`bootreason=kernel_panic,null` is not used above: it appears on all 13 survivors
-as well, so it cannot classify any of these runs.
+`bootreason=kernel_panic,null` is not used above as a per-run field: it appears
+on all 13 survivors as well. It does classify one loss when read across a boot
+boundary — 10:09 starts on `reboot,shell`, 10:50 starts on `kernel_panic,null`,
+and no run lies between them (`failure-boundary.md` §3). The other two losses
+cannot be placed on a boot, because no boot identity was recorded.
 
 ## 6. What would tighten this table
 
