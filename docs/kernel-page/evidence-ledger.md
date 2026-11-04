@@ -21,6 +21,7 @@ nothing inherits confidence from a neighbouring claim.
 | 14 | A page identity is obtainable for more than one object per run | `KS_SURFACE per_object_address=unavailable reason=one-leak-one-address`; sysfs and tracepoint enable `EACCES` | another surface, or 31 more leak dumps | one address per dump; no other per-object source | measured once | verified as a limit | 31 further dumps at 8–10 min each is a different run mode (`identity-table.md`) |
 | 15 | The table reports one row per object, and a page only when that object's measured address and a passing geometry check support it | `KS_ID_WINDOW`/`KS_ID_ROW`/`KS_ID_SUMMARY`; `tests/kernel_page/identity_test.c`; `logs/20261103_173750.log` | 32 rows sharing one window id; exactly one `page_identity=exact` while one address exists; no grouping number until every slot has a page | host tests pass; window `f0cf5e9a-26855883` emitted 32 rows, one exact page (`ffffffc255930000`) and 31 unresolved, gate refused, device alive | one device cycle (page-probe mode) | **verified on device (Cycle A)** | the exact page is the scan object's; no co-residency or occupancy follows from it; the complete-table grouping branch is host-tested with synthetic per-slot addresses (`co-resident`, `split`); the payload mode that collects 32 addresses is not built, so it has no device exercise |
 | 16 | A page is derived only from a power-of-two measured span, so the mask is exact | device `pagesperslab=8` → span 32768; host test with a three-page span (12288) | `span = 2^k`; anything else reports invalid | 32768 accepted; 12288 rejected as `non-power-of-two-span` | one host test per case; one device measurement of the span | verified for this geometry | the order-3 compound alignment is a source fact, not probed; no other device geometry is exercised |
+| 17 | Two objects of one burst on the same 32 KiB page, at consecutive slot offsets | `KS_OBJ_ADDR` for slots 1 and 2 in runs 18:25 and 18:46 | slots 1 and 2 resolve to the same page with offset 1024 and 2048 | run 18:25: page `ffffffc05adc0000`; run 18:46: page `ffffffc244738000` | twice, two slots each | **measured, two objects** | not a 32-row result; row 0 and 3–31 have no address; the 18:46 run left the device unreachable after the dumps |
 
 ## Retractions
 
@@ -51,3 +52,6 @@ is never cited as support.
    co-residency statement while fewer than two rows carry a page.
 8. Row 16's mask is valid for the measured span only; a table that has
    not checked the power-of-two condition may not print a page.
+9. Row 17 is two objects, not co-residency of the burst. It may be cited
+   as evidence that the construction places consecutive slots together,
+   never as a complete page map.

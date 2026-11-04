@@ -188,16 +188,15 @@ occupancy column stays `unavailable` even with a full address column.
 | sysfs per-page slab counters | nothing exists to read | — | root for the directory | cannot yield identity even with access |
 | slot arithmetic from the anchor address | page of slot 0 only | free | — | forbidden by rule 1; measured geometry is the only input to a page |
 
-The table now accepts the per-slot addresses this route produces:
+The table accepts the per-slot addresses this route produces:
 `kp_identity_object()` derives a page per slot with the same geometry checks
 and prints `KS_OBJ_ADDR`, and the rows and summary use those pages instead of
-the one anchor address. What does not exist yet is the payload mode that
-collects them: every slot's child would have to run its own 8–10 minute leak
-(twice, because the scan must belong to that child's `mm`), and the existing
-construction forks all 32 children back to back, so the scans either serialize
-on the freeing CPU (~4.5 h) or run concurrently and need a `ks` state per child.
-That mode is the prerequisite for a real Cycle B; the table-side support is
-tested on the host with synthetic per-slot addresses (co-resident and split).
+the one anchor address. The host tests exercise both outcomes with synthetic
+addresses (`co-resident` and `split`).
+
+An opt-in collector now exists — see **Cycle B run mode** below — but it is
+**experimental and not safe to run unattended**: the second two-slot attempt
+left the device unreachable.
 
 The leak route has a consequence worth stating before anyone builds it: the
 scanning child must be alive for its dump, so 31 dumps serialize behind 31 live
@@ -262,6 +261,37 @@ that the two frees met the same `slab_empty` decision. The quiet window
 
 The one exact page is the scan object's own page. Nothing in this cycle says
 the other 31 objects were on it, and nothing here measures occupancy.
+
+## Cycle B run mode (`KS_ID_DUMPS`, experimental)
+
+`KS_ID_DUMPS=N` makes slots 1…N run their own leak instead of the single leak
+child.  The pipes are created before the burst so the fork sequence stays
+back-to-back; each slot's child waits for a byte, runs
+`kernelsnitch_setup()` of its own (the shared `ks` of the parent cannot be used
+by serial scans), scans its own `mm`, writes the address back, pins to the
+freeing CPU and pauses.  The parent signals one slot at a time, so exactly one
+scan holds the cache; `KP_ID_DUMPS` was not run with more than two slots.
+
+Measured, two attempts:
+
+| run | slots | result | outcome |
+| --- | --- | --- | --- |
+| 2026-11-03 18:25 | 1, 2 | `ffffffc05adc0400` (offset 1024) and `ffffffc05adc0800` (offset 2048), both page `ffffffc05adc0000` | the cycle then aborted at the parent's leak re-check, which had no collision set because the scans ran in the children; handoff fixed |
+| 2026-11-03 18:46 | 1, 2 | `ffffffc244738400` (offset 1024) and `ffffffc244738800` (offset 2048), both page `ffffffc244738000` | both scans completed, then **the device went unreachable** (`adb` refused, no USB device); no further log lines, so the cause is not established |
+
+Two independently scanned objects are on the same 32 KiB page at consecutive
+slot offsets in both runs.  That is the first per-object co-residency evidence
+from a single burst, and it is consistent with the construction.  It is not a
+32-row table: rows 0 and 3…31 have no address, so `co_residency` stays
+`unavailable` in the summary.
+
+The leading suspect for the device loss is memory: each dump child keeps the
+whole scan state mapped while it pauses as a live slab object — two children
+means two sets of futex mappings — and neither child unmaps them after
+reporting (`kernelsnitch_cleanup()` would, but it asserts a terminal scan
+state and was not added without a device to test it).  Until that is fixed and
+a two-slot run passes with the device alive, `KS_ID_DUMPS` must not be run with
+32 slots or unattended.
 
 ## Whether Cycle B is worth building
 

