@@ -277,10 +277,11 @@ Measured, two attempts:
 | run | slots | result | outcome |
 | --- | --- | --- | --- |
 | 2026-11-03 18:25 | 1, 2 | `ffffffc05adc0400` (offset 1024) and `ffffffc05adc0800` (offset 2048), both page `ffffffc05adc0000` | the cycle then aborted at the parent's leak re-check, which had no collision set because the scans ran in the children; handoff fixed |
-| 2026-11-03 18:46 | 1, 2 | `ffffffc244738400` (offset 1024) and `ffffffc244738800` (offset 2048), both page `ffffffc244738000` | both scans completed, then **the device went unreachable** (`adb` refused, no USB device); no further log lines, so the cause is not established |
+| 2026-11-03 18:46 | 1, 2 | `ffffffc244738400` (offset 1024) and `ffffffc244738800` (offset 2048), both page `ffffffc244738000` | both scans completed; the cycle continued through the spray into the punch route and `payload_exit=0` at 19:05:02, then **the device went unreachable**.  The log does continue past the dumps — the earlier note that it ended there was wrong |
+| 2026-11-03 20:02 | 1, 2 | `ffffffc011830400` (offset 1024) and `ffffffc011830800` (offset 2048), both page `ffffffc011830000` | collector validated (below); the cycle reached the plant and `consumer punch enter`, `payload_exit=0` at 20:20:00, then **the device went unreachable** |
 
 Two independently scanned objects are on the same 32 KiB page at consecutive
-slot offsets in both runs.  That is the first per-object co-residency evidence
+slot offsets in all three runs.  That is the first per-object co-residency evidence
 from a single burst, and it is consistent with the construction.  It is not a
 32-row table: rows 0 and 3…31 have no address, so `co_residency` stays
 `unavailable` in the summary.
@@ -296,10 +297,42 @@ distinct addresses on one page, never rows.  `page_known` still counts rows
 with an exact page, so a complete table that somehow carries one duplicate
 reads `page_known=32 objects_per_page=31 observed_same_page_pairs=465`.
 
-The leading suspect for the device loss is memory: each dump child kept the
-whole scan state mapped while it paused as a live slab object — two children
-means two sets of futex mappings — and neither child unmapped them after
-reporting.
+## Device validation (2026-11-03 20:02)
+
+One two-slot cycle on the frozen build (`sha256=3a80a4b3…`) is the first device
+run of the collector with the guarded cleanup.  Log:
+[`logs/20261103_200234.log`](logs/20261103_200234.log).
+
+| measured line | what it shows |
+| --- | --- |
+| `KS_ID_DUMP_REPORT slot=1 … result=written bytes=40 of=40` | the whole record was transferred |
+| `KS_ID_DUMP slot=1 addr=ffffffc011830400 … verdict=accepted` | admitted; page `ffffffc011830000`, offset 1024 |
+| `KS_ID_DUMP_CLEANUP slot=1 result=released` | scan state released before parking |
+| slot 2 `…830800` (offset 2048), same page | `result=written bytes=40 of=40`, admitted, `result=released` |
+| `KS_ID_DUMP_DONE slots=2 launched=2 reported=2 rejected=0 missing=0 alive=2 gone=0 reaped=0 open_pipes=0 accounting=ok` | the counts reconcile and both reporters held their slots at the sample |
+| `KS_ID_SUMMARY … observed_same_page_pairs=1 co_residency=unavailable` | one pair, no co-residency verdict |
+
+The DONE line was printed before slot 2's `KS_ID_DUMP_CLEANUP` arrived, and it
+sampled slot 2 while it was still releasing (`state=R`).  That is the
+point-in-time caveat in action: `alive=` says the child held its slot at that
+instant, not that it stayed alive, and `accounting=ok` says the counters
+reconcile, not that the device survived — which it did not.
+
+The cycle then ran the page probe (`KS_PAGE_PROBE base=ffffffc011830000`), the
+spray with matching readback (`KS_PAGE_PEEK … skb_match=1`), the plant
+(`KS_PLANT_LANES … plant … hits=1 mismatch=0`) and `consumer punch enter`
+before `payload_exit=0`; `adb` then refused and the USB device disappeared.
+
+### What the loss is not
+
+The earlier reading — that the paused dump children's mapped scan state caused
+the loss — is not supported.  In this run both children released their scans,
+both were alive at DONE with `open_pipes=0`, and the payload continued for
+another ~18 minutes through the spray and punch before the device dropped.
+Both full two-slot cycles (18:46 and 20:02) ended the same way, after
+`payload_exit=0`; the aborted 18:25 attempt, which never reached the punch,
+left the device alive.  The association is with the punch stage; the cause is
+not established.
 
 ## Collector contract after the hardening (host-verified, not re-run on device)
 
