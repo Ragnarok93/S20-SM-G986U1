@@ -87,6 +87,18 @@ Two properties of the file matter for reading it:
   flush loses a line silently. A file that ends mid-spell marks the last durable
   write, not necessarily the last attempted one.
 
+What the file can prove is narrower than "where execution stopped":
+
+- **Logging, not instructions.** A recovered line proves that one
+  `exlog_writef` call reached its durable write. It does not prove the next
+  source statement ran, and it cannot name the faulting instruction.
+- **One history, several runs.** The file is a concatenation. Reconstruct
+  each run by pid in file order; the physical tail is not necessarily any
+  single run's output.
+- **Missing is still ambiguous.** With the write and fsync results unchecked,
+  an absent persistent line means the flush did not complete — the bound is
+  narrower than the delivered one, not closed.
+
 ## 3. The boot chain, and the one loss it classifies
 
 `ro.boot.bootreason` is fixed at boot, so its value at the *start* of a run
@@ -102,12 +114,30 @@ of a reboot.
 
 The transition between 10:09 and 10:50 has no run in between. 10:09 is therefore
 the only recorded loss whose successor boot is a **different** boot: it ended in
-a kernel panic (**I**, bootloader-recorded, no backtrace). That corrects the
-earlier statement in `causal-timeline.md` §5 that the field "cannot classify any
-of these runs" — it cannot classify a run from its own start value, but a
-transition across a boot boundary does classify the loss in between.
+a kernel panic (**I**, bootloader-recorded, no backtrace).
 
-The same table is why 18:46 and 20:02 stay unresolved. `kernel_panic,null` would
+The reading rests on two assumptions, stated so they can be attacked:
+
+1. **No unrecorded actor caused that panic.** The window contains exactly one
+   payload run and no other logged activity, so the panic is attributed to
+   10:09. A spontaneous panic from leftover state is not excluded, only
+   unsupported.
+2. **The panic may post-date the payload's exit.** The host's `payload_exit=0`
+   is not a payload status (`punch-path-audit.md` §1), so the panic could have
+   occurred after the process was already gone, not inside the plant.
+
+That corrects the earlier statement in `causal-timeline.md` §5 that the field
+"cannot classify any of these runs": it cannot classify a run from its own
+start value, but a transition across a boot boundary does classify the loss in
+between. What survives is this table, and nothing wider:
+
+| run | loss mode | completion |
+| --- | --- | --- |
+| 10:09 | kernel panic, supported by the boot-reason transition | none |
+| 18:46 | unresolved; panic possible | none |
+| 20:02 | unresolved; panic possible | none |
+
+18:46 and 20:02 stay unresolved for a different reason: `kernel_panic,null` would
 be identical whether the phone rebooted again or never rebooted at all, and no
 boot identity was recorded: the harness logs the reason but not `boot_id` or
 `/proc/uptime`, so two consecutive panic boots are indistinguishable in the
@@ -129,15 +159,19 @@ Ordered by cost. Every item is a read of state the device already holds.
 
 | # | record | how | access | settles |
 | --- | --- | --- | --- | --- |
-| 1 | boot identity | `adb shell cat /proc/uptime; getprop ro.boot.bootreason` | shell | whether the phone booted after 20:20:00 — uptime shorter than the elapsed wall time proves a reboot, and the reason then classifies the 20:02 loss |
+| 1 | boot identity | `adb shell cat /proc/uptime; cat /proc/sys/kernel/random/boot_id 2>/dev/null; getprop ro.boot.bootreason` | shell | whether the phone booted after 20:20:00, if `uptime` is shorter than the wall time elapsed since then; the reason then classifies the 20:02 loss. `boot_id` separates boots from each other but not from the unrecorded previous one |
 | 2 | `/data/local/tmp/ks_log.txt` | `adb pull /data/local/tmp/ks_log.txt` | shell (0666) | last **executed** line per pid; whether 10:09 or 18:46 reached `KS_PLANT_SHALLOW` or `consumer punch enter` after the host stream died |
 | 3 | dropbox `SYSTEM_LAST_KMSG` | `dumpsys dropbox --print <ID>` | shell, may deny | the panic backtrace: `pc`, `lr`, faulting function — the only record that names *where* the kernel died |
 | 4 | pstore | `ls /sys/fs/pstore; cat console-ramoops` | root | same as 3 if the shell is denied; unavailable to this shell today (`lifecycle-matrix.md` §4) |
 | 5 | `logcat -b crash` | `adb logcat -b crash -d` | shell | userspace aborts only; cannot show a kernel fault |
 
-Item 1 is the cheapest and is decisive for the 20:02 run: the host clock is known,
-so `uptime < (now − 20:20:00)` proves the phone rebooted, and its reason string
-then says whether that reboot was a panic.
+Item 1 is the cheapest and is decisive for the 20:02 run, with one bound: the host
+clock is trustworthy, so `uptime < (now − 20:20:00)` proves a boot after 20:20 —
+provided `uptime` counts suspend time, which 4.19's `fs/proc/uptime.c` does by
+using boot time (**S**, upstream 4.19, not audited in this tree). It dates the boot to
+the elapsed window, not to an instant. A longer uptime proves no reboot, which is
+equally useful: it would make the 20:02 loss a transport loss with the payload
+possibly still running.
 
 Item 2 is decisive for 10:09 and 18:46 in the opposite direction. If the file's
 tail ends on the same line as the host log, execution really stopped there and
