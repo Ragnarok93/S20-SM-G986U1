@@ -115,7 +115,8 @@ The registers then read:
 
 `0x2220 - 0x1350 = 0xed0`, and the effective address is `0x2258 - 0x1350 =
 0xf08`. Both field offsets are also the immediates in this window (`#24` and
-`#56`), so the arithmetic is checked against the image as well as the header.
+`#56`), and `verify_symbol.py` decodes those two immediates from `kernel.bin`, so
+the header and the instruction must agree before either address is printed.
 `0x2258` is the address the load **would** use if both words held their planted
 values; it is not a record that the CPU accessed it, which only the runtime `x8`
 could show, and that is absent.
