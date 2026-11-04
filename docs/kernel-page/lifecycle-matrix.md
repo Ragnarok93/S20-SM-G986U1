@@ -136,6 +136,10 @@ can be tested separately.
 | USB enumeration | on-bus vs off-bus | host | **measured**: absent now, no Samsung device on the bus |
 | `sys.boot_completed`, uptime | rebooted vs hung | shell | needs a reconnect |
 
+Per-run last-observed events, and the five-field evidence table for the walk,
+are in `causal-timeline.md`. That table is the authority for what any run is
+credited with: no run has yet completed the punch, the route or the summary.
+
 ## 8. Findings, ranked
 
 1. **The watchdog can signal a reused pid.** No parent-death guard, stored pid,

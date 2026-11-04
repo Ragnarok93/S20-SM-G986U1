@@ -32,6 +32,8 @@ nothing inherits confidence from a neighbouring claim.
 | 25 | No payload exit path yields 255, so harness codes cannot be mapped to payload exits | `lifecycle-matrix.md` §2; `grep -rn "_exit(255)" src/` | every harness code corresponds to a source return or `_exit` | `main.c` returns 0, 3, 4 and the test paths `_exit(0/2)`; no source path produces 255, yet 255 appears on the twelve alive bails and 0 on the three losses | all 16 logs, one source pass | **source-audited** | the adb client's status mapping is still unexplained |
 | 26 | The punch watchdog can outlive its parent and signal a reused pid | `lifecycle-matrix.md` §6; `main.c:34-52`, `main.c:72-79` | the child exits with the parent or checks `getppid()` before signalling | no parent-death guard, no `getppid()` check, stored pid, 90 s poll, then `kill(parent_pid, SIGKILL)`; `finish` waits for the child | source only, never exercised | **source-audited, not exercised** | whether a pid is reused inside 90 s on this device is unmeasured; it is a hazard statement, not an observed event |
 | 27 | The route has no owner for its fake page, and its consumer and owner threads never terminate | `lifecycle-matrix.md` §3-4; `util.c:4530`, `main.c:173`, `main.c:204` | every return path releases or restores what it wrote, and each thread has a stop signal | no release or restore in the route; `punch_consume_stop` is only stored as 0; `owner_thread` loops forever | source only | **source-audited** | only reachable after a walk completes, which no lost run achieved |
+| 28 | No recorded run has completed the punch, the route or the summary; the furthest event is `consumer punch enter` in 20:02 | `causal-timeline.md` §1-2; all 16 logs | a completed punch prints `consumer punch done`, a completed route `main route done`, a summary `pipe-physrw-summary` | zero occurrences of each in 16 logs; three runs reach the plant stage, one enters the punch, three are lost, thirteen survive | one extractor over every log | **measured** | says nothing about what happens after the punch returns; no post-return behaviour has a device observation |
+| 29 | A run is credited only with the last line it printed; `pr_*` is `write()`+`fsync()`, so a missing line was not written | `causal-timeline.md` §1; the logging path in `util.c`/`exlog` | the last line is the fault boundary; nothing after it is inferred | every log ends at a line that the next code step explains (gate, skip, plant, punch) | one method applied to 16 logs | **measured** | a line could be lost in the device's own storage, but not buffered in the process |
 
 ## Retractions
 
@@ -90,3 +92,7 @@ is never cited as support.
     disappeared: the two plant-stage losses stop before the walk and the
     20:02 loss stops inside it, so neither a post-walk leftover nor an
     orphaned watchdog can explain them.
+17. Rows 28-29 fix the accounting rule: a run's stage is its last printed
+    line, and no hazard may be attached to a run whose boundary is
+    earlier than that hazard's code. The post-punch hazards in rows 26-27
+    therefore have no run to attach to — yet.
