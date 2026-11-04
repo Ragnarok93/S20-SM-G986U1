@@ -326,13 +326,25 @@ USB device), so nothing below has been exercised on the device.
   pipe on every path, so `open_pipes` stays 0 even when a child dies mid-line.
   The children carry `PR_SET_PDEATHSIG` so a dead parent does not leave them.
 - **A report and its reporter are logged separately.**  The child writes the
-  record before any cleanup and logs `KS_ID_DUMP_REPORT
-  result=written|write-failed`, then `KS_ID_DUMP_CLEANUP`; the parent logs its
-  own `verdict=accepted|rejected`, then `KS_ID_DUMP_ALIVE` per slot and
-  `alive=`/`gone=` on `KS_ID_DUMP_DONE`.  A dead child is reaped; a live one is
-  the slab object and is left alone.  A child that dies during cleanup still
-  has a written report — the liveness line is what says its slot no longer
-  holds the object.
+  record before any cleanup and logs `KS_ID_DUMP_REPORT result=written
+  bytes=<n> of=<n>` only when the whole record was transferred; a short or
+  interrupted write is `write-failed` with its byte count, and the parent then
+  refuses the short line as `truncated-report`.  (The record is ~42 bytes, far
+  below `PIPE_BUF`, so one pipe write is atomic; the loop is defensive.)  The
+  parent logs its own `verdict=accepted|rejected`, then `KS_ID_DUMP_ALIVE` per
+  slot.  A child that dies during cleanup still has a written report — the
+  liveness line is what says its slot no longer holds the object.
+- **Ownership is the burst's, not the collector's.**  Every dump child is an
+  entry in the burst's `pre_ctx.childs`, so the existing freeze and teardown
+  kill it; the collector adds no second owner.  It reaps only a child that is
+  already dead (`WNOHANG`) and never touches a live one, because a live child
+  *is* the slab object under test.
+- **The DONE counts must reconcile.**  `KS_ID_DUMP_DONE` carries `slots=
+  launched= reported= rejected= missing= alive= gone= reaped= open_pipes=
+  accounting=ok|mismatch`, with `reported + rejected + missing = slots` and
+  `alive + gone = launched`.  A child that never reported is `missing`, never
+  `rejected`; a launched child whose liveness was not observed makes the line
+  `mismatch` instead of reading clean.
 - **A duplicate is not an identity.**  A report whose address another slot
   already owns is refused and counted in `duplicate_reports=`, never folded
   into `observed_same_page_pairs=`.
@@ -343,8 +355,9 @@ pipes (full line, mid-line EOF, no report, no writer, bad descriptor or
 capacity) with the descriptor closed after every case and the empty wait
 returning inside its 50 ms deadline; pair arithmetic checked at 32 distinct
 (496), 31 distinct over a duplicate row (465) and the measured two-object table
-(1).  The host suite and the payload build pass with 0 warnings
-(`sha256=fa3685cb…`).  Still required before any
+(1); the accounting rule on consistent, missing-report, unobserved-child and
+impossible-count sets.  The host suite and the payload build pass with 0
+warnings (`sha256=3a80a4b3…`).  Still required before any
 32-slot attempt: a two-slot run that finishes with the handset alive.  The
 release path, the pipe accounting and the child-death path remain device-only
 observations.

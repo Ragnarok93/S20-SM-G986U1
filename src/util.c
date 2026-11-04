@@ -1452,17 +1452,32 @@ static pid_t clone_dump_slot(size_t slot) {
       char line[64];
       int n = snprintf(line, sizeof(line), "mm=%016zx accepted=%zu state=%d\n",
                        (size_t)mm, (size_t)ks->accepted_count, (int)ks->state);
-      ssize_t w = -1;
+      ssize_t sent = -1;
       if (n > 0 && (size_t)n < sizeof(line)) {
-        w = write(dump_fd[i][3], line, (size_t)n);
+        sent = 0;
+        /* The record is ~42 bytes, well under PIPE_BUF, so one pipe write is
+         * atomic.  The loop is here so an interrupted or short write can never
+         * be logged as written: only the whole record counts. */
+        while (sent < n) {
+          ssize_t w = write(dump_fd[i][3], line + sent,
+                            (size_t)n - (size_t)sent);
+          if (w > 0) {
+            sent += w;
+          } else if (w < 0 && errno == EINTR) {
+            continue;
+          } else {
+            sent = -1;
+            break;
+          }
+        }
       }
       /* The report is complete before any cleanup runs, so a failed release
        * can never change what was reported.  The parent's admission is a
        * separate outcome (KS_ID_DUMP verdict=...). */
-      pr_info("KS_ID_DUMP_REPORT slot=%zu accepted=%zu state=%d result=%s\n",
+      pr_info("KS_ID_DUMP_REPORT slot=%zu accepted=%zu state=%d result=%s "
+              "bytes=%zd of=%d\n",
               slot, (size_t)ks->accepted_count, (int)ks->state,
-              (n > 0 && (size_t)n < sizeof(line) && w == n) ? "written"
-                                                            : "write-failed");
+              (n > 0 && sent == n) ? "written" : "write-failed", sent, n);
     }
     close(dump_fd[i][3]);
     /* Release the scan's mappings before parking.  The child must stay alive
@@ -1497,6 +1512,7 @@ static pid_t clone_dump_slot(size_t slot) {
 static void collect_dump_addresses(struct kp_geometry *geo) {
   double t0 = ks_now_ms();
   int reported = 0;
+  int rejected = 0;
   for (int i = 0; i < dump_pipe_count; i++) {
     char go = 1;
     if (dump_fd[i][1] >= 0) {
@@ -1530,6 +1546,7 @@ static void collect_dump_addresses(struct kp_geometry *geo) {
               "verdict=accepted waited_ms=%.0f\n",
               i + 1, (size_t)mm, ks_now_ms() - t0);
     } else {
+      rejected++;
       pr_warning("KS_ID_DUMP slot=%d addr=unavailable(reason=%s) "
                  "verdict=rejected waited_ms=%.0f\n",
                  i + 1, why != NULL ? why : "unknown", ks_now_ms() - t0);
@@ -1542,14 +1559,24 @@ static void collect_dump_addresses(struct kp_geometry *geo) {
      * a dead child is reaped here; a live one is the slab object itself. */
     int alive = 0;
     int gone = 0;
+    int reaped = 0;
+    int launched = 0;
     for (int i = 0; i < dump_pipe_count; i++) {
-      int st = dump_pid[i] > 0 ? task_state_char(dump_pid[i]) : 0;
+      if (dump_pid[i] <= 0) {
+        /* No child was forked for this slot: it cannot be alive or gone, and
+         * its lack of a report is counted as missing on the DONE line. */
+        pr_info("KS_ID_DUMP_ALIVE slot=%d pid=0 state=? alive=0 launched=0\n",
+                i + 1);
+        continue;
+      }
+      launched++;
+      int st = task_state_char(dump_pid[i]);
       int live = st != 0 && st != 'Z' && st != 'X';
       alive += live ? 1 : 0;
       if (!live) {
         gone++;
-        if (dump_pid[i] > 0) {
-          (void)waitpid(dump_pid[i], NULL, WNOHANG);
+        if (waitpid(dump_pid[i], NULL, WNOHANG) == dump_pid[i]) {
+          reaped++;
         }
       }
       pr_info("KS_ID_DUMP_ALIVE slot=%d pid=%d state=%c alive=%d\n", i + 1,
@@ -1563,10 +1590,23 @@ static void collect_dump_addresses(struct kp_geometry *geo) {
         }
       }
     }
-    pr_info("KS_ID_DUMP_DONE slots=%d reported=%d rejected=%d alive=%d gone=%d "
-            "open_pipes=%d total_ms=%.0f\n",
-            dump_pipe_count, reported, dump_pipe_count - reported, alive, gone,
-            open, ks_now_ms() - t0);
+    /* reported + rejected + missing == slots and alive + gone == launched; a
+     * child that never reported is missing, never rejected, and a child whose
+     * liveness was not observed makes this mismatch instead of reading clean. */
+    size_t missing = 0;
+    int accounting =
+        kp_dump_account((size_t)dump_pipe_count, (size_t)launched,
+                        (size_t)reported, (size_t)rejected, (size_t)alive,
+                        (size_t)gone, (size_t)reaped, &missing);
+    pr_info("KS_ID_DUMP_DONE slots=%d launched=%d reported=%d rejected=%d "
+            "missing=%zu alive=%d gone=%d reaped=%d open_pipes=%d "
+            "accounting=%s total_ms=%.0f\n",
+            dump_pipe_count, launched, reported, rejected, missing, alive, gone,
+            reaped, open, accounting ? "ok" : "mismatch", ks_now_ms() - t0);
+    if (!accounting) {
+      pr_warning("KS_ID_DUMP_ACCOUNTING result=mismatch "
+                 "reason=counts-do-not-reconcile\n");
+    }
   }
 }
 

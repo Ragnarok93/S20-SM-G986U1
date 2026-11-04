@@ -497,6 +497,28 @@ int main(void) {
     close(p[1]);
   }
 
+  /* The DONE counts must reconcile: a child that never reported is missing,
+   * not rejected; a launched child is alive or gone; only a gone child can
+   * have been reaped. */
+  {
+    size_t missing = 99;
+    CHECK(kp_dump_account(2, 2, 2, 0, 2, 0, 0, &missing) == 1);
+    CHECK(missing == 0);
+    CHECK(kp_dump_account(2, 2, 1, 0, 2, 0, 0, &missing) == 1);
+    CHECK(missing == 1);
+    /* Received and refused is not missing. */
+    CHECK(kp_dump_account(2, 2, 1, 1, 2, 0, 0, &missing) == 1);
+    CHECK(missing == 0);
+    /* A launched child that is neither alive nor gone cannot reconcile. */
+    CHECK(kp_dump_account(2, 2, 2, 0, 1, 0, 0, &missing) == 0);
+    /* More reports than slots cannot reconcile. */
+    CHECK(kp_dump_account(2, 2, 2, 1, 2, 0, 0, &missing) == 0);
+    /* Reaped above gone is impossible. */
+    CHECK(kp_dump_account(2, 2, 2, 0, 1, 1, 2, &missing) == 0);
+    CHECK(kp_dump_account(2, 2, 2, 0, 1, 1, 1, &missing) == 1);
+    CHECK(missing == 0);
+  }
+
   /* Reading the host's own slabinfo must not crash and must leave a
    * consistent structure whether or not the file is readable. */
   {

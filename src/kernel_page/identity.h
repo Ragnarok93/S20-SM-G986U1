@@ -151,6 +151,16 @@ int kp_dump_admit(const struct kp_geometry *g, size_t slot, const char *buf,
  * by kp_dump_admit() as a truncated report. */
 ssize_t kp_dump_read_report(int fd, char *buf, size_t cap, int timeout_ms);
 
+/* The collector's own accounting rule: a child that never reported is neither
+ * accepted nor rejected, it is missing; a launched child is either alive or
+ * gone, and only a gone child can have been reaped.  Returns 1 when the counts
+ * reconcile and stores slots - reported - rejected in *missing_out (0 when the
+ * pointer is NULL).  Pure arithmetic, so the DONE line and the host tests
+ * share one rule instead of two. */
+int kp_dump_account(size_t slots, size_t launched, size_t reported,
+                    size_t rejected, size_t alive, size_t gone, size_t reaped,
+                    size_t *missing_out);
+
 /* Record one measured address for one slot.  This is the Cycle B route: one
  * leak dump per object, each in the child whose mm is that object.  The same
  * geometry checks as kp_identity_anchor apply, per address, and the row for

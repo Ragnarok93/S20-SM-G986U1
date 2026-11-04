@@ -387,6 +387,27 @@ ssize_t kp_dump_read_report(int fd, char *buf, size_t cap, int timeout_ms) {
   return (ssize_t)used;
 }
 
+int kp_dump_account(size_t slots, size_t launched, size_t reported,
+                    size_t rejected, size_t alive, size_t gone, size_t reaped,
+                    size_t *missing_out) {
+  if (missing_out != NULL) {
+    *missing_out = 0;
+  }
+  if (launched > slots || reported + rejected > slots) {
+    return 0;
+  }
+  if (alive + gone != launched) {
+    return 0;
+  }
+  if (reaped > gone) {
+    return 0;
+  }
+  if (missing_out != NULL) {
+    *missing_out = slots - reported - rejected;
+  }
+  return 1;
+}
+
 /* Exactly 16 lowercase hex digits, the width the dump child prints an address
  * with.  Uppercase is refused so one report format has one spelling. */
 static int hex16(const char *buf, uintptr_t *out) {
