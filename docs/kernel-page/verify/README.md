@@ -47,7 +47,10 @@ The workflow installs the three tools above and checks they resolve before
 fetching the archives. It downloads the `fw/` and `ksrc/` archives from the URLs
 in repository secrets `KS_FIRMWARE_URL` and `KS_KSRC_URL` (optionally authorized
 by `KS_INPUTS_TOKEN`), unpacks them, and runs `sha256sum -c inputs.sha256`
-before the four commands. Pack the archives with:
+before the four commands. The final step runs `verify_workflow.py` with
+`--source "$GITHUB_WORKSPACE"`, `--commit "$GITHUB_SHA"`, and the same `--fw`
+and `--ksrc` directories, so the five mutations and six green baselines are
+required on every run. Pack the archives with:
 
 ```sh
 tar -C /path/to/firmware-check -cf firmware.tar kernel.bin boot.img.lz4 boot.img vmlinux.elf kernel.config

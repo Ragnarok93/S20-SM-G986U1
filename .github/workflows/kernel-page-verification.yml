@@ -100,6 +100,15 @@ jobs:
           run verify_lifecycle docs/kernel-page/verify/verify_lifecycle.py
           exit "$status"
 
+      - name: Run mutation harness
+        run: |
+          set -euo pipefail
+          python3 docs/kernel-page/verify/verify_workflow.py \
+            --source "$GITHUB_WORKSPACE" \
+            --commit "$GITHUB_SHA" \
+            --fw "$RUNNER_TEMP/ks-inputs/fw" \
+            --ksrc "$RUNNER_TEMP/ks-inputs/ksrc"
+
       - name: Upload verifier logs
         if: always()
         uses: actions/upload-artifact@v4
