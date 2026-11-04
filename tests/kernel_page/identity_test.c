@@ -12,9 +12,13 @@
  * a page is only derived when every measured geometry field agrees, and an
  * incomplete table never reports a page grouping or a co-residency verdict.
  */
+#include <errno.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "kernel_page/identity.h"
 
@@ -317,6 +321,9 @@ int main(void) {
     kp_identity_stats(&st);
     CHECK(st.duplicate_addresses == 1);
     CHECK(st.page_known == 32);
+    /* Two rows for one address are one object: the page holds 31 distinct
+     * objects here, so 31*30/2 pairs, not 32*31/2. */
+    CHECK(st.same_page_pairs == 31u * 30u / 2u);
     kp_identity_summary();
   }
 
@@ -434,6 +441,60 @@ int main(void) {
     CHECK(st.same_page_pairs == 0);
     CHECK(st.co_residency == KP_CO_UNAVAILABLE);
     kp_identity_summary();
+  }
+
+  /* The collector's read path: one bounded wait that always closes the report
+   * pipe.  A child that exits mid-line, never reports, or never answers must
+   * leave no descriptor behind and must not stall the collector. */
+  {
+    char buf[64];
+    int p[2];
+    const char *line = "mm=ffffffc05adc0400 accepted=116 state=4\n";
+    CHECK(pipe(p) == 0);
+    CHECK(write(p[1], line, strlen(line)) == (ssize_t)strlen(line));
+    ssize_t used = kp_dump_read_report(p[0], buf, sizeof(buf), 1000);
+    CHECK(used == (ssize_t)strlen(line));
+    CHECK(memcmp(buf, line, (size_t)used) == 0);
+    CHECK(fcntl(p[0], F_GETFD) == -1 && errno == EBADF);
+    close(p[1]);
+
+    /* The child died mid-line: the bytes arrived, the line did not. */
+    CHECK(pipe(p) == 0);
+    CHECK(write(p[1], "mm=ffffff", 9) == 9);
+    close(p[1]);
+    used = kp_dump_read_report(p[0], buf, sizeof(buf), 1000);
+    CHECK(used == 9);
+    CHECK(memchr(buf, '\n', (size_t)used) == NULL);
+    CHECK(fcntl(p[0], F_GETFD) == -1);
+
+    /* The child exited without reporting. */
+    CHECK(pipe(p) == 0);
+    close(p[1]);
+    used = kp_dump_read_report(p[0], buf, sizeof(buf), 1000);
+    CHECK(used == 0);
+    CHECK(fcntl(p[0], F_GETFD) == -1);
+
+    /* No writer and no EOF: the wait is bounded by the deadline and the pipe
+     * is closed anyway. */
+    struct timespec t0;
+    struct timespec t1;
+    CHECK(pipe(p) == 0);
+    CHECK(clock_gettime(CLOCK_MONOTONIC, &t0) == 0);
+    used = kp_dump_read_report(p[0], buf, sizeof(buf), 50);
+    CHECK(clock_gettime(CLOCK_MONOTONIC, &t1) == 0);
+    long ms = (t1.tv_sec - t0.tv_sec) * 1000L +
+              (t1.tv_nsec - t0.tv_nsec) / 1000000L;
+    CHECK(used == 0);
+    CHECK(ms >= 40 && ms < 5000);
+    CHECK(fcntl(p[0], F_GETFD) == -1);
+    close(p[1]);
+
+    /* A bad descriptor or capacity is refused, and still closed. */
+    CHECK(kp_dump_read_report(-1, buf, sizeof(buf), 10) == -1);
+    CHECK(pipe(p) == 0);
+    CHECK(kp_dump_read_report(p[0], buf, 1, 10) == -1);
+    CHECK(fcntl(p[0], F_GETFD) == -1);
+    close(p[1]);
   }
 
   /* Reading the host's own slabinfo must not crash and must leave a

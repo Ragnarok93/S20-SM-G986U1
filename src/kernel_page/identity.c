@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <poll.h>
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
@@ -317,6 +318,73 @@ int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
           g_window, (size_t)addr, geom, (size_t)out->page, g->span,
           out->offset, out->slot, constructed_slot, out->slot_match);
   return out->slot_match;
+}
+
+/* Monotonic milliseconds, for a bounded wait that does not depend on how many
+ * times poll() returns early. */
+static double mono_ms(void) {
+  struct timespec ts;
+  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+    return 0;
+  }
+  return (double)ts.tv_sec * 1000.0 + (double)(ts.tv_nsec / 1000000L);
+}
+
+ssize_t kp_dump_read_report(int fd, char *buf, size_t cap, int timeout_ms) {
+  if (fd < 0 || buf == NULL || cap < 2 || timeout_ms <= 0) {
+    if (fd >= 0) {
+      close(fd);
+    }
+    return -1;
+  }
+  double deadline = mono_ms() + (double)timeout_ms;
+  size_t used = 0;
+  for (;;) {
+    if (used > 0 && memchr(buf, '\n', used) != NULL) {
+      break;
+    }
+    if (used == cap - 1) {
+      break;
+    }
+    double left = deadline - mono_ms();
+    if (left <= 0) {
+      break;
+    }
+    int wait_ms = left > 1000.0 ? 1000 : (int)left;
+    if (wait_ms < 1) {
+      wait_ms = 1;
+    }
+    struct pollfd p;
+    p.fd = fd;
+    p.events = POLLIN;
+    p.revents = 0;
+    int pr = poll(&p, 1, wait_ms);
+    if (pr < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      break;
+    }
+    if (pr == 0) {
+      continue; /* the deadline check above bounds the total wait */
+    }
+    if (!(p.revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL))) {
+      break;
+    }
+    ssize_t n = read(fd, buf + used, cap - 1 - used);
+    if (n < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      break;
+    }
+    if (n == 0) {
+      break;
+    }
+    used += (size_t)n;
+  }
+  close(fd);
+  return (ssize_t)used;
 }
 
 /* Exactly 16 lowercase hex digits, the width the dump child prints an address
@@ -655,6 +723,19 @@ void kp_identity_stats(struct kp_identity_stats *out) {
     }
     if (r->page_exact) {
       out->page_known++;
+      /* One object, two rows: the later row is counted as a duplicate address
+       * and never as a second object on the page, so it cannot create a pair. */
+      int seen = 0;
+      for (size_t j = 0; j < i; j++) {
+        if (g_rows[j].page_exact && g_rows[j].page == r->page &&
+            g_rows[j].addr == r->addr) {
+          seen = 1;
+          break;
+        }
+      }
+      if (seen) {
+        continue;
+      }
       size_t k = 0;
       for (; k < npages; k++) {
         if (pages[k] == r->page) {

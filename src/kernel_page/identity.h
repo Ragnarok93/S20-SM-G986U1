@@ -74,8 +74,9 @@ struct kp_identity_stats {
   size_t pages_observed;
   size_t distinct_pages;
   size_t objects_per_page;
-  size_t same_page_pairs; /* unordered pairs of exact rows sharing a page;
-                             a partial observation, never co-residency */
+  size_t same_page_pairs; /* unordered pairs of distinct identities (one per
+                             unique address) on one page; a partial
+                             observation, never a co-residency verdict */
   int complete;      /* every slot has an exact page: only then are the
                         grouping numbers a statement about the whole table */
   enum kp_co_residency co_residency;
@@ -140,6 +141,15 @@ int kp_dump_report_parse(const char *buf, size_t len,
  * excluded from every page conclusion (schema rule 6). */
 int kp_dump_admit(const struct kp_geometry *g, size_t slot, const char *buf,
                   size_t len, uintptr_t *addr_out, const char **reason_out);
+
+/* Read one slot's report from a pipe: up to cap-1 bytes, stopping at the first
+ * newline, at EOF, or when timeout_ms has elapsed.  The descriptor is always
+ * closed before returning, including on timeout and on a read error, so a
+ * child that never answers cannot leave a pipe behind.  Returns the bytes
+ * accumulated in buf (0 for no report) or -1 for a bad descriptor/argument;
+ * buf is not NUL-terminated.  A partial line is returned as-is and is refused
+ * by kp_dump_admit() as a truncated report. */
+ssize_t kp_dump_read_report(int fd, char *buf, size_t cap, int timeout_ms);
 
 /* Record one measured address for one slot.  This is the Cycle B route: one
  * leak dump per object, each in the child whose mm is that object.  The same

