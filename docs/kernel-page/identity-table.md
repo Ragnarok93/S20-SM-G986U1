@@ -285,13 +285,50 @@ from a single burst, and it is consistent with the construction.  It is not a
 32-row table: rows 0 and 3…31 have no address, so `co_residency` stays
 `unavailable` in the summary.
 
-The leading suspect for the device loss is memory: each dump child keeps the
-whole scan state mapped while it pauses as a live slab object — two children
-means two sets of futex mappings — and neither child unmaps them after
-reporting (`kernelsnitch_cleanup()` would, but it asserts a terminal scan
-state and was not added without a device to test it).  Until that is fixed and
-a two-slot run passes with the device alive, `KS_ID_DUMPS` must not be run with
-32 slots or unattended.
+The summary reports such pairs as `observed_same_page_pairs=`: two distinct
+addresses on one page are one pair, and the field never becomes a co-residency
+verdict while rows are missing.  A duplicate report — one address claimed by
+two slots — is refused before it can be counted as a pair, and counted in
+`duplicate_reports=` instead.
+
+The leading suspect for the device loss is memory: each dump child kept the
+whole scan state mapped while it paused as a live slab object — two children
+means two sets of futex mappings — and neither child unmapped them after
+reporting.
+
+## Collector contract after the hardening (host-verified, not re-run on device)
+
+Since that run the handset has stayed unreachable (`adb` refuses, no Samsung
+USB device), so nothing below has been exercised on the device.
+
+- **The report is one validated record.**  A dump child writes
+  `mm=<16 hex> accepted=<n> state=<n>\n`.  The parent parses it strictly
+  (`kp_dump_report_parse()`) and admits it (`kp_dump_admit()`) only when the
+  child's own scan ended in `MM_FOUND`, accepted at least 8 collisions (the
+  bar the single-scan gate applies), named a non-zero address, and the measured
+  geometry resolves that address.  Each refusal has its own reason token —
+  `no-report`, `truncated-report`, `malformed-report`, `scan-state-not-found`,
+  `zero-address`, `collision-set-too-small`, `duplicate-address`,
+  `geometry-check-failed` — and none of them touches the table.
+- **Scan state is released before parking.**  The child stays alive because its
+  `mm` is the slab object, but it tears the scan's mappings down once its state
+  is terminal and logs `KS_ID_DUMP_CLEANUP result=released`; a non-terminal
+  state keeps its mappings and logs `result=skipped reason=not-terminal`
+  instead of tripping the assert inside `kernelsnitch_cleanup()`.
+- **The mode is bounded.**  `KS_ID_DUMPS` is capped at 2 slots with a warning,
+  each slot's wait is bounded at 900 s, the collector closes and counts every
+  pipe (`reported= rejected= open_pipes=` on `KS_ID_DUMP_DONE`), and the
+  children carry `PR_SET_PDEATHSIG` so a dead parent does not leave them.
+- **A duplicate is not an identity.**  A report whose address another slot
+  already owns is refused and counted in `duplicate_reports=`, never folded
+  into `observed_same_page_pairs=`.
+
+Host checks: 12 malformed report forms refused; the eight refusal paths above
+asserted in `tests/kernel_page/identity_test.c`; the host suite and the payload
+build pass with 0 warnings (`sha256=bcc7b7c8…`).  Still required before any
+32-slot attempt: a two-slot run that finishes with the handset alive.  The
+release path, the pipe accounting and the child-death path remain device-only
+observations.
 
 ## Whether Cycle B is worth building
 

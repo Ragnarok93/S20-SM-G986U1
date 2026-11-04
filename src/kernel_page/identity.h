@@ -69,10 +69,13 @@ struct kp_identity_stats {
   size_t page_known;
   size_t unresolved;
   size_t invalid_geometry;
-  size_t duplicate_addresses;
+  size_t duplicate_addresses; /* two rows ended up with one address */
+  size_t duplicate_reports;   /* reports refused: address already claimed */
   size_t pages_observed;
   size_t distinct_pages;
   size_t objects_per_page;
+  size_t same_page_pairs; /* unordered pairs of exact rows sharing a page;
+                             a partial observation, never co-residency */
   int complete;      /* every slot has an exact page: only then are the
                         grouping numbers a statement about the whole table */
   enum kp_co_residency co_residency;
@@ -101,6 +104,42 @@ void kp_identity_surface(struct kp_geometry *g, long assumed_objs_per_slab,
  * page identity. */
 int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
                        int constructed_slot, struct kp_identity *out);
+
+/* One dump child's report: the address its own scan found, the collision count
+ * that scan accepted, and the terminal state it ended in.  The report is the
+ * unit the parent validates, because the collision set that verified the
+ * address lives in the child and cannot be re-checked from the parent. */
+struct kp_dump_report {
+  uintptr_t addr;
+  size_t accepted;
+  int state;
+};
+
+#define KP_DUMP_REPORT_MAX 64
+/* Mirrors KERNELSNITCH_MM_FOUND; util.c static-asserts the two are equal. */
+#define KP_DUMP_STATE_MM_FOUND 4
+/* Same bar the single-scan gate applies to its own collision set: fewer than
+ * eight accepted collisions cannot tell an mm from a coincidence. */
+#define KP_DUMP_MIN_ACCEPTED 8
+
+/* Parse one report line, exactly "mm=<16 lowercase hex> accepted=<1..4 digits>
+ * state=<1 digit>\n" and nothing else.  Returns 1 when every field parsed; 0
+ * for a short, long, multi-line, NUL-containing or otherwise malformed line. */
+int kp_dump_report_parse(const char *buf, size_t len,
+                         struct kp_dump_report *out);
+
+/* Admit one slot's report.  The row carries a page only when the child's own
+ * report ended in MM_FOUND, names a non-zero address, accepted at least
+ * KP_DUMP_MIN_ACCEPTED collisions, and the measured geometry resolves that
+ * address.  Returns 1 and stores the address when a page was derived; 0
+ * otherwise, with a static reason token in *reason_out ("no-report",
+ * "truncated-report", "malformed-report", "scan-state-not-found",
+ * "zero-address", "collision-set-too-small", "duplicate-address",
+ * "geometry-check-failed").  A refused report never becomes a page identity;
+ * only the geometry failure keeps its measured address, as a row reported but
+ * excluded from every page conclusion (schema rule 6). */
+int kp_dump_admit(const struct kp_geometry *g, size_t slot, const char *buf,
+                  size_t len, uintptr_t *addr_out, const char **reason_out);
 
 /* Record one measured address for one slot.  This is the Cycle B route: one
  * leak dump per object, each in the child whose mm is that object.  The same

@@ -275,6 +275,7 @@ int main(void) {
     CHECK(st.objects_per_page == 32);
     CHECK(st.co_residency == KP_CO_RESIDENT);
     CHECK(st.duplicate_addresses == 0);
+    CHECK(st.same_page_pairs == 32u * 31u / 2u);
     kp_identity_summary();
   }
 
@@ -296,6 +297,7 @@ int main(void) {
     CHECK(st.distinct_pages == 2);
     CHECK(st.objects_per_page == 16);
     CHECK(st.co_residency == KP_CO_SPLIT);
+    CHECK(st.same_page_pairs == 2u * (16u * 15u / 2u));
     kp_identity_summary();
   }
 
@@ -315,6 +317,122 @@ int main(void) {
     kp_identity_stats(&st);
     CHECK(st.duplicate_addresses == 1);
     CHECK(st.page_known == 32);
+    kp_identity_summary();
+  }
+
+  /* The measured two-object case: slots 1 and 2 on one page, the rest with no
+   * address.  It must report one same-page pair and no co-residency. */
+  {
+    struct kp_identity_stats st;
+    kp_identity_window(32);
+    CHECK(kp_identity_object(&g, 1, 0xffffffc0a3af8400ULL) == 1);
+    CHECK(kp_identity_object(&g, 2, 0xffffffc0a3af8800ULL) == 1);
+    for (size_t i = 0; i < 32; i++) {
+      kp_identity_freeze(i, 'S');
+      kp_identity_slot(i, "yes", 1, 1, 0, 0, 0, NULL);
+    }
+    kp_identity_stats(&st);
+    CHECK(st.addressed == 2);
+    CHECK(st.page_known == 2);
+    CHECK(st.pages_observed == 1);
+    CHECK(st.same_page_pairs == 1);
+    CHECK(st.complete == 0);
+    CHECK(st.co_residency == KP_CO_UNAVAILABLE);
+    CHECK(st.co_reason != NULL && strcmp(st.co_reason, "unresolved-rows") == 0);
+    kp_identity_summary();
+  }
+
+  /* A dump child's report carries its own verdict: the address its scan found,
+   * the collisions that scan accepted, and the terminal state.  The parent
+   * cannot re-run that check, so the report is the unit it validates.  Every
+   * malformed form must be refused rather than recorded. */
+  {
+    struct kp_dump_report r;
+    const char *bad[] = {
+        "mm=ffffffc05adc0400 accepted=116 state=4",     /* no newline */
+        "mm=ffffffc05adc0400 accepted=116 state=4\n\n", /* two lines */
+        "mm=ffffffc05adc040 accepted=116 state=4\n",    /* short address */
+        "mm=ffffffc05adc04000 accepted=116 state=4\n",  /* long address */
+        "mm=FFFFFFC05ADC0400 accepted=116 state=4\n",   /* uppercase hex */
+        "mm=ffffffc05adc0400 accepted= state=4\n",      /* no count */
+        "mm=ffffffc05adc0400 accepted=116 state=44\n",  /* two digits */
+        "mm=ffffffc05adc0400 accepted=116 state=4 \n",  /* trailing space */
+        "mm=ffffffc05adc0400  accepted=116 state=4\n",  /* double space */
+        "ffffffc05adc0400 accepted=116 state=4\n",      /* no field name */
+        "mm=ffffffc05adc0400 accepted=116 state=x\n",   /* not a digit */
+        "not a report\n",
+    };
+    for (size_t i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
+      CHECK(kp_dump_report_parse(bad[i], strlen(bad[i]), &r) == 0);
+    }
+    CHECK(kp_dump_report_parse("", 0, &r) == 0);
+    CHECK(kp_dump_report_parse(NULL, 10, &r) == 0);
+    const char *good = "mm=ffffffc05adc0400 accepted=116 state=4\n";
+    CHECK(kp_dump_report_parse(good, strlen(good), &r) == 1);
+    CHECK(r.addr == 0xffffffc05adc0400ULL);
+    CHECK(r.accepted == 116);
+    CHECK(r.state == KP_DUMP_STATE_MM_FOUND);
+  }
+
+  /* Admission: a rejected report must leave the table untouched, and each
+   * rejection carries its own reason so a failed scan can never read as an
+   * identity.  The reasons below are the host-observable failure paths of the
+   * collector: a child that died before reporting, one that died mid-line, one
+   * whose scan ended without an mm, a zero address, a collision set under the
+   * single-scan gate's bar, an address the geometry cannot resolve, and an
+   * address another slot already owns. */
+  {
+    struct kp_identity_stats st;
+    struct kp_geometry ag = measured();
+    uintptr_t got = 1;
+    const char *why = NULL;
+    kp_identity_window(32);
+    CHECK(kp_dump_admit(&ag, 1, NULL, 0, &got, &why) == 0);
+    CHECK(why != NULL && strcmp(why, "no-report") == 0);
+    CHECK(got == 0);
+    CHECK(kp_dump_admit(&ag, 1, "mm=ffffffc05adc04", 16, &got, &why) == 0);
+    CHECK(why != NULL && strcmp(why, "truncated-report") == 0);
+    const char *garbage = "not a report\n";
+    CHECK(kp_dump_admit(&ag, 1, garbage, strlen(garbage), &got, &why) == 0);
+    CHECK(why != NULL && strcmp(why, "malformed-report") == 0);
+    const char *notfound = "mm=ffffffc05adc0400 accepted=116 state=5\n";
+    CHECK(kp_dump_admit(&ag, 1, notfound, strlen(notfound), &got, &why) == 0);
+    CHECK(why != NULL && strcmp(why, "scan-state-not-found") == 0);
+    const char *zero = "mm=0000000000000000 accepted=116 state=4\n";
+    CHECK(kp_dump_admit(&ag, 1, zero, strlen(zero), &got, &why) == 0);
+    CHECK(why != NULL && strcmp(why, "zero-address") == 0);
+    const char *weak = "mm=ffffffc05adc0400 accepted=7 state=4\n";
+    CHECK(kp_dump_admit(&ag, 1, weak, strlen(weak), &got, &why) == 0);
+    CHECK(why != NULL && strcmp(why, "collision-set-too-small") == 0);
+    struct kp_geometry broken = measured();
+    broken.span = 3 * 4096;
+    const char *ok = "mm=ffffffc05adc0400 accepted=116 state=4\n";
+    CHECK(kp_dump_admit(&broken, 3, ok, strlen(ok), &got, &why) == 0);
+    CHECK(why != NULL && strcmp(why, "geometry-check-failed") == 0);
+    kp_identity_stats(&st);
+    CHECK(st.rows == 0 && st.addressed == 0 && st.page_known == 0);
+    /* The same report against the measured geometry is admitted. */
+    CHECK(kp_dump_admit(&ag, 1, ok, strlen(ok), &got, &why) == 1);
+    CHECK(got == 0xffffffc05adc0400ULL);
+    CHECK(why != NULL && strcmp(why, "none") == 0);
+    /* A second slot reporting the same object is refused and counted: two rows
+     * for one address are not two objects, so not a co-residency pair. */
+    CHECK(kp_dump_admit(&ag, 2, ok, strlen(ok), &got, &why) == 0);
+    CHECK(why != NULL && strcmp(why, "duplicate-address") == 0);
+    for (size_t i = 0; i < 32; i++) {
+      kp_identity_slot(i, "yes", 1, 0, 0, 0, 0, NULL);
+    }
+    kp_identity_stats(&st);
+    CHECK(st.addressed == 2);
+    CHECK(st.page_known == 1);
+    CHECK(st.invalid_geometry == 1); /* slot 3's address, page excluded */
+    CHECK(st.duplicate_reports == 1);
+    /* Slot 3's excluded row still carries the same raw address, so the literal
+     * duplicate-address count sees it; it is not a page, not a pair and not an
+     * identity. */
+    CHECK(st.duplicate_addresses == 1);
+    CHECK(st.same_page_pairs == 0);
+    CHECK(st.co_residency == KP_CO_UNAVAILABLE);
     kp_identity_summary();
   }
 

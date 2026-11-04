@@ -97,6 +97,21 @@ static struct kp_geometry g_geom;
 static int g_geom_known;
 static signed char g_freeze[KP_ID_MAX_SLOTS];
 static unsigned char g_freeze_set[KP_ID_MAX_SLOTS];
+/* Reports refused because their address is already another slot's identity. */
+static size_t g_dup_reports;
+
+/* True when this address is already a page identity for a different slot.  A
+ * row whose geometry failed keeps its address but claims nothing, so it does
+ * not reserve the address for the slot that can resolve it. */
+static int dup_address(size_t slot, uintptr_t addr) {
+  for (size_t s = 0; s < KP_ID_MAX_SLOTS; s++) {
+    if (s != slot && g_obj_set[s] && g_obj[s].page_exact &&
+        g_obj[s].addr == addr) {
+      return 1;
+    }
+  }
+  return 0;
+}
 
 static void boot_prefix(char out[9]) {
   memcpy(out, "noboot", 7);
@@ -124,6 +139,7 @@ void kp_identity_window(size_t slots) {
   memset(g_obj, 0, sizeof(g_obj));
   memset(g_obj_set, 0, sizeof(g_obj_set));
   g_nrows = 0;
+  g_dup_reports = 0;
   g_slots = slots;
   memset(g_freeze_set, 0, sizeof(g_freeze_set));
   memset(g_freeze, 0, sizeof(g_freeze));
@@ -301,6 +317,140 @@ int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
           g_window, (size_t)addr, geom, (size_t)out->page, g->span,
           out->offset, out->slot, constructed_slot, out->slot_match);
   return out->slot_match;
+}
+
+/* Exactly 16 lowercase hex digits, the width the dump child prints an address
+ * with.  Uppercase is refused so one report format has one spelling. */
+static int hex16(const char *buf, uintptr_t *out) {
+  uintptr_t v = 0;
+  for (size_t i = 0; i < 16; i++) {
+    char c = buf[i];
+    int d;
+    if (c >= '0' && c <= '9') {
+      d = c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+      d = c - 'a' + 10;
+    } else {
+      return 0;
+    }
+    v = (v << 4) | (uintptr_t)d;
+  }
+  *out = v;
+  return 1;
+}
+
+/* 1..max_digits decimal digits, bounded by limit.  Returns the bytes consumed,
+ * or 0 when there was no digit or the value overflowed the field's range. */
+static size_t decimal(const char *buf, size_t len, size_t max_digits,
+                      size_t limit, size_t *out) {
+  size_t n = 0;
+  size_t v = 0;
+  while (n < len && n < max_digits && buf[n] >= '0' && buf[n] <= '9') {
+    v = v * 10 + (size_t)(buf[n] - '0');
+    if (v > limit) {
+      return 0;
+    }
+    n++;
+  }
+  if (n == 0) {
+    return 0;
+  }
+  *out = v;
+  return n;
+}
+
+int kp_dump_report_parse(const char *buf, size_t len,
+                         struct kp_dump_report *out) {
+  if (buf == NULL || out == NULL || len < 4 || len > KP_DUMP_REPORT_MAX) {
+    return 0;
+  }
+  /* One line, nothing after it: a second line or an embedded NUL means the
+   * reader and the writer disagree about the record's extent. */
+  if (buf[len - 1] != '\n' || memchr(buf, '\n', len - 1) != NULL ||
+      memchr(buf, '\0', len) != NULL) {
+    return 0;
+  }
+  size_t i = 0;
+  if (memcmp(buf, "mm=", 3) != 0) {
+    return 0;
+  }
+  i = 3;
+  uintptr_t addr = 0;
+  if (i + 16 > len - 1 || !hex16(buf + i, &addr)) {
+    return 0;
+  }
+  i += 16;
+  if (i + 10 > len - 1 || memcmp(buf + i, " accepted=", 10) != 0) {
+    return 0;
+  }
+  i += 10;
+  size_t accepted = 0;
+  size_t n = decimal(buf + i, len - 1 - i, 4, 9999, &accepted);
+  if (n == 0) {
+    return 0;
+  }
+  i += n;
+  if (i + 7 > len - 1 || memcmp(buf + i, " state=", 7) != 0) {
+    return 0;
+  }
+  i += 7;
+  size_t state = 0;
+  n = decimal(buf + i, len - 1 - i, 1, 9, &state);
+  if (n == 0) {
+    return 0;
+  }
+  i += n;
+  if (i != len - 1) {
+    return 0;
+  }
+  out->addr = addr;
+  out->accepted = accepted;
+  out->state = (int)state;
+  return 1;
+}
+
+int kp_dump_admit(const struct kp_geometry *g, size_t slot, const char *buf,
+                  size_t len, uintptr_t *addr_out, const char **reason_out) {
+  const char *reason = NULL;
+  if (addr_out != NULL) {
+    *addr_out = 0;
+  }
+  struct kp_dump_report r;
+  if (buf == NULL || len == 0) {
+    reason = "no-report";
+  } else if (memchr(buf, '\n', len) == NULL) {
+    reason = "truncated-report";
+  } else if (!kp_dump_report_parse(buf, len, &r)) {
+    reason = "malformed-report";
+  } else if (slot == 0 || slot >= KP_ID_MAX_SLOTS) {
+    reason = "slot-out-of-range";
+  } else if (r.state != KP_DUMP_STATE_MM_FOUND) {
+    reason = "scan-state-not-found";
+  } else if (r.addr == 0) {
+    reason = "zero-address";
+  } else if (r.accepted < KP_DUMP_MIN_ACCEPTED) {
+    reason = "collision-set-too-small";
+  } else if (dup_address(slot, r.addr)) {
+    /* Two slots cannot own one mm: the later report is a real scan that found
+     * an object already claimed, so it is counted and refused rather than
+     * turning one object into two identities on the same page. */
+    g_dup_reports++;
+    reason = "duplicate-address";
+  } else if (!kp_identity_object(g, slot, r.addr)) {
+    reason = "geometry-check-failed";
+  } else {
+    if (addr_out != NULL) {
+      *addr_out = r.addr;
+    }
+    if (reason_out != NULL) {
+      *reason_out = "none";
+    }
+    return 1;
+  }
+  if (reason_out != NULL) {
+    *reason_out = reason;
+  }
+  return 0;
 }
 
 int kp_identity_object(const struct kp_geometry *g, size_t slot,
@@ -523,6 +673,14 @@ void kp_identity_stats(struct kp_identity_stats *out) {
   }
   out->unresolved = g_slots >= out->page_known ? g_slots - out->page_known : 0;
   out->pages_observed = npages;
+  out->duplicate_reports = g_dup_reports;
+  /* Counted over exact rows only and labelled partial: two addressed objects
+   * on one page is not co-residency of the burst. */
+  for (size_t k = 0; k < npages; k++) {
+    if (counts[k] > 1) {
+      out->same_page_pairs += counts[k] * (counts[k] - 1) / 2;
+    }
+  }
   out->complete = (out->slots > 0 && out->rows == out->slots &&
                    out->page_known == out->slots);
   if (out->complete) {
@@ -580,11 +738,13 @@ void kp_identity_summary(void) {
   }
   pr_info("KS_ID_SUMMARY window=%s slots=%zu rows=%zu addressed=%zu "
           "page_known=%zu unresolved=%zu invalid_geometry=%zu "
-          "duplicate_addresses=%zu pages_observed=%zu distinct_pages=%s "
+          "duplicate_addresses=%zu duplicate_reports=%zu pages_observed=%zu "
+          "observed_same_page_pairs=%zu distinct_pages=%s "
           "objects_per_page=%s co_residency=%s geom=%s geom_src=%s "
           "occupancy=unavailable(no-page-resolved-source)\n",
           g_window, s.slots, s.rows, s.addressed, s.page_known, s.unresolved,
-          s.invalid_geometry, s.duplicate_addresses, s.pages_observed,
-          pages_buf, perpage_buf, co_buf, geom,
+          s.invalid_geometry, s.duplicate_addresses, s.duplicate_reports,
+          s.pages_observed, s.same_page_pairs, pages_buf, perpage_buf, co_buf,
+          geom,
           g_geom_known && g_geom.measured ? "measured(slabinfo)" : "none");
 }
