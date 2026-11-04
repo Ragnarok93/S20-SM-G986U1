@@ -1,0 +1,10 @@
+# SM-G986U1, G986U1UESCHXL1, kernel 4.19.113-27095354
+# firmware consumed by docs/kernel-page/verify/verify_symbol.py
+ffbc90af676558557eb917687736c11f15b560dbb3cb9ca237224da5acb14123  fw/kernel.bin
+02099ccbfb423292b631f228b8d3163b9a601f4a058360a4bca93f71f8e50a78  fw/boot.img.lz4
+bd8987c28ef0b9fdb56ad3e82ce3b45929c5e53717525769e5625dd1e17f7dc8  fw/boot.img
+531444e3c98f8f7c4d2baefeda1386aca2b60a42030fcb1f4393c5e10b9154b4  fw/vmlinux.elf
+ec6da4cfe412f7d0669c7d621751753375e32197a2602f98627eb95e71b9c0b2  fw/kernel.config
+# kernel source read by verify_symbol.py and verify_timeline.py
+36b187173cfb3934a5c9d51952bce58c2f41701d3585326f18cd3965e46a21f9  ksrc/kernel/locking/rtmutex.c
+14b8056d7adab9e010dcb44dfea6929333958f183b3c4535bd20a7c7e9a19769  ksrc/kernel/locking/rtmutex_common.h

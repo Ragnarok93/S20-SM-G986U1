@@ -1,0 +1,94 @@
+name: Kernel-page evidence
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "docs/kernel-page/**"
+      - "src/**"
+      - ".github/workflows/kernel-page-verification.yml"
+  pull_request:
+    paths:
+      - "docs/kernel-page/**"
+      - "src/**"
+      - ".github/workflows/kernel-page-verification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install verifier tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lz4 binutils
+
+      - name: Fetch pinned inputs
+        env:
+          FW_URL: ${{ secrets.KS_FIRMWARE_URL }}
+          KSRC_URL: ${{ secrets.KS_KSRC_URL }}
+          INPUTS_TOKEN: ${{ secrets.KS_INPUTS_TOKEN }}
+        run: |
+          set -euo pipefail
+          : "${FW_URL:?KS_FIRMWARE_URL secret is required}"
+          : "${KSRC_URL:?KS_KSRC_URL secret is required}"
+          inputs="$RUNNER_TEMP/ks-inputs"
+          rm -rf "$inputs"
+          mkdir -p "$inputs/fw" "$inputs/ksrc"
+          auth=()
+          if [ -n "${INPUTS_TOKEN:-}" ]; then
+            auth=(-H "Authorization: Bearer $INPUTS_TOKEN")
+          fi
+          curl -fsSL --retry 3 --retry-delay 5 "${auth[@]}" \
+            -H "Accept: application/octet-stream" \
+            "$FW_URL" -o "$RUNNER_TEMP/firmware.tar"
+          curl -fsSL --retry 3 --retry-delay 5 "${auth[@]}" \
+            -H "Accept: application/octet-stream" \
+            "$KSRC_URL" -o "$RUNNER_TEMP/ksrc.tar"
+          tar -xf "$RUNNER_TEMP/firmware.tar" -C "$inputs/fw"
+          tar -xf "$RUNNER_TEMP/ksrc.tar" -C "$inputs/ksrc"
+
+      - name: Verify pinned input hashes
+        working-directory: ${{ runner.temp }}/ks-inputs
+        run: sha256sum -c "$GITHUB_WORKSPACE/docs/kernel-page/verify/inputs.sha256"
+
+      - name: Run all four verifiers
+        run: |
+          set -euo pipefail
+          inputs="$RUNNER_TEMP/ks-inputs"
+          status=0
+          run() {
+            name=$1
+            shift
+            echo "::group::$name"
+            set +e
+            python3 "$@" 2>&1 | tee "$RUNNER_TEMP/$name.log"
+            rc=${PIPESTATUS[0]}
+            set -e
+            echo "::endgroup::"
+            if [ "$rc" -ne 0 ]; then
+              echo "::error title=$name::$name failed (exit $rc)"
+              status=1
+            fi
+          }
+          run verify_symbol  docs/kernel-page/verify/verify_symbol.py  --fw "$inputs/fw" --ksrc "$inputs/ksrc"
+          run verify_boundary docs/kernel-page/verify/verify_boundary.py
+          run verify_timeline docs/kernel-page/verify/verify_timeline.py --ksrc "$inputs/ksrc"
+          run verify_lifecycle docs/kernel-page/verify/verify_lifecycle.py
+          exit "$status"
+
+      - name: Upload verifier logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-page-verifier-logs
+          path: ${{ runner.temp }}/*.log
+          if-no-files-found: warn
