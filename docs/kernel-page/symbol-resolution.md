@@ -131,12 +131,16 @@ lock's tree root and owner deliberately, and its own comment names this check:
 ```
 
 with `fake_lock = payload_base + LOCK_OFF` and `fake_w0 = payload_base + W0_OFF`
-(`src/util.c:1783-1784`; `LOCK_OFF = 0x1340`, `W0_OFF = 0x2220`, page `0x8000`).
+(`src/util.c:1783-1784`; `LOCK_OFF = 0x1350`, `W0_OFF = 0x2220`, page `0x8000`).
 
-So the intended object graph is: `lock->waiters.rb_leftmost = fake_w0`, and
-`fake_w0->lock = fake_lock`, which makes the `cmp` at `+0x308` succeed. The two
-addresses are `0xee0` apart and both inside one 32 KiB page, because both are
-`payload_base + offset` with the order-3 base the leak supplied.
+So the intended object graph is two separate stores at two addresses: the word
+at `payload_base+0x1368` (`lock+0x18`) holds `payload_base+0x2220`, and the word
+at `payload_base+0x2258` (`waiter+0x38`) holds `payload_base+0x1350`. Both must
+survive to make the `cmp` at `+0x308` succeed. The two objects are `0xed0` apart
+and both inside one 32 KiB page, because both are `payload_base + offset` with
+the order-3 base the leak supplied. `verify_symbol.py` recomputes both addresses
+and both stored values from the target's own `target.h` constants rather than
+from this prose.
 
 ## 5. The contradiction the instruction creates
 

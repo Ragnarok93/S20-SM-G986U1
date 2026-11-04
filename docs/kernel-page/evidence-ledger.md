@@ -90,17 +90,6 @@ is never cited as support.
     finding: it is reported, never normalised away in a later summary, and no
     missing or unobserved child may be folded into `rejected` or `gone`.
 13. Row 22 is an association over three cycles, not a cause. It may justify
-14. Row 36 names an instruction, never a value. No sentence may read the
-    panic as proof that the planted page was reached, owned, or mapped: that
-    requires `x21`, `x8`, `FAR` or a memory snapshot, and none exists.
-15. A symbol resolution must come from the image whose own kallsyms produced the
-16. Row 39 is a static constraint. It may narrow which pointer could have been
-    wrong; it can never say that `x21` was `fake_lock`, that the page was owned by
-    the program, or which family occurred. Only `x21`, `x8`, `FAR`, `ESR` or a memory
-    snapshot could, and none was preserved.
-    offset, evidenced by the printed size. A same-version rebuild (row 35) can
-    never be substituted, and its `System.map` cannot resolve an intra-function
-    offset even in principle.
     instrumenting the punch stage; it may never be cited as a proven panic
     cause, and no punch run is a safe way to collect more evidence about it.
 14. Row 23 fixes the boundary of a lost run: its last payload line is the
@@ -118,7 +107,22 @@ is never cited as support.
     or *persisted* line, whichever is later, and no hazard may be attached to
     a run whose boundary is earlier than that hazard's code. The post-punch
     hazards in rows 26-27 therefore have no run to attach to — yet.
-
 18. Row 31's file is the only record that separates "last delivered" from
     "last executed". A run's boundary stays a *delivery* boundary until that
     file's tail is read, or the loss is placed on a boot (row 30).
+19. A symbol resolution must come from the image whose own kallsyms produced
+    the offset, evidenced by the printed size. A same-version rebuild (row 35)
+    can never be substituted, and its `System.map` cannot resolve an
+    intra-function offset even in principle.
+20. Row 36 names an instruction, never a value. No sentence may read the
+    panic as proof that the planted page was reached, owned, or mapped: that
+    requires `x21`, `x8`, `FAR` or a memory snapshot, and none exists.
+21. Row 39 is a static constraint. It may narrow which pointer could have been
+    wrong; it can never say that `x21` was `fake_lock`, that the page was owned by
+    the program, or which family occurred. Only `x21`, `x8`, `FAR`, `ESR` or a memory
+    snapshot could, and none was preserved.
+22. Every address in the static documents is recomputed by `verify_symbol.py`
+    from the target's `target.h` constants: the two planted words, the two
+    values they must hold, and their distances. A distance quoted in prose is
+    never authority, and a document that disagrees with the constants fails
+    the verifier.

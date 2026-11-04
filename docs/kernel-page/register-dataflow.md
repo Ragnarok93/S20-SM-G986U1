@@ -94,17 +94,33 @@ put64(p, LOCK_OFF + RT_MUTEX_OWNER_OFF, fake_task | 1);
 put64(p, W0_OFF + 0x38, fake_lock);                    /* the field this load reads */
 ```
 
-with `fake_lock = payload_base + 0x1340` and `fake_w0 = payload_base + 0x2220`
-(`:1783-1784`). The intended values at the fault are therefore:
+with `fake_lock = payload_base + LOCK_OFF` and `fake_w0 = payload_base + W0_OFF`
+(`:1783-1784`). With this target's constants — `LOCK_OFF 0x1350`,
+`W0_OFF 0x2220`, `RT_MUTEX_LEFTMOST_OFF 0x18`, `WAITER_LOCK_OFF 0x38`
+(`src/targets/samsung-g986u1-4.19.113/target.h`) — the load depends on two separate words at two
+separate addresses:
+
+| # | word | address (`payload_base +`) | must hold |
+| --- | --- | --- | --- |
+| 1 | `lock->waiters.rb_leftmost` | `0x1350 + 0x18` = `0x1368` | `fake_w0` = `payload_base + 0x2220` |
+| 2 | `fake_w0->lock` | `0x2220 + 0x38` = `0x2258` | `fake_lock` = `payload_base + 0x1350` |
+
+The registers then read:
 
 | register | intended value | distance from `fake_lock` |
 | --- | --- | --- |
 | `x21` | `fake_lock` | 0 |
-| `x8` | `fake_w0` | `+0xee0` |
-| effective address | `fake_w0 + 0x38` | `+0xf18` |
+| `x8` | `fake_w0` | `+0xed0` |
+| effective address | `fake_w0 + 0x38` = `payload_base + 0x2258` | `+0xf08` |
 
-All three inside the same 32 KiB page, which is a property of the *intended*
-addresses — not a statement about the values the registers actually held.
+`0x2220 - 0x1350 = 0xed0`, and the effective address is `0x2258 - 0x1350 =
+0xf08`. Both field offsets are also the immediates in this window (`#24` and
+`#56`), so the arithmetic is checked against the image as well as the header.
+All four addresses lie inside the same 32 KiB page, which is a property of the
+*intended* addresses — not a statement about the values the registers actually
+held, and not a claim that either word still held its planted value at the fault.
+`verify_symbol.py` recomputes all four addresses and both stored values from the
+`target.h` constants.
 
 ## 6. What the frame excludes
 
