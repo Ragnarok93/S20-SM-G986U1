@@ -12,7 +12,7 @@ that were already on this machine.
 
 | field | value |
 | --- | --- |
-| reported PC, all three runs | `rt_mutex_adjust_prio_chain+0x304/0x858` |
+| reported PC, the three lost runs (54 DropBox uploads carry the string) | `rt_mutex_adjust_prio_chain+0x304/0x858` |
 | symbol start (stock image) | `ffffff8008146ca4`, local symbol `t` |
 | symbol size | `0x858` — the distance to the next symbol, `rt_mutex_init_waiter` at `ffffff80081474fc` |
 | faulting address | `ffffff8008146fa8` = `ffffff8008146ca4 + 0x304` |
@@ -166,7 +166,7 @@ survive, and `register-dataflow.md` derives them from the verified path:
 None of the four can be selected from what was preserved. The crash records contain
 the bootloader's summary and per-CPU idle context saves only; the kernel's own oops
 text, the faulting CPU's registers, `FAR` and `ESR` are not readable in any of the
-three 132 KB captures, and `pimem_esr` is the bootloader's own register, `0x0`.
+four 132 KB captures, and `pimem_esr` is the bootloader's own register, `0x0`.
 
 This is a sharper statement than "the walk died": the recorded PC is inconsistent with
 the image the program intends *unless* the state at that word differed from the intent.
@@ -174,8 +174,8 @@ The first family is the one the project's own history makes plausible — the sa
 page-state question as the missing 31 identities — but it is a hypothesis, not a
 measurement.
 
-Three evidence categories are kept apart throughout: **measured** (three records report
-the same symbol and offset), **verified against the device image** (the offset resolves
+Three evidence categories are kept apart throughout: **measured** (the entries tied to
+the three lost runs report the same symbol and offset), **verified against the device image** (the offset resolves
 to `ldr x8, [x8, #56]`), and **unresolved** (the register values, the effective address,
 the exception syndrome, and the identity of the lock and waiter).
 
@@ -188,8 +188,10 @@ Settled:
 - The panic is a fault on the load, not the `BUG_ON` trap four instructions later.
 - The chain had already taken `lock->wait_lock` and passed the deadlock check; it
   reached the *prerequeue* top-waiter read of the requeue path.
-- The `+0x304` offset did not move between the three losses, and it is unrelated to
-  the local rebuild's layout.
+- The `+0x304` offset did not move across the three losses, and 54 DropBox uploads
+  carry the same string (`enumeration-20261104.md`); an upload is not an independent
+  fault, so that is a recurrence of collector output, not a panic count. The offset
+  is unrelated to the local rebuild's layout.
 
 Not settled:
 
@@ -212,7 +214,7 @@ Not settled:
 | the instruction is disassembled from that verified image | **met** — `f9401d08`, with five instructions either side |
 | it is mapped to the matching vendor source, with surroundings | **met** — `rtmutex_common.h:52-63` inlined at `rtmutex.c:661`, `break #0x800` at `+0x838` |
 | operand interpretation is kept separate from what the register dump establishes | **met** — the dump establishes nothing; §5 is written as a disjunction |
-| a faulting PC/LR or backtrace from the crash record | **not met** — unavailable in all three captures; this is the remaining gap |
+| a faulting PC/LR or backtrace from the crash record | **not met** — unavailable in all four captures; this is the remaining gap |
 
 ## 8. Reproduction
 
