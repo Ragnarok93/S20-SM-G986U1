@@ -164,7 +164,7 @@ Ordered by cost. Every item is a read of state the device already holds.
 | 3 | dropbox `SYSTEM_LAST_KMSG` | `dumpsys dropbox --print <ID>` | shell, may deny | the panic backtrace: `pc`, `lr`, faulting function — the only record that names *where* the kernel died |
 | 4 | pstore | `ls /sys/fs/pstore; cat console-ramoops` | root | same as 3 if the shell is denied; unavailable to this shell today (`lifecycle-matrix.md` §4) |
 | 5 | `logcat -b crash` | `adb logcat -b crash -d` | shell | userspace aborts only; cannot show a kernel fault |
-| 6 | current process state | `adb shell 'for p in /proc/[0-9]*; do printf "%s " "$p"; tr "\0" " " < "$p/cmdline" 2>/dev/null; echo; done'; getprop sys.boot_completed` | shell | whether a payload survivor exists. Capture every pid with its full argv, not the matches only: `cmdline` cannot show the preload, `/proc/<pid>/environ` is not readable across uids, and a negative result is not proof of absence |
+| 6 | current process state | `adb shell 'for p in /proc/[0-9]*; do printf "%s " "$p"; tr "\0" " " < "$p/cmdline"; echo; done'; getprop sys.boot_completed` | shell | whether a payload survivor exists. Capture every pid with its full argv, not the matches only, and **keep stderr**: an unreadable `cmdline` then prints its error instead of looking like an empty process list. `cmdline` cannot show the preload, `/proc/<pid>/environ` is not readable across uids, and a negative result is not proof of absence |
 
 ### 4.1 One session, in this order
 
@@ -177,7 +177,10 @@ Do all five before interpreting anything.
 2. **Process state** (item 6): every pid with its raw argv, saved verbatim even
    though most of it is noise.
 3. **The persistent log** (item 2), complete. Record `ls -l` and `sha256sum` on the
-   device before pulling; do not truncate, rotate or rewrite it on the device.
+   device before pulling; do not truncate, rotate or rewrite it on the device. Compare
+   those with the host-side size and hash immediately after the pull. If they differ,
+   keep both files and record the discrepancy as a finding — do not retry in a way
+   that overwrites either copy.
 4. **Crash records** (items 3-4), if the shell is permitted to read them.
 5. **Hash and archive** every artifact on the host before any of it is interpreted,
    in the form used by `logs/SHA256SUMS`.
