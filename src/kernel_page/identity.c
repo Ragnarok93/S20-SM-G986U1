@@ -39,6 +39,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
@@ -87,6 +88,8 @@ static size_t append(char *buf, size_t cap, size_t off, const char *fmt, ...) {
 }
 
 static struct kp_id_row g_rows[KP_ID_MAX_SLOTS];
+static struct kp_identity g_obj[KP_ID_MAX_SLOTS];
+static unsigned char g_obj_set[KP_ID_MAX_SLOTS];
 static size_t g_nrows;
 static size_t g_slots;
 static char g_window[48] = "unopened";
@@ -118,6 +121,8 @@ static void boot_prefix(char out[9]) {
 
 void kp_identity_window(size_t slots) {
   memset(g_rows, 0, sizeof(g_rows));
+  memset(g_obj, 0, sizeof(g_obj));
+  memset(g_obj_set, 0, sizeof(g_obj_set));
   g_nrows = 0;
   g_slots = slots;
   memset(g_freeze_set, 0, sizeof(g_freeze_set));
@@ -158,15 +163,19 @@ void kp_identity_read(struct kp_geometry *g) {
     char name[64];
     long a = 0, o = 0, osz = -1, ops = -1, pps = -1;
     long t1 = 0, t2 = 0, t3 = 0, as = 0, ns = 0, sh = 0;
+    long pg = (long)getpagesize();
+    /* Both products below are computed in long: bound them at parse time so a
+     * crafted slabinfo line cannot overflow the span or the agreement test. */
     if (sscanf(line,
                "%63s %ld %ld %ld %ld %ld : tunables %ld %ld %ld "
                ": slabdata %ld %ld %ld",
                name, &a, &o, &osz, &ops, &pps, &t1, &t2, &t3, &as, &ns,
-               &sh) >= 11 && osz > 0 && ops > 0 && pps > 0) {
+               &sh) >= 11 && osz > 0 && ops > 0 && pps > 0 &&
+        pg > 0 && pps <= LONG_MAX / pg && ops <= LONG_MAX / osz) {
       g->objsize = osz;
       g->objs_per_slab = ops;
       g->pages_per_slab = pps;
-      g->span = (long)getpagesize() * pps;
+      g->span = pg * pps;
       g->measured = 1;
       g->span_agrees = (osz * ops == g->span);
     }
@@ -228,8 +237,11 @@ void kp_identity_surface(struct kp_geometry *g, long assumed_objs_per_slab,
           denied ? "" : "(unexpected)", err, geom);
 }
 
-int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
-                       int constructed_slot, struct kp_identity *out) {
+/* Resolve one measured address against one geometry.  Returns NULL on
+ * success, or the token of the check that failed.  Prints nothing: the
+ * caller decides whether this is the anchor's line or a per-slot line. */
+static const char *resolve(const struct kp_geometry *g, uintptr_t addr,
+                           int constructed_slot, struct kp_identity *out) {
   char geom[64];
   memset(out, 0, sizeof(*out));
   out->addr = addr;
@@ -238,7 +250,8 @@ int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
   snprintf(out->geom, sizeof(out->geom), "%.*s",
            (int)(sizeof(out->geom) - 1), geom);
   const char *reason = NULL;
-  if (!g->measured || g->span <= 0 || g->objsize <= 0) {
+  if (!g->measured || g->span <= 0 || g->objsize <= 0 ||
+      (unsigned long)g->span > (unsigned long)UINTPTR_MAX) {
     reason = "no-slab-geometry";
   } else if ((g->span & (g->span - 1)) != 0) {
     /* page = addr & ~(span - 1) is exact only when span is a power of two:
@@ -254,6 +267,23 @@ int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
   }
   if (reason != NULL) {
     out->page_reason = reason;
+    return reason;
+  }
+  out->page = addr & ~((uintptr_t)g->span - 1);
+  out->offset = (size_t)(addr & ((uintptr_t)g->span - 1));
+  out->slot = (long)(out->offset / (size_t)g->objsize);
+  out->slot_match = (out->slot == constructed_slot);
+  out->page_exact = 1;
+  out->span = g->span;
+  return NULL;
+}
+
+int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
+                       int constructed_slot, struct kp_identity *out) {
+  char geom[64];
+  const char *reason = resolve(g, addr, constructed_slot, out);
+  geom_desc(g, geom, sizeof(geom));
+  if (reason != NULL) {
     pr_info("KS_OBJ_ID window=%s addr=%016zx addr_src=measured(leak) "
             "addr_unique=unique geom=%s geom_src=%s page=invalid(%s) "
             "page_src=none constructed_slot=%d match=unavailable "
@@ -263,12 +293,6 @@ int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
             constructed_slot, reason);
     return 0;
   }
-  out->page = addr & ~((uintptr_t)g->span - 1);
-  out->offset = (size_t)(addr & ((uintptr_t)g->span - 1));
-  out->slot = (long)(out->offset / (size_t)g->objsize);
-  out->slot_match = (out->slot == constructed_slot);
-  out->page_exact = 1;
-  out->span = g->span;
   pr_info("KS_OBJ_ID window=%s addr=%016zx addr_src=measured(leak) "
           "addr_unique=unique geom=%s geom_src=measured(slabinfo) "
           "page=%016zx page_src=derived(measured-span=%ld) offset=%zu "
@@ -277,6 +301,31 @@ int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
           g_window, (size_t)addr, geom, (size_t)out->page, g->span,
           out->offset, out->slot, constructed_slot, out->slot_match);
   return out->slot_match;
+}
+
+int kp_identity_object(const struct kp_geometry *g, size_t slot,
+                       uintptr_t addr) {
+  if (slot >= KP_ID_MAX_SLOTS) {
+    return 0;
+  }
+  struct kp_identity id;
+  const char *reason = resolve(g, addr, (int)slot, &id);
+  g_obj[slot] = id;
+  g_obj_set[slot] = 1;
+  if (reason != NULL) {
+    pr_info("KS_OBJ_ADDR window=%s slot=%zu addr=%016zx "
+            "addr_src=measured(leak) geom=%s page=invalid(%s) page_src=none "
+            "page_identity=invalid(%s)\n",
+            g_window, slot, (size_t)addr, id.geom, reason, reason);
+    return 0;
+  }
+  pr_info("KS_OBJ_ADDR window=%s slot=%zu addr=%016zx "
+          "addr_src=measured(leak) geom=%s page=%016zx "
+          "page_src=derived(measured-span=%ld) offset=%zu slot_in_page=%ld "
+          "match=%d page_identity=exact\n",
+          g_window, slot, (size_t)addr, id.geom, (size_t)id.page, id.span,
+          id.offset, id.slot, id.slot_match);
+  return 1;
 }
 
 void kp_identity_freeze(size_t slot, char st) {
@@ -316,6 +365,12 @@ void kp_identity_slot(size_t slot, const char *state_at_sample, int free_seen,
     return;
   }
   int scan = anchor != NULL && (long)slot == anchor->constructed_slot;
+  const struct kp_identity *own = NULL;
+  if (g_obj_set[slot]) {
+    own = &g_obj[slot];
+  } else if (scan && anchor != NULL) {
+    own = anchor;
+  }
   r->freeze_live = g_freeze_set[slot] ? g_freeze[slot] : -1;
   if (state_at_sample == NULL) {
     r->sample_live = -1;
@@ -332,19 +387,26 @@ void kp_identity_slot(size_t slot, const char *state_at_sample, int free_seen,
   r->d_active = d_active;
   r->d_num = d_num;
   r->d_slabs = d_slabs;
-  if (scan && anchor->addr != 0) {
-    r->addr = anchor->addr;
+  if (own != NULL && own->addr != 0) {
+    r->addr = own->addr;
     r->has_addr = 1;
-    r->page = anchor->page;
-    r->page_exact = anchor->page_exact;
-    r->slot_match = anchor->slot_match;
-    r->page_reason = anchor->page_reason;
-    r->offset = anchor->offset;
-    r->slot_in_page = anchor->slot;
-    r->span = anchor->span;
+    r->page = own->page;
+    r->page_exact = own->page_exact;
+    r->slot_match = own->slot_match;
+    r->page_reason = own->page_reason;
+    r->offset = own->offset;
+    r->slot_in_page = own->slot;
+    r->span = own->span;
     snprintf(r->geom, sizeof(r->geom), "%.*s",
-             (int)(sizeof(r->geom) - 1), anchor->geom);
+             (int)(sizeof(r->geom) - 1), own->geom);
     int uniq = 1;
+    /* Per-slot addresses are all known before the first row is written, so a
+     * duplicate is marked on both rows, not only on the later one. */
+    for (size_t s = 0; s < g_slots && s < KP_ID_MAX_SLOTS; s++) {
+      if (s != slot && g_obj_set[s] && g_obj[s].addr == r->addr) {
+        uniq = 0;
+      }
+    }
     for (size_t i = 0; i < g_nrows; i++) {
       if (&g_rows[i] != r && g_rows[i].has_addr &&
           g_rows[i].addr == r->addr) {

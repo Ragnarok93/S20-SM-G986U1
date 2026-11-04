@@ -252,6 +252,72 @@ int main(void) {
     kp_identity_summary();
   }
 
+  /* The Cycle B route: one measured address per slot.  With all 32 on one
+   * page the table is complete and may state co-residency; the grouping
+   * branch is exercised here because a single-address run can never reach
+   * it. */
+  {
+    struct kp_identity_stats st;
+    kp_identity_window(32);
+    for (size_t i = 0; i < 32; i++) {
+      CHECK(kp_identity_object(&g, i, 0xffffffc0a3af8000ULL + i * 1024) == 1);
+      kp_identity_freeze(i, 'S');
+    }
+    for (size_t i = 0; i < 32; i++) {
+      kp_identity_slot(i, "yes", 1, 1, 0, 0, 0, NULL);
+    }
+    kp_identity_stats(&st);
+    CHECK(st.rows == 32);
+    CHECK(st.addressed == 32);
+    CHECK(st.page_known == 32);
+    CHECK(st.complete == 1);
+    CHECK(st.distinct_pages == 1);
+    CHECK(st.objects_per_page == 32);
+    CHECK(st.co_residency == KP_CO_RESIDENT);
+    CHECK(st.duplicate_addresses == 0);
+    kp_identity_summary();
+  }
+
+  /* Two pages split the table: the same complete grouping path must say so. */
+  {
+    struct kp_identity_stats st;
+    kp_identity_window(32);
+    for (size_t i = 0; i < 32; i++) {
+      uintptr_t addr = 0xffffffc0a3af8000ULL +
+                       (i < 16 ? 0 : 8 * 4096) + (i % 16) * 1024;
+      CHECK(kp_identity_object(&g, i, addr) == 1);
+      kp_identity_freeze(i, 'S');
+    }
+    for (size_t i = 0; i < 32; i++) {
+      kp_identity_slot(i, "yes", 1, 1, 0, 0, 0, NULL);
+    }
+    kp_identity_stats(&st);
+    CHECK(st.complete == 1);
+    CHECK(st.distinct_pages == 2);
+    CHECK(st.objects_per_page == 16);
+    CHECK(st.co_residency == KP_CO_SPLIT);
+    kp_identity_summary();
+  }
+
+  /* The same address reported for two objects is counted, not silently
+   * accepted as two pages of one. */
+  {
+    struct kp_identity_stats st;
+    kp_identity_window(32);
+    for (size_t i = 0; i < 32; i++) {
+      uintptr_t addr = 0xffffffc0a3af8000ULL + (i == 1 ? 0 : i) * 1024;
+      CHECK(kp_identity_object(&g, i, addr) == 1);
+      kp_identity_freeze(i, 'S');
+    }
+    for (size_t i = 0; i < 32; i++) {
+      kp_identity_slot(i, "yes", 1, 1, 0, 0, 0, NULL);
+    }
+    kp_identity_stats(&st);
+    CHECK(st.duplicate_addresses == 1);
+    CHECK(st.page_known == 32);
+    kp_identity_summary();
+  }
+
   /* Reading the host's own slabinfo must not crash and must leave a
    * consistent structure whether or not the file is readable. */
   {

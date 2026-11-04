@@ -15,6 +15,13 @@ input is the cache-wide counter delta. The predicates behind every path are in
 | `(0, 0, 0)` | `fastpath` **or** `FREE_FROZEN` **or** the full-page push | `>= 1` |
 | anything else | `unknown` | unavailable |
 
+`inuse_at_free` is the page's in-use count **before** this free's
+decrement; `inuse_after_free` is one lower. A page can only be discarded when
+`inuse_after_free == 0`, i.e. `inuse_at_free == 1`. The two listed residuals are
+therefore pre-free `>= 2` (a live object remains) and pre-free `1` (the page
+emptied but was retained), and a `(−1, 0, 0)` delta cannot tell them apart.
+Kernel code and logs must not use the two counts interchangeably.
+
 `page->inuse`, `page->frozen` and `n->nr_partial` are kernel-internal.
 `/proc/slabinfo` is cache-wide and the per-cache `/sys` attributes are denied
 (measured), and the only interface that would expose a freed object's address —

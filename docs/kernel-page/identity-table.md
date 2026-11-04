@@ -89,6 +89,19 @@ and the table checks both before it derives anything:
    the row is invalid rather than resolved from the fields that happen to
    agree.
 
+Both products are bounded at parse time (`pps <= LONG_MAX / PAGE_SIZE`,
+`ops <= LONG_MAX / objsize`), so a crafted slabinfo line cannot overflow the
+span or the agreement test.
+
+The mask is tied to this cache's allocation path, not to compound pages in
+general: `mm_cachep` objects come from SLUB's `alloc_slab_page()` →
+`alloc_pages(order)`, with the order chosen by `calculate_order()` from
+`slub_min_objects`/`slub_max_order` and capped by the architecture's maximum.
+This tree measures `pagesperslab=8`, i.e. order 3; an order-*n* allocation is
+`PAGE_SIZE << n` aligned, which is exactly the span the mask removes. A
+different order would be measured as a different span and re-checked, not
+assumed.
+
 `identity_test.c` independently asserts the consequences on the resolved row:
 `page % span == 0`, `offset < span`, and `0 ≤ slot_in_page < objperslab`.  A
 derived slot outside the object count is reported as `match=0`; it is never
@@ -174,6 +187,17 @@ occupancy column stays `unavailable` even with a full address column.
 | privileged observer enabling `kmem_cache_free` | one `ptr` per free, with call sites | minutes | root or tracepoint access on the device; not available (`EACCES`, measured) | blocked; not planned around |
 | sysfs per-page slab counters | nothing exists to read | — | root for the directory | cannot yield identity even with access |
 | slot arithmetic from the anchor address | page of slot 0 only | free | — | forbidden by rule 1; measured geometry is the only input to a page |
+
+The table now accepts the per-slot addresses this route produces:
+`kp_identity_object()` derives a page per slot with the same geometry checks
+and prints `KS_OBJ_ADDR`, and the rows and summary use those pages instead of
+the one anchor address. What does not exist yet is the payload mode that
+collects them: every slot's child would have to run its own 8–10 minute leak
+(twice, because the scan must belong to that child's `mm`), and the existing
+construction forks all 32 children back to back, so the scans either serialize
+on the freeing CPU (~4.5 h) or run concurrently and need a `ks` state per child.
+That mode is the prerequisite for a real Cycle B; the table-side support is
+tested on the host with synthetic per-slot addresses (co-resident and split).
 
 The leak route has a consequence worth stating before anyone builds it: the
 scanning child must be alive for its dump, so 31 dumps serialize behind 31 live

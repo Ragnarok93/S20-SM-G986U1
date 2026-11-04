@@ -102,6 +102,14 @@ void kp_identity_surface(struct kp_geometry *g, long assumed_objs_per_slab,
 int kp_identity_anchor(const struct kp_geometry *g, uintptr_t addr,
                        int constructed_slot, struct kp_identity *out);
 
+/* Record one measured address for one slot.  This is the Cycle B route: one
+ * leak dump per object, each in the child whose mm is that object.  The same
+ * geometry checks as kp_identity_anchor apply, per address, and the row for
+ * this slot then carries its own page.  Returns 1 when an exact page was
+ * derived. */
+int kp_identity_object(const struct kp_geometry *g, size_t slot,
+                       uintptr_t addr);
+
 /* Record one slot's task state at the freeze sample, before any free.  This
  * is `allocated_at_freeze`, a different temporal claim from the state read
  * immediately before that slot's own free.  st is the /proc stat state char;
