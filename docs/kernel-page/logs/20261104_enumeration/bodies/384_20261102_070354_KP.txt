@@ -1,0 +1,1293 @@
+Drop box contents: 1000 entries
+Max entries: 1000
+Low priority rate limit period: 2000 ms
+Low priority tags: {data_app_wtf, keymaster, system_server_wtf, system_app_strictmode, system_app_wtf, system_server_strictmode, data_app_strictmode, netstats}
+Searching for: SYSTEM_LAST_KMSG_384_20261102_070354_KP
+
+========================================
+2026-11-02 07:03:54 SYSTEM_LAST_KMSG_384_20261102_070354_KP (compressed text, 17089 bytes)
+isPrevious: true
+Build: samsung/y2quew/y2q:13/TP1A.220624.014/G986U1UESCHXL1:user/release-keys
+Hardware: kona
+Revision: 14
+Bootloader: G986U1UESCHXL1
+Radio: null
+Kernel: Linux version 4.19.113-27095354 (dpi@21DJ7C20) (clang version 10.0.6 for Android NDK) #1 SMP PREEMPT Fri Dec 27 14:53:28 KST 2024
+
+[[TRUNCATED]]
+PU2 : print cpu registers
+
+{470828} CPU2 : print call stack
+
+{471652} CPU2 : print sched log
+
+{471682} __print_kernel_sched_log: START
+
+{480924} __print_kernel_sched_log: END
+
+{480924} base for cpu3= 0xe5809720
+
+{480954} CPU3 : print cpu registers
+
+{481046} CPU3 : print call stack
+
+{481717} CPU3 : print sched log
+
+{481747} __print_kernel_sched_log: START
+
+{490989} __print_kernel_sched_log: END
+
+{491019} base for cpu4= 0xe5809f60
+
+{491019} CPU4 : print cpu registers
+
+{491111} CPU4 : print call stack
+
+{491782} CPU4 : print sched log
+
+{491812} __print_kernel_sched_log: START
+
+{501023} __print_kernel_sched_log: END
+
+{501023} base for cpu5= 0xe580a7a0
+
+{501054} CPU5 : print cpu registers
+
+{501115} CPU5 : print call stack
+
+{501694} CPU5 : print sched log
+
+{501725} __print_kernel_sched_log: START
+
+{510966} __print_kernel_sched_log: END
+
+{510966} base for cpu6= 0xe580afe0
+
+{510997} CPU6 : print cpu registers
+
+{511088} CPU6 : print call stack
+
+{511759} CPU6 : print sched log
+
+{511790} __print_kernel_sched_log: START
+
+{520879} __print_kernel_sched_log: END
+
+{520909} base for cpu7= 0xe580b820
+
+{520940} CPU7 : print cpu registers
+
+{521001} CPU7 : print call stack
+
+{521702} CPU7 : print sched log
+
+{521702} __print_kernel_sched_log: START
+
+{531005} __print_kernel_sched_log: END
+
+{531005} print_cpu_context: exit 745003
+
+{531035} __print_apss_avc_logs: AVC info not available
+
+{531035} print_ap_klog: START
+{531157} sec_log_copy: simple case
+
+{531157} add_auto_comment_klog: START
+
+{532255} add_auto_comment_klog: END
+
+{532286} add_auto_comment_kernel_ext_info: START
+
+{532286} add_auto_comment_kernel_ext_info: PC/LR info
+
+{532316} add_auto_comment_kernel_ext_info: backtrace info
+
+{532347} add_auto_comment_kernel_ext_info: Last Kmsg is skipped, last_rst_reason[28]
+
+{532347} print_ap_klog: END
+{532530} __print_runq: START
+{532621} __print_runq: END
+
+{532652} tasklist: START
+{911187} tasklist: END (4222 tasks, 572 KB)
+{911187} summary_html_print_apss: END
+
+{911218} entry_fn=80642ad4
+
+{911218} summary_html_print_post_apss: START
+
+{911401} summary_html_print_post_apss: END
+
+{911401} entry_fn=80642b94
+
+{911431} summary_html_print_modem: START
+
+{911462} summary_html_print_modem: END
+
+{911462} entry_fn=806417e4
+
+{911492} summary_update_upload_cause: Start
+
+{911492} array of upload_str_infos[4]
+{911523} [get_pimem_esr_val_sdi]
+{911523} pimem_esr : [0x0]
+{911523} pimem_esr_sdi : [0x0]
+{911553} UploadCause[KERNEL PANIC], Don't check hangcnt
+{911584} gen_dump_summary DONE
+
+{911584} entry_fn=8064f2f8
+
+{911614} collect_rr_data : restart_reason = 0x776655ee
+
+{911614} collect_rr_data : upload_cause = KERNEL PANIC ( panic_msg = Oops PC = rt_mutex_adjust_prio_chain+0x304/0x858 )
+
+{911675} UpdateDCVSLastVal : start.
+
+{911675} smem_get_apps_clk : 59
+
+{911706} smem_get_apps_clk : 59
+
+{911706} smem_get_apps_clk : 59
+
+{911706} smem_get_apps_clk : 59
+
+{911736} smem_get_ddr_clk : 111
+
+{911736} smem_get_ddr_clk: ddr log num(50), &idx(0x807853f8), logs(0x807a44a8)
+
+{911767} Current PON fault reason value 0x0000000000000000
+{911797} UpdateDCVSLastVal : end.
+
+{911828} last_rst_reason 4
+{912102} collect_rr_data : exinfo 0x9f1ff000, 0x1000, 0x1000
+
+{912133} collect_rr_data : TZ OEM_RESET_REASON :: TZBSP_ERR_FATAL_NON_SECURE_WDT
+
+{912133} [get_pimem_esr_val_sdi]
+{912133} [get_pimem_ear0_val_sdi]
+{912346} sec_log_copy: simple case
+
+{912712} entry_fn=8064f854
+
+{912865} tzbsp_diag : find and store. If you see tz_log, Please do decryption
+
+{913109} RESET Header : #wr(384), #rd(383) #fac_w(0) 1519191
+
+{947635} @ Continue boot by Debug level LOW
+{948367} boot_hw_reset - boot_sec_log_store done
+
+
+{451583} ** XBL(1133, restored from storage) **
+
+
+Format: Log Type - Time(microsec) - Message - Optional Info
+Log Type: B - Since Boot(Power On Reset),  D - Delta,  S - Statistic
+S - QC_IMAGE_VERSION_STRING=BOOT.XF.3.2-00248-SM8250-1
+S - IMAGE_VARIANT_STRING=Soc8250LAA
+S - OEM_IMAGE_VERSION_STRING=21DJ7C20
+S - Boot Interface: UFS
+S - Secure Boot: On
+S - Boot Config @ 0x00786070 = 0x00000041
+S - JTAG ID @ 0x00786130 = 0x200c30e1
+S - OEM ID @ 0x00786138 = 0x00200000
+S - Chip Revision @ 0x01fc8000 = 0x60080201
+S - Feature Config Row 0 @ 0x007841f8 = 0x0040200000000400
+S - Feature Config Row 1 @ 0x00784200 = 0x00000000
+S - FEAUTRE ID @ 0x00784198 = 0x105200c3
+S - Core 0 Frequency, 1516 MHz
+S - PBL Patch Ver: 4
+S - PBL freq: 600 MHZ
+D -      6209 - pbl_apps_init_timestamp
+D -     30345 - bootable_media_detect_timestamp
+D -       976 - bl_elf_metadata_loading_timestamp
+D -      9409 - bl_hash_seg_auth_timestamp
+D -      6383 - bl_elf_loadable_segment_loading_timestamp
+D -      5699 - bl_elf_segs_hash_verify_timestamp
+D -      6760 - bl_sec_hash_seg_auth_timestamp
+D -       821 - bl_sec_segs_hash_verify_timestamp
+D -        34 - pbl_populate_shared_data_and_exit_timestamp
+S -     66636 - PBL, End
+B -     80520 - SBL1, Start
+B -     82228 - SBL1 BUILD @ 15:17:15 on Dec 27 2024
+B -     83905 - usb: usb_shared_hs_phy_init: hs phy cfg size , 0xc
+D -      1769 - sbl1_hw_init
+D -        30 - boot_flash_init
+B -    215086 - UFS INQUIRY ID: SAMSUNG KLUDG4UHDB-B2D1 0089
+B -    216519 - UFS Boot LUN: 1
+B -    223199 - UFS MD   : CE1119
+B -    223199 - UFS size : 128GB
+B -    223199 - UFS spec : 0310
+D -      5337 - Auth Metadata
+D -    147315 - sbl1_xblconfig_init
+D -         0 - boot_config_data_table_default_init
+B -    231373 - Using default CDT
+D -        31 - boot_config_data_table_init
+B -    231373 - CDT Version:3,Platform ID:8,Major ID:1,Minor ID:0,Subtype:0
+B -    231403 - DSF V156.08.41
+
+D -      7625 - sbl1_hw_platform_pre_ddr
+D -         0 - devcfg init
+B -    248270 - PM: PM 0=0x8000028000000041:0x0 
+B -    248331 - PM: HARD RESET by PS_HOLD
+B -    248392 - PM: PM 2=0x8000018000000020:0x0 
+B -    248453 - PM: POWER ON by PON1 , POWER OFF by SOFT
+B -    248514 - PM: PM 4=0x8000018000000020:0x0 
+B -    248575 - PM: POWER ON by PON1 , POWER OFF by SOFT
+B -    250771 - PM: PMA_2 PON:CBL WR:PS ON:WARM POFF:PS OFF:POFF
+B -    250801 - PM: PMA_3 PON:CBL WR:PS ON:WARM POFF:PS OFF:POFF
+B -    323635 - PM: SET_VAL:Skip
+B -    324032 - PM: PSI: b0x00_v0x41
+B -    325160 - PM: Device Init # SPMI Transn: 3242
+B -    334890 - PM: OCP Occured: PMIC: 2; BOB: 1 
+B -    336293 - PM: Driver Init # SPMI Transn: 637
+B -    336384 - usb: fedl, vbus_det_err
+B -    336811 - usb: usb_shared_hs_phy_init: hs phy cfg size , 0xc
+B -    336933 - pm_driver_init, configuring PMIC to do a DVDD reset, Start
+D -      1769 - pm_driver_init, configuring PMIC to do a DVDD reset, Delta
+B -    338733 - PM: CHG Init # SPMI Transn: 0
+D -     99705 - pmic XBL init
+D -     29676 - vsense_railway_cpr init
+D -    129381 - sbl1_hw_pre_ddr_init
+D -         0 - boot_dload_handle_forced_dload_timeout
+D -      1494 - sbl1_load_ddr_training_data
+D -      1616 - sbl1_ddr_set_params
+B -    390674 - Populated CS Mask: 0x3
+
+B -    390735 - eCDT MRR - Data Starting Address: 0x09066D00
+
+B -    390796 - eCDT MRR - MA[6:0] = 0x31, OP[7:0] = 0x01
+
+B -    390857 - eCDT MRR - MA[6:0] = 0x32, OP[7:0] = 0x01
+
+B -    393084 - DSF version = 156.8.41
+B -    393084 - Manufacturer ID = 1, Device Type = 8
+B -    393114 - Rank 0 size = 6144 MB, Rank 1 size = 6144 MB
+D -     23393 - sbl1_ddr_init
+D -         0 - boot_pre_ddi_entry
+B -    393511 - do_ddr_training, Start
+B -    394365 - DDR: Checksum on flash is 274801526
+B -    407602 - DDR: Recomputed checksum is 274801526
+B -    420808 - DDR: Training is not required
+B -    420808 - DDR: Start of DDR Training Restore
+B -    430233 - Frequency = 1805 MHz
+B -    430233 - DDR: End of DDR Training Restore
+D -     36874 - do_ddr_training, Delta
+D -     36966 - sbl1_do_ddr_training
+D -         0 - sbl1_hand_control_to_devprog_ddr
+D -       152 - quest_check_ddr_scan_user
+D -      1007 - boot_ddi_entry
+B -    431636 - Pimem init cmd, entry
+D -     10736 - Pimem init cmd, exit
+D -     11041 - sbl1_post_ddr_init
+B -    449051 - AdcReadPmicHardwareID ADC Value:1209
+B -    449051 - READ ADC_HW_REV value:14
+{451583} sbl1_hw_init_secondary
+{451796} APDP Image Load, Start
+{457378} Auth Metadata
+{458079} Segments hash check
+{458110} APDP Image Loaded, Delta - (8204 Bytes)
+{458140} boot_dload_dump_security_regions
+{458232} QB link : https://android.qb.sec.samsung.net/build/90638742
+{458232} DEBUG LEVEL : LOW
+{458445} PWR[released] DN[released] UP[released]
+{458476} Current PON value 0x8000028000000041
+{458506} 
+	OFF : POFF_SEQ 
+	POFF : PS_HOLD 
+	ON : PON_SEQ 
+	WARM : 
+	PON : HARD_RESET[O] CABLE 
+{458598} ResetReason don't define case 0x1c, RR.p will write NP
+{458628} Target was saved rr_data, Maybe entered upload before
+{458628} RR : KP
+{458689} usb: fedl, vbus_det_err
+{459116} usb: usb_shared_hs_phy_init: hs phy cfg size , 0xc
+{459299} boot_dload_check
+{459299} boot_cache_set_memory_barrier
+{459330} boot_smem_debug_init
+{459696} boot_smem_init
+{459726} boot_smem_alloc_for_minidump
+{459818} PM: SMEM Chgr Info Write Success
+{459818} boot_smem_store_pon_status
+{459848} sec_board_rev_smem_copy
+{459879} DDR vendor:Samsung@0x80907220
+{459879} store hw rev:14@0x80907290
+{459909} sec_board_rev_smem_copy
+{459940} sbl1_hw_platform_smem
+{460001} boot_ddr_share_data_to_aop
+{460580} boot_clock_init_rpm
+{460580} boot_vsense_copy_to_smem
+{460580} boot_share_flash_data
+{460611} boot_populate_ram_partition_table
+{460672} boot_populate_ddr_details_shared_table
+{460702} sbl1_tlmm_init
+{460702} sbl1_efs_handle_cookies
+{460702} boot_apt_test
+{460733} OEM_MISC Image Load, Start
+{460733} OEM_MISC Image Loaded, Delta - (0 Bytes)
+{460763} QTI_MISC Image Load, Start
+{460763} QTI_MISC Image Loaded, Delta - (0 Bytes)
+{468663} PM: Y2Q Wlan Cfg hw_rev = 0x0e
+{468663} PM: PM Total Mem Allocated: 2554 
+{468693} sbl1_pm_aop_pre_init_wrapper
+{468693} AOP Image Load, Start
+{474366} Auth Metadata
+{480070} Segments hash check
+{480070} AOP Image Loaded, Delta - (196800 Bytes)
+{480100} QSEE Dev Config Image Load, Start
+{485865} Auth Metadata
+{487115} Segments hash check
+{487115} QSEE Dev Config Image Loaded, Delta - (43636 Bytes)
+{487146} QSEE Image Load, Start
+{496143} Auth Metadata
+{558577} Segments hash check
+{558607} QSEE Image Loaded, Delta - (3147525 Bytes)
+{558607} sbl1_hw_play_vibr
+{558760} SEC Image Load, Start
+{564311} Auth Metadata
+{564738} Segments hash check
+{564738} SEC Image Loaded, Delta - (7560 Bytes)
+{564768} CPUCPFW Image Load, Start
+{564768} CPUCPFW Image Loaded, Delta - (0 Bytes)
+{564799} QHEE Image Load, Start
+{570502} Auth Metadata
+{576602} Segments hash check
+{576633} QHEE Image Loaded, Delta - (508341 Bytes)
+{576633} STI Image Load, Start
+{576663} STI Image Loaded, Delta - (0 Bytes)
+{577212} APPSBL Image Load, Start
+{582275} Auth Metadata
+{598471} Segments hash check
+{598501} APPSBL Image Loaded, Delta - (2555904 Bytes)
+{598501} sbl1_appsbl_arch_determination
+{598867} SBL1, End
+{598867} SBL1, Delta
+{598898} Flash Throughput, 217000 KB/s  (6551338 Bytes,  30054 us)
+{598898} DDR Frequency, 1555 MHz
+
+
+UEFI Start     [  896]
+ - 0x09FC01000 [  900] Sec.efi
+ASLR        : ON
+DEP         : ON (RTB)
+Timer Delta : +1 mS
+RAM Entry 0 : Base 0x080000000  Size 0x039900000
+RAM Entry 1 : Base 0x200000000  Size 0x180000000
+RAM Entry 2 : Base 0x0C0000000  Size 0x140000000
+Total RAM   : 0x2F9900000
+{ 934977 }[ XBL ] UEFI Ver    : 5.0.241227.BOOT.XF.3.2-00248-SM8250-1
+{ 935008 }[ XBL ] Build Info  : 64b Dec 27 2024 15:17:46
+{ 935038 }[ XBL ] Boot Device : UFS
+{ 935038 }[ XBL ] PROD Mode   : TRUE
+{ 935069 }[ XBL ] Retail      : TRUE
+{ 1006012 }[ XBL ]  >>> Cluster 0:     1516 MHz
+{ 1006042 }[ XBL ]  >>> Cluster 2:     1324 MHz
+{ 1035902 }[ XBL ] PM0: 30, { 1035902 }[ XBL ] PM2: 38, { 1035902 }[ XBL ] PM3: 33, { 1035932 }[ XBL ] PM4: 42, { 1035932 }[ XBL ] 
+{ 1041117 }[ XBL ] UFS INQUIRY ID: SAMSUNG KLUDG4UHDB-B2D1 0089
+{ 1041270 }[ XBL ] UFS Boot LUN: 1
+{ 1068872 }[ XBL ] LoadSecureApps: TZApps region 0x4A00000@0x82400000
+{ 1150307 }[ XBL ] Varstore partition 165BD6BC-9250-4AC8-95A7-A93F4A440066 - #handles = 0
+{ 1150582 }[ XBL ] Varstore partition 165BD6BC-9250-4AC8-95A7-A93F4A440066 - #handles = 0
+{ 1150856 }[ XBL ] Varstore partition 165BD6BC-9250-4AC8-95A7-A93F4A440066 - #handles = 0
+{ 1156468 }[ XBL ] LoadImageFromPartitionUsingGuid Failed: 14
+Failed to start featenabler_a TA, status = 14
+{ 1157353 }[ XBL ] HW Wdog Setting from PCD : Disabled
+{ 1174890 }[ XBL ] DisplayDxe: [kparam] Sales code = WWD, color = LB1080X2400:HS
+
+{ 1174951 }[ XBL ] DisplayDxe: Sales code = WWD, color = LB
+{ 1174951 }[ XBL ] displaydriverlib_init ++: ndx=0
+{ 1174982 }[ XBL ] displaydriverlib_init freq = Default
+{ 1175012 }[ XBL ] displaydriverlib_init HW_REV : 0xE, ndx=0
+{ 1175043 }[ XBL ] S6E3HAB_AMB677TY01_WQHD_octa_init
+{ 1175043 }[ XBL ] S6E3HA9_AMB611WE01_WQHD_octa_init
+{ 1175043 }[ XBL ] S6E3HA9_AMB644WF01_WQHD_octa_init
+{ 1175073 }[ XBL ] PBA_BOOTING_FHD_init
+{ 1175073 }[ XBL ] displaydriverlib_init --: ndx=0
+{ 1175104 }[ XBL ] displaydriverlib_init ++: ndx=1
+{ 1175104 }[ XBL ] displaydriverlib_init freq = Default
+{ 1175134 }[ XBL ] displaydriverlib_init HW_REV : 0xE, ndx=1
+{ 1175134 }[ XBL ] PBA_BOOTING_FHD_DSI1_init
+{ 1175165 }[ XBL ] displaydriverlib_init --: ndx=1
+{ 1175195 }[ XBL ] get_display_pmic_type
+{ 1185748 }[ XBL ] samsung_panel_power_up (1) 
+{ 1185748 }[ XBL ] display_panel_power_up_S6E3HAB_AMB677TY01 ++
+{ 1185779 }[ XBL ] [sub_pmic_init]++
+{ 1185779 }[ XBL ] [sub_pmic_init_pb02_a]
+{ 1185779 }[ XBL ] [PB02:0]++
+{ 1185809 }[ XBL ] i2c driver is not initialized
+{ 1186114 }[ XBL ] [PB02:0] STATUS1: 0x00
+{ 1186389 }[ XBL ] [PB02:0] CTRL: 0x1F
+{ 1186694 }[ XBL ] [PB02:0] BUCK1_CTRL: 0x58
+{ 1186968 }[ XBL ] [PB02:0] BUCK1_OUT: 0xC0
+{ 1187243 }[ XBL ] [PB02:0] BUCK2_CTRL: 0x58
+{ 1187548 }[ XBL ] [PB02:0] BUCK2_OUT: 0x40
+{ 1187822 }[ XBL ] [PB02:0] BB_CTRL: 0x58
+{ 1188097 }[ XBL ] [PB02:0] BB_OUT: 0x48
+{ 1188402 }[ XBL ] [PB02:0] LDO1_CTRL: 0x18
+{ 1188676 }[ XBL ] [PB02:0] LDO2_CTRL: 0x20
+{ 1188951 }[ XBL ] [PB02:0] LDO3_CTRL: 0x20
+{ 1189256 }[ XBL ] [PB02:0] LDO4_CTRL: 0x30
+{ 1189530 }[ XBL ] [PB02:0] LDO5_CTRL: 0x30
+{ 1189805 }[ XBL ] [PB02:0] LDO6_CTRL: 0x30
+{ 1190110 }[ XBL ] [PB02:0] LDO7_CTRL: 0x30
+{ 1190384 }[ XBL ] [PB02:0] LDO8_CTRL: 0x30
+{ 1190659 }[ XBL ] [PB02:0] LDO9_CTRL: 0x30
+{ 1190964 }[ XBL ] [PB02:0] LDO10CTRL: 0x30
+{ 1191238 }[ XBL ] [PB02:0] LDO11_CTRL: 0x58
+{ 1191513 }[ XBL ] [PB02:0] LDO12_CTRL: 0x58
+{ 1191818 }[ XBL ] [PB02:0] LDO13_CTRL: 0x5C
+{ 1192092 }[ XBL ] [PB02:0] LDO14_CTRL: 0x58
+{ 1192367 }[ XBL ] [PB02:0] LDO15_CTRL: 0x58
+{ 1192672 }[ XBL ] [PB02:0] LDO16_CTRL: 0x58
+{ 1192946 }[ XBL ] [PB02:0] LDO17_CTRL: 0x5E
+{ 1193251 }[ XBL ] [PB02:0] LDO18_CTRL: 0x6C
+{ 1193251 }[ XBL ] [PB02:0]--
+{ 1193251 }[ XBL ] [sub_pmic_init_pb03_a]
+{ 1193251 }[ XBL ] [PB03:0]++
+{ 1193556 }[ XBL ] [PB03:0] STATUS1: 0x02
+{ 1193831 }[ XBL ] [PB03:0] CTRL: 0x00
+{ 1194136 }[ XBL ] [PB03:0] CTRL: 0x00
+{ 1194410 }[ XBL ] [PB03:0] LDO1_CTRL: 0x1C
+{ 1194685 }[ XBL ] [PB03:0] LDO2_CTRL: 0x20
+{ 1194990 }[ XBL ] [PB03:0] LDO3_CTRL: 0x2C
+{ 1195264 }[ XBL ] [PB03:0] LDO4_CTRL: 0x20
+{ 1195539 }[ XBL ] [PB03:0] LDO5_CTRL: 0x0E
+{ 1195844 }[ XBL ] [PB03:0] LDO6_CTRL: 0x28
+{ 1196118 }[ XBL ] [PB03:0] LDO7_CTRL: 0x28
+{ 1196118 }[ XBL ] [PB03:0] reg_init
+{ 1196637 }[ XBL ] [PB03:0] OSC_SEL: 0x80
+{ 1196637 }[ XBL ] [PB03:0]--
+{ 1196637 }[ XBL ] [sub_pmic_init_s2dos05_a]
+{ 1196637 }[ XBL ] [S2DOS05:0] ++
+{ 1196667 }[ XBL ] [S2DOS05:0] s2dos05_stat
+{ 1196972 }[ XBL ] [S2DOS05:0] REG_STATUS: 0x00
+{ 1197308 }[ XBL ] [S2DOS05:0] REG_CTRL: 0x00
+{ 1197613 }[ XBL ] [S2DOS05:0] REG_SSD_TSD: 0x06
+{ 1197948 }[ XBL ] [S2DOS05:0] REG_UVLO_OCD_FD: 0x01
+{ 1198253 }[ XBL ] [S2DOS05:0] REG_OCL: 0x2A
+{ 1198589 }[ XBL ] [S2DOS05:0] LDO1_CTRL: 0x8C
+{ 1198894 }[ XBL ] [S2DOS05:0] LDO2_CTRL: 0x8C
+{ 1199199 }[ XBL ] [S2DOS05:0] LDO3_CTRL: 0x8C
+{ 1199534 }[ XBL ] [S2DOS05:0] LDO4_CTRL: 0x98
+{ 1199839 }[ XBL ] [S2DOS05:0] BUCK_CTRL: 0x58
+{ 1200175 }[ XBL ] [S2DOS05:0] BUCK_VOUT: 0xAF
+{ 1200480 }[ XBL ] [S2DOS05:0] DEVICE_ID: 0x80
+{ 1200480 }[ XBL ] [SM3080] Disable restart
+{ 1201486 }[ XBL ] [S2DOS05:0] --
+{ 1201486 }[ XBL ] [sub_pmic_init]--
+{ 1201486 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(0), voltage(1800000)
+{ 1201517 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator0, 1800000mV
+{ 1202371 }[ XBL ] [S2DOS05:0] addr: 0x04, data: 0x0C, mask: 0x1F, update_data: 0x8C -> 0x8C
+{ 1202401 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(3), voltage(3000000)
+{ 1202401 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator3, 3000000mV
+{ 1203286 }[ XBL ] [S2DOS05:0] addr: 0x07, data: 0x0C, mask: 0x3F, update_data: 0x98 -> 0x8C
+{ 1203316 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(4), voltage(1800000)
+{ 1203316 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator4, 1800000mV
+{ 1204201 }[ XBL ] [S2DOS05:0] addr: 0x09, data: 0xCF, mask: 0xFF, update_data: 0xAF -> 0xCF
+{ 1204201 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(0)
+{ 1204231 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator0
+{ 1205085 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x01, mask: 0x01, update_data: 0x00 -> 0x01
+{ 1215120 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(4)
+{ 1215120 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator4
+{ 1216004 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x10, mask: 0x10, update_data: 0x01 -> 0x11
+{ 1226008 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(3)
+{ 1226008 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator3
+{ 1226893 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x08, mask: 0x08, update_data: 0x11 -> 0x19
+{ 1226923 }[ XBL ] display_panel_power_up_S6E3HAB_AMB677TY01 by Direct PMIC control --
+{ 1241929 }[ XBL ] GetPanelXmlConfig ++ (15) 
+{ 1241960 }[ XBL ] DisplayDxe: vdd->sPlatformPanel[0][SEC_XBL_MODE_NORMAL].eSelectedPanel = 34, sPlatformPanel[eDisplayId].uSelectedPanelIndex = 33
+{ 1241990 }[ XBL ] samsung_panel_select_xml_data eDisplayId = 0, vdd->ndx = 0 ++
+{ 1241990 }[ XBL ] samsung_check_support_panel panel_list_max : 4 ++ : ndx=0
+{ 1242021 }[ XBL ] samsung_check_support_panel [0] +++
+{ 1242021 }[ XBL ] display_panel_power_up_S6E3HAB_AMB677TY01 ++
+{ 1242021 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(0), voltage(1800000)
+{ 1242051 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator0, 1800000mV
+{ 1242936 }[ XBL ] [S2DOS05:0] addr: 0x04, data: 0x0C, mask: 0x1F, update_data: 0x8C -> 0x8C
+{ 1242936 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(3), voltage(3000000)
+{ 1242966 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator3, 3000000mV
+{ 1243820 }[ XBL ] [S2DOS05:0] addr: 0x07, data: 0x0C, mask: 0x3F, update_data: 0x8C -> 0x8C
+{ 1243851 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(4), voltage(1800000)
+{ 1243851 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator4, 1800000mV
+{ 1244735 }[ XBL ] [S2DOS05:0] addr: 0x09, data: 0xCF, mask: 0xFF, update_data: 0xCF -> 0xCF
+{ 1244735 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(0)
+{ 1244766 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator0
+{ 1245620 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x01, mask: 0x01, update_data: 0x19 -> 0x19
+{ 1255654 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(4)
+{ 1255654 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator4
+{ 1256539 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x10, mask: 0x10, update_data: 0x19 -> 0x19
+{ 1266543 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(3)
+{ 1266573 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator3
+{ 1267427 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x08, mask: 0x08, update_data: 0x19 -> 0x19
+{ 1267458 }[ XBL ] display_panel_power_up_S6E3HAB_AMB677TY01 by Direct PMIC control --
+{ 1282464 }[ XBL ] DSIDriver_MinimalInit: eDisplayId=0
+{ 1283165 }[ XBL ] samsung_panel_reset enable : 1 vdd->ndx = 0++
+{ 1283196 }[ XBL ] samsung_panel_reset: Reset_N state : 1 , gpio_num : 82
+{ 1293200 }[ XBL ] samsung_panel_reset: Reset_N state : 0 , gpio_num : 82
+{ 1303204 }[ XBL ] samsung_panel_reset: Reset_N state : 1 , gpio_num : 82
+{ 1313238 }[ XBL ] samsung_panel_reset enable : 1--
+{ 1315526 }[ XBL ] Default prepare read function
+{ 1315526 }[ XBL ] read_ddi_id ++: num_panel=0
+{ 1315587 }[ XBL ] MIPI TX: Type: 37, Mode: 0,  [R01h] : 00 
+{ 1315709 }[ XBL ] Sent max package command
+{ 1315739 }[ XBL ] MIPI RX: Type: 06, Mode: 0, [Rdah] [R01h] 
+{ 1315861 }[ XBL ] [RDAh] { 1315861 }[ XBL ] 0x00000081 { 1315892 }[ XBL ] 0x00000000 { 1315892 }[ XBL ] 
+{ 1315892 }[ XBL ] [R9AD22BD4h] response_size: 2
+{ 1315922 }[ XBL ] MIPI TX: Type: 37, Mode: 0,  [R01h] : 00 
+{ 1316044 }[ XBL ] Sent max package command
+{ 1316044 }[ XBL ] MIPI RX: Type: 06, Mode: 0, [Rdbh] [R01h] 
+{ 1316197 }[ XBL ] [RDBh] { 1316197 }[ XBL ] 0x00000011 { 1316197 }[ XBL ] 0x00000000 { 1316197 }[ XBL ] 
+{ 1316227 }[ XBL ] [R9AD22BD2h] response_size: 2
+{ 1316227 }[ XBL ] MIPI TX: Type: 37, Mode: 0,  [R01h] : 00 
+{ 1316349 }[ XBL ] Sent max package command
+{ 1316380 }[ XBL ] MIPI RX: Type: 06, Mode: 0, [Rdch] [R01h] 
+{ 1316502 }[ XBL ] [RDCh] { 1316532 }[ XBL ] 0x00000004 { 1316532 }[ XBL ] 0x00000000 { 1316532 }[ XBL ] 
+{ 1316532 }[ XBL ] [R9AD22BD0h] response_size: 2
+{ 1316563 }[ XBL ] read_ddi_id[0]: id1: 0x81, id2: 0x11, id3: 0x04 type: 0x00 color: 0x01
+{ 1316563 }[ XBL ] read_ddi_id --
+{ 1316593 }[ XBL ] ddi_id: 0x811104
+{ 1316593 }[ XBL ] samsung_check_support_panel: valid_bit_mask(003000) expect_data(811000) 
+{ 1316624 }[ XBL ] samsung_check_support_panel: panel is matched : num(0)
+{ 1316624 }[ XBL ] samsung_check_support_panel: lcd_id : 0x811104
+{ 1316776 }[ XBL ] samsung_panel_reset enable : 0 vdd->ndx = 0++
+{ 1316807 }[ XBL ] samsung_panel_reset enable : 0--
+{ 1316807 }[ XBL ] check_support_panel_S6E3HAB_AMB677TY01 panel is supported
+{ 1316837 }[ XBL ] samsung_check_support_panel: found supported panel: 0
+{ 1316837 }[ XBL ] samsung_check_support_panel -- 
+{ 1316837 }[ XBL ] samsung_panel_select_xml_data: vdd->ndx = 0, Selected - Panel ID : 34 
+{ 1316868 }[ XBL ] samsung_panel_select_xml_data eDisplayId = 0, vdd->ndx = 0 --
+{ 1317081 }[ XBL ] DisplayDxe: Resolution 1440x3200 (1 intf)
+{ 1319643 }[ XBL ] DisplayDxe_SetMode: +++: set is_doing_setmode
+{ 1322480 }[ XBL ] samsung_panel_reset enable : 1 vdd->ndx = 0++
+{ 1322510 }[ XBL ] samsung_panel_reset: Reset_N state : 1 , gpio_num : 82
+{ 1333887 }[ XBL ] samsung_panel_reset: Reset_N state : 0 , gpio_num : 82
+{ 1345080 }[ XBL ] samsung_panel_reset: Reset_N state : 1 , gpio_num : 82
+{ 1356060 }[ XBL ] samsung_panel_reset enable : 1--
+{ 1359629 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R9fh] : a5 a5 
+{ 1375062 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1375214 }[ XBL ] MIPI TX: Type: 07, Mode: 0,  [R01h]
+{ 1375367 }[ XBL ] MIPI TX: Type: 0a, Mode: 0,  [PPS] 11 00 00 89 30 80 0c 80 05 a0 00 28 
+{ 1375489 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1375641 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1375763 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : a9 96 
+{ 1375916 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R96h] : 08 d9 54 00 00 8e 55 
+{ 1376038 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 28 98 
+{ 1376190 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R98h] : 00 8f 00 ab 55 
+{ 1376312 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1376465 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : 5a 5a 
+{ 1376587 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 06 f3 
+{ 1376739 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf3h] : 00 
+{ 1376861 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1377014 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 73 91 
+{ 1377136 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R91h] : 01 f9 
+{ 1377288 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1377410 }[ XBL ] MIPI TX: Type: 05, Mode: 0,  [R11h]
+{ 1389641 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1389793 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 25 cb 
+{ 1389915 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rcbh] : c6 
+{ 1390068 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 27 cb 
+{ 1390190 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rcbh] : d6 
+{ 1390342 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1401627 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : a5 a5 
+{ 1532564 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R35h] : 00 
+{ 1532716 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1532869 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb9h] : 01 c0 81 09 00 00 00 11 03 
+{ 1532991 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1533143 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1533265 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Redh] : 06 4c 
+{ 1533418 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1533540 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : 5a 5a 
+{ 1533692 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rc5h] : 11 08 50 35 61 35 61 
+{ 1533814 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : a5 a5 
+{ 1533967 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1534089 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 08 f6 
+{ 1534241 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf6h] : 40 
+{ 1534363 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1534516 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1534638 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rcah] : 2a 00 00 00 80 80 80 80 80 80 80 
+{ 1534790 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb1h] : 05 0c 
+{ 1534912 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 06 b1 
+{ 1535065 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb1h] : 80 
+{ 1535187 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb5h] : 19 dc 16 
+{ 1535339 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : 5a 5a 
+{ 1535461 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R6ah] : 07 ff 01 
+{ 1535614 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : a5 a5 
+{ 1535766 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf4h] : 30 02 2b 6b 23 
+{ 1535888 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb4h] : 00 55 40 ff 26 55 
+{ 1536041 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R55h] : 02 
+{ 1536163 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 0a 92 
+{ 1536315 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R92h] : 27 65 ff 01 00 80 00 00 00 00 00 
+{ 1536468 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R60h] : 00 
+{ 1536590 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R53h] : 00 
+{ 1536712 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf7h] : 0f 
+{ 1536864 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1536986 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R9fh] : 5a 5a 
+{ 1554585 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R9fh] : a5 a5 
+{ 1554707 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R29h] : 00 
+{ 1554859 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R9fh] : 5a 5a 
+{ 1555225 }[ XBL ] MIPI TX: Type: 0a, Mode: 0,  [PPS] 11 00 00 89 30 80 0c 80 05 a0 00 28 
+{ 1555469 }[ XBL ] samsung_send_self_mask ++ 
+{ 1555469 }[ XBL ] Self Mask Enable(1) ++
+{ 1555469 }[ XBL ] panel_type=0 panel_color=1
+{ 1555500 }[ XBL ] Self Mask Image for P-Hole C-Type
+{ 1555530 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1555652 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R7ah] : 00 
+{ 1555774 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R75h] : 10 
+{ 1555896 }[ XBL ] total data size [4576]
+{ 1555927 }[ XBL ] cmd size [26] paylod_size [176]
+{ 1555957 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R4ch] : c0 96 41 f9 42 f0 41 e8 43 e0 45 
+{ 1556201 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 0e 07 10 28 12 29 16 2b 18 2c 1c 
+{ 1556445 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 1a 2d 28 54 41 e7 c0 c2 41 f3 2c 
+{ 1556720 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 2c 56 0c 06 85 10 0c 06 2c 56 c0 
+{ 1556964 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 06 e3 00 20 82 87 14 2a 41 eb c0 
+{ 1557208 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 0d 86 c0 30 31 98 41 0f 82 85 41 
+{ 1557452 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 41 eb 0a 05 82 88 06 e3 c0 3e 1e 
+{ 1557696 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 82 8b 41 0b 25 92 c0 3d 41 e9 06 
+{ 1557970 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 82 91 04 42 41 f4 c0 30 18 2c 82 
+{ 1558214 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 02 01 41 fd c0 46 41 fd 02 01 82 
+{ 1558458 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 00 00 41 e8 c0 1a 1e ef 82 a1 04 
+{ 1558702 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 82 aa 0c 86 c0 13 41 ed 00 00 82 
+{ 1558946 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 1e 2f 36 7b c0 18 36 7b 1e 2f 06 
+{ 1559221 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : c0 08 18 cc 85 96 10 c8 c0 08 0a 
+{ 1559465 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 85 9c 0c 86 c0 02 0c 66 85 9c 08 
+{ 1559709 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 85 9e 42 10 85 9e 42 10 85 9e 42 
+{ 1559953 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 41 30 41 37 85 9e 41 37 41 40 85 
+{ 1560197 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 33 99 85 9c 23 91 c0 02 41 e7 85 
+{ 1560471 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 02 21 c0 0a 12 89 85 94 0c 86 c0 
+{ 1560715 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 25 92 c0 15 0a 45 85 88 06 43 c0 
+{ 1560959 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 2b 55 85 78 1d 4e c0 27 10 88 85 
+{ 1561203 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 37 bb 41 13 85 5e 41 13 25 b2 c0 
+{ 1561447 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 41 e6 c0 5d 41 fd 21 10 41 04 85 
+{ 1561722 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 41 ef c0 86 41 fa 0b 45 02 61 85 
+{ 1561966 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 00 20 84 d4 00 20 04 82 06 e3 0b 
+{ 1562210 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 00 20 02 41 02 41 02 41 02 61 04 
+{ 1562454 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R75h] : 00 
+{ 1562606 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R7ah] : 21 00 00 01 8f 0b b8 0c 7f 09 0f 
+{ 1562728 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1562850 }[ XBL ] Self Mask Enable(1) --
+{ 1562881 }[ XBL ] samsung_send_self_mask -- 
+{ 1563308 }[ XBL ] Wled Protocol EnableModulatorA failed
+{ 1563338 }[ XBL ] Wled Protocol SetLedDutyCycle failed
+{ 1563338 }[ XBL ] Wled Protocol ModulatorSrcSelect failed
+{ 1573373 }[ XBL ] Wled Protocol EnableWled failed
+{ 1573373 }[ XBL ] Wled Protocol EnableCurrentSink failed
+{ 1577002 }[ XBL ] update_cmdline_ddi_id: ndx=0, Append lcd_id : lcd_id=0x811104
+{ 1577002 }[ XBL ] update_cmdline_window_color: Append window_color : window_color=LB
+{ 1578009 }[ XBL ] DisplayDxe_SetMode: ---: release is_doing_setmode
+{ 1640869 }[ XBL ] Overriding PIL cfg by caller
+{ 1694519 }[ XBL ] UsbConfigLibOpenProtocols: PMI version (0x0)
+{ 1695312 }[ XBL ] UsbConfigInit: UsbConfigInit, not start on port: 0, mode 0
+{ 1695830 }[ XBL ] UsbConfigInit: UsbConfigInit, not start on port: 1, mode 0
+{ 1695861 }[ XBL ] UsbConfigPortsQueryConnectionChange: usbport->connectstate: ATT
+{ 1702449 }[ XBL ] ChargerExNullProtocol:: EFI_ChargerExGetBatteryPresence BatteryPresent=1
+APC1 IDDQ WC 0 , L2:0, CPU[0]:175, CPU[1]:175, CPU[2]:175, CPU[3]:175
+ APC1 Total 700
+LoadSys  TIME 0ms
+tsens  TIME 1ms
+scm  TIME 2ms
+Load CPU 0 Slp: 0x6F, Int: 0xFFFFFF8F
+Load CPU 1 Slp: 0xE0, Int: 0xFFFFFF65
+Load CPU 2 Slp: 0xA1, Int: 0xFFFFFFC9
+Load CPU 3 Slp: 0x107, Int: 0xFFFFFFB1
+Load GPU 0 Slp: 0xAE, Int: 0xF4 adc_min:0x1B5 adc_max:0x188
+Load NPU 0 Slp: 0x30, Int: 0xFFFFFFDA
+LmhIsenseInit Pre CPU  TIME 0ms
+GLD IDDQ WC 0
+LmhIsenseSubSysEntry Post SubSysEntryCb  TIME 0ms
+LmhIsenseSubSysEntry Post LmhIsenseSubSysInit  TIME 0ms
+LmhIsenseInitSubSys Post SubSysEntry  TIME 0ms
+LmhIsenseInitSubSys Post SubSysTrim  TIME 0ms
+LmhIsenseInitSubSys Post SubSysExit  TIME 0ms
+LmhIsenseInit Post CPU  TIME 0ms
+GPU IDDQ 26
+LmhIsenseSubSysEntry Post SubSysEntryCb  TIME 0ms
+LmhIsenseSubSysEntry Post LmhIsenseSubSysInit  TIME 0ms
+LmhIsenseInitSubSys Post SubSysEntry  TIME 0ms
+LmhIsenseInitSubSys Post SubSysTrim  TIME 0ms
+LmhIsenseInitSubSys Post SubSysExit  TIME 1ms
+LmhIsenseInit Post GPU  TIME 2ms
+Entering in func1 of NPU  TIME 2ms
+NPU IDDQ 31
+LmhIsenseSubSysEntry Post SubSysEntryCb  TIME 0ms
+LmhIsenseSubSysEntry Post LmhIsenseSubSysInit  TIME 0ms
+LmhIsenseInitSubSys Post SubSysEntry  TIME 0ms
+LmhIsenseInitSubSys Post SubSysTrim  TIME 0ms
+LmhIsenseInitSubSys Post SubSysExit  TIME 0ms
+LmhIsenseInit Post NPU  TIME 2ms
+isense  TIME 5ms
+ISENSE TOTAL TIME 5ms
+{ 1780224 }[ XBL ] ccic_init
+{ 1780254 }[ XBL ] [CCIC] Max77705 HW i2c init
+{ 1786080 }[ XBL ] ccic_is_max77705 : 0x1A
+{ 1786080 }[ XBL ] max77705_ccic_set_sink: set to 0!!
+{ 1788367 }[ XBL ] ccic_command_polling : OP 0x5E Response OP 0x5E @ 1msec
+{ 1788398 }[ XBL ] ccic_command_polling : Command 0x5E delay : 1msec
+{ 1788398 }[ XBL ] ccic is found!! count : 0
+{ 1789008 }[ XBL ] muic_init
+{ 1789008 }[ XBL ] [MUIC] Max77705 HW i2c init
+{ 1789221 }[ XBL ] MUIC Device : Max77705! count: 0
+{ 1791539 }[ XBL ] muic_command_polling: OP 0x01 Response OP 0x01 @ 1msec
+{ 1791722 }[ XBL ] muic_command_polling: Command 0x01 delay : 1msec
+{ 1791722 }[ XBL ] [MUIC] BC_CTRL1_READ : 0x00C5
+{ 1794040 }[ XBL ] muic_command_polling: OP 0x06 Response OP 0x06 @ 1msec
+{ 1794071 }[ XBL ] muic_command_polling: Command 0x06 delay : 1msec
+{ 1796358 }[ XBL ] muic_command_polling: OP 0x05 Response OP 0x05 @ 1msec
+{ 1796541 }[ XBL ] muic_command_polling: Command 0x05 delay : 1msec
+{ 1796755 }[ XBL ] [MUIC] MUIC_REG_STATUS_BC : 0x0081
+{ 1796938 }[ XBL ] [MUIC] MUIC_REG_STATUS_BC : 0x0081
+{ 1797487 }[ XBL ] max77705_read_adc: RID = 7
+{ 1797487 }[ XBL ] (RID_OPEN)
+{ 1797853 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 1797883 }[ XBL ] [MUIC] muic_get_devices : 0x0001
+{ 1798554 }[ XBL ] charging_func_init
+{ 1798585 }[ XBL ] [charger_i2c_init]
+{ 1798585 }[ XBL ] [CHG] Max77705_init_i2c
+{ 1798615 }[ XBL ] [fuel_gauge_i2c_init]
+{ 1798615 }[ XBL ] [FG] Max77705_init_i2c
+{ 1799225 }[ XBL ] max77705_fuelgauge_get_device_id : DesignCap_REG(0xFEF)
+{ 1799225 }[ XBL ] charging_func_init : IF PMIC rev=0xFEF 
+{ 1799805 }[ XBL ] max77705_read_adc: RID = 7
+{ 1799805 }[ XBL ] (RID_OPEN)
+{ 1800171 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 1800720 }[ XBL ] max77705_read_adc: RID = 7
+{ 1800750 }[ XBL ] (RID_OPEN)
+{ 1800750 }[ XBL ] Not ADC Oriented Device
+{ 1800750 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 1800781 }[ XBL ] set_input_current_by_type : charger_type(1)
+{ 1800781 }[ XBL ] [set_input_current]
+{ 1814384 }[ XBL ] charger_command_polling : OP 0x16 Response OP 0x16 @ 1msec
+{ 1814384 }[ XBL ] charger_command_polling : Command 0x16 delay : 1msec
+{ 1827987 }[ XBL ] charger_command_polling : OP 0x15 Response OP 0x15 @ 1msec
+{ 1828505 }[ XBL ] charger_command_polling : Command 0x15 delay : 1msec
+{ 1828505 }[ XBL ] [CHARGER] max77705_set_usbc_input_current : CHGIN_ILIM [0x13]
+{ 1829878 }[ XBL ] max77705_chg_set_vbuslimit : current(500), data(0x93)
+{ 1829878 }[ XBL ] max77705_chg_set_input_limit : input_limit=500
+{ 1830549 }[ XBL ] [sub_pmic_init]++
+{ 1830579 }[ XBL ] [sub_pmic_init_pb02_a]
+{ 1830579 }[ XBL ] [PB02:0]++
+{ 1830579 }[ XBL ] i2c driver is not initialized
+{ 1830884 }[ XBL ] [PB02:0] STATUS1: 0x00
+{ 1831159 }[ XBL ] [PB02:0] CTRL: 0x1F
+{ 1831464 }[ XBL ] [PB02:0] BUCK1_CTRL: 0x58
+{ 1831738 }[ XBL ] [PB02:0] BUCK1_OUT: 0xC0
+{ 1832013 }[ XBL ] [PB02:0] BUCK2_CTRL: 0x58
+{ 1832318 }[ XBL ] [PB02:0] BUCK2_OUT: 0x40
+{ 1832592 }[ XBL ] [PB02:0] BB_CTRL: 0x58
+{ 1832867 }[ XBL ] [PB02:0] BB_OUT: 0x48
+{ 1833141 }[ XBL ] [PB02:0] LDO1_CTRL: 0x18
+{ 1833446 }[ XBL ] [PB02:0] LDO2_CTRL: 0x20
+{ 1833721 }[ XBL ] [PB02:0] LDO3_CTRL: 0x20
+{ 1834026 }[ XBL ] [PB02:0] LDO4_CTRL: 0x30
+{ 1834300 }[ XBL ] [PB02:0] LDO5_CTRL: 0x30
+{ 1834575 }[ XBL ] [PB02:0] LDO6_CTRL: 0x30
+{ 1834880 }[ XBL ] [PB02:0] LDO7_CTRL: 0x30
+{ 1835154 }[ XBL ] [PB02:0] LDO8_CTRL: 0x30
+{ 1835429 }[ XBL ] [PB02:0] LDO9_CTRL: 0x30
+{ 1835734 }[ XBL ] [PB02:0] LDO10CTRL: 0x30
+{ 1836008 }[ XBL ] [PB02:0] LDO11_CTRL: 0x58
+{ 1836283 }[ XBL ] [PB02:0] LDO12_CTRL: 0x58
+{ 1836588 }[ XBL ] [PB02:0] LDO13_CTRL: 0x5C
+{ 1836862 }[ XBL ] [PB02:0] LDO14_CTRL: 0x58
+{ 1837137 }[ XBL ] [PB02:0] LDO15_CTRL: 0x58
+{ 1837442 }[ XBL ] [PB02:0] LDO16_CTRL: 0x58
+{ 1837716 }[ XBL ] [PB02:0] LDO17_CTRL: 0x5E
+{ 1837991 }[ XBL ] [PB02:0] LDO18_CTRL: 0x6C
+{ 1838021 }[ XBL ] [PB02:0]--
+{ 1838021 }[ XBL ] [sub_pmic_init_pb03_a]
+{ 1838021 }[ XBL ] [PB03:0]++
+{ 1838326 }[ XBL ] [PB03:0] STATUS1: 0x02
+{ 1838601 }[ XBL ] [PB03:0] CTRL: 0x00
+{ 1838875 }[ XBL ] [PB03:0] CTRL: 0x00
+{ 1839180 }[ XBL ] [PB03:0] LDO1_CTRL: 0x1C
+{ 1839455 }[ XBL ] [PB03:0] LDO2_CTRL: 0x20
+{ 1839729 }[ XBL ] [PB03:0] LDO3_CTRL: 0x2C
+{ 1840034 }[ XBL ] [PB03:0] LDO4_CTRL: 0x20
+{ 1840309 }[ XBL ] [PB03:0] LDO5_CTRL: 0x0E
+{ 1840583 }[ XBL ] [PB03:0] LDO6_CTRL: 0x28
+{ 1840888 }[ XBL ] [PB03:0] LDO7_CTRL: 0x28
+{ 1840888 }[ XBL ] [PB03:0] reg_init
+{ 1841376 }[ XBL ] [PB03:0] OSC_SEL: 0x80
+{ 1841407 }[ XBL ] [PB03:0]--
+{ 1841407 }[ XBL ] [sub_pmic_init_s2dos05_a]
+{ 1841407 }[ XBL ] [S2DOS05:0] ++
+{ 1841437 }[ XBL ] [S2DOS05:0] s2dos05_stat
+{ 1841742 }[ XBL ] [S2DOS05:0] REG_STATUS: 0xF9
+{ 1842078 }[ XBL ] [S2DOS05:0] REG_CTRL: 0x19
+{ 1842383 }[ XBL ] [S2DOS05:0] REG_SSD_TSD: 0x06
+{ 1842718 }[ XBL ] [S2DOS05:0] REG_UVLO_OCD_FD: 0x01
+{ 1843023 }[ XBL ] [S2DOS05:0] REG_OCL: 0x2A
+{ 1843328 }[ XBL ] [S2DOS05:0] LDO1_CTRL: 0x8C
+{ 1843664 }[ XBL ] [S2DOS05:0] LDO2_CTRL: 0x8C
+{ 1843969 }[ XBL ] [S2DOS05:0] LDO3_CTRL: 0x8C
+{ 1844304 }[ XBL ] [S2DOS05:0] LDO4_CTRL: 0x8C
+{ 1844609 }[ XBL ] [S2DOS05:0] BUCK_CTRL: 0x58
+{ 1844945 }[ XBL ] [S2DOS05:0] BUCK_VOUT: 0xCF
+{ 1845250 }[ XBL ] [S2DOS05:0] DEVICE_ID: 0x80
+{ 1845280 }[ XBL ] [SM3080] Disable restart
+{ 1846256 }[ XBL ] [S2DOS05:0] --
+{ 1846256 }[ XBL ] [sub_pmic_init]--
+{ 1847629 }[ XBL ] Disp init wait [ 1848] 
+{ 1847812 }[ XBL ] DestinationX = 0, DestinationY = 0, Width = 1440, Height = 3200, uFrameBufferWidth = 1440, uFrameBufferHeight =3200
+{ 1850160 }[ XBL ] CopyHeight = 3200, CopyWidth = 1440, CopyHeight * CopyWidth = 4608000
+{ 1850160 }[ XBL ] SourceX = 0, SourceY = 0, Width = 8, Height = 19, uFrameBufferWidth = 1440, uFrameBufferHeight =3200
+{ 1850191 }[ XBL ] SourceX = 0, SourceY = 0, Width = 8, Height = 19, uFrameBufferWidth = 1440, uFrameBufferHeight =3200
+{ 1879044 }[ XBL ] -----------------------------
+{ 1879044 }[ XBL ] Platform Init  [ 1879] BDS
+{ 1881697 }[ XBL ] INFO: UEFI NV tables are enabled as VOLATILE!
+{ 1888224 }[ XBL ] UEFI Ver   : 5.0.241227.BOOT.XF.3.2-00248-SM8250-1
+{ 1888255 }[ XBL ] Platform           : MTP
+{ 1888285 }[ XBL ] Chip Name          : SM8250
+{ 1888285 }[ XBL ] Chip Ver           : 2.1
+{ 1888956 }[ XBL ] Silver cluster Core 0 Freq: 1516 MHz
+{ 1889475 }[ XBL ] -----------------------------
+{ 1906494 }[ XBL ] Failed to launch default charger app, status: Load Error
+{ 1906524 }[ XBL ] UEFI Total : 1011 ms
+{ 1906524 }[ XBL ] POST Time      [ 1907] OS Loader
+{ 1916772 }[ ABL ] Loader Build Info: Dec 27 2024 15:15:48
+{ 1916833 }[ ABL ] ONEUI VER: 121
+{ 1916894 }[ ABL ] HW REV : 14 
+{ 1916894 }[ ABL ] Model Name : SM-G986U1 
+{ 1927112 }[ XBL ] VB: RWDeviceState: Succeed using rpmb!
+{ 1928789 }[ ABL ] [EnumeratePartitions] lun: 0
+{ 1929369 }[ ABL ] [EnumeratePartitions] lun: 1
+{ 1929887 }[ ABL ] [EnumeratePartitions] lun: 2
+{ 1930406 }[ ABL ] [EnumeratePartitions] lun: 3
+{ 1930955 }[ ABL ] [EnumeratePartitions] lun: 4
+{ 1931473 }[ ABL ] [EnumeratePartitions] lun: 5
+{ 1931992 }[ ABL ] [EnumeratePartitions] lun: 6
+{ 1932510 }[ ABL ] [EnumeratePartitions] lun: 7
+{ 1934279 }[ ABL ] ========================================
+{ 1934310 }[ ABL ] Pon History: cur_rtc(149D71A) cur_idx(1225, 5) magic(0x0, i)
+{ 1934340 }[ ABL ] #0(0149BDA8) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1934371 }[ ABL ] #1(0149C266) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1934401 }[ ABL ] #2(0149C78A) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1934432 }[ ABL ] #3(0149CACA) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1934462 }[ ABL ] #4(0149D3B1) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1934493 }[ ABL ] #5(0149D71A) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1934554 }[ ABL ] #6(0149A85B) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1934584 }[ ABL ] #7(0149AEDA) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1934615 }[ ABL ] #8(0149B426) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1934645 }[ ABL ] #9(0149B92F) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1934645 }[ ABL ] ========================================
+{ 1934828 }[ ABL ] 
+{ 1934859 }[ ABL ] ========================================
+{ 1934889 }[ ABL ] [0] 19717681 LongPressPwrkeyCheck(1882)
+{ 1934889 }[ ABL ] [1] 25331187 LPMModeChecker(1424)
+{ 1934920 }[ ABL ] [2] 4305219 LongPressPwrkeyCheck(1873)
+{ 1934920 }[ ABL ] [3] 16251026 LongPressPwrkeyCheck(1882)
+{ 1934950 }[ ABL ] [4] 19422838 CheckChargerConnection(1448)
+{ 1934950 }[ ABL ] ========================================
+{ 1934981 }[ ABL ] 
+{ 1986068 }[ ABL ] [FMM]QseecomStartApp (vk) call success status=0, vaultkeeperappid=3
+{ 1991985 }[ ABL ] [FMM]Rsp: ALLZERO
+{ 1992016 }[ ABL ] [FMM]GetFMMStatus Ret=(0xFBFB0000), Rsp status: 0
+{ 1992016 }[ ABL ] FMMLock is OFF
+{ 1992626 }[ XBL ] max77705_read_adc: RID = 7
+{ 1992656 }[ XBL ] (RID_OPEN)
+{ 1993022 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 1993571 }[ XBL ] max77705_read_adc: RID = 7
+{ 1993602 }[ XBL ] (RID_OPEN)
+{ 1993602 }[ XBL ] Not ADC Oriented Device
+{ 1993602 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 1994181 }[ XBL ] max77705_read_adc: RID = 7
+{ 1994181 }[ XBL ] (RID_OPEN)
+{ 1994547 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 1994547 }[ XBL ] dev_charging_init : cable_type(1), jig_type(0)
+{ 1995188 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4164), data(0xD03C)
+{ 1998177 }[ XBL ] get_battery_temperature : ADC VALUE[844528] success[5]
+{ 1998177 }[ XBL ] get_battery_temperature : Temp(279), Temp-ADC(844528)
+{ 1998207 }[ XBL ] get_hw_rev : hw rev=0xE 
+{ 1998207 }[ XBL ] [charger_init_charger]
+{ 1998238 }[ XBL ] max77705_init_charger : max77705 charger probe start
+{ 2002050 }[ XBL ] max77705_init_charger : MAX77705_CHG_REG_CHG_INT_OK(0xDF)
+{ 2003270 }[ XBL ] max77705_set_watchdog_timer : reg(0x04)
+{ 2004124 }[ XBL ] max77705_set_watchdog_timer : 1, reg_data(0x14)
+{ 2017727 }[ XBL ] charger_command_polling : OP 0x57 Response OP 0x57 @ 1msec
+{ 2017758 }[ XBL ] charger_command_polling : Command 0x57 delay : 1msec
+{ 2018276 }[ XBL ] [CHARGER] max77705_set_fw_noautoibus : AUTOIBUS: [0x3], chg_dtls00[0xE0]
+{ 2018276 }[ XBL ] max77705_set_charger_state : (1, 1) 
+{ 2018795 }[ XBL ] max77705_set_buck_enable : reg(0x14)
+{ 2024651 }[ XBL ] max77705_set_buck_enable : buck(1), reg(0x14)
+{ 2025230 }[ XBL ] max77705_set_charge_enable : reg(0x14)
+{ 2031086 }[ XBL ] max77705_set_charge_enable : chg(1), reg(0x15)
+{ 2031666 }[ XBL ] max77705_read_adc: RID = 7
+{ 2031666 }[ XBL ] (RID_OPEN)
+{ 2032032 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2032581 }[ XBL ] max77705_read_adc: RID = 7
+{ 2032581 }[ XBL ] (RID_OPEN)
+{ 2032611 }[ XBL ] Not ADC Oriented Device
+{ 2032611 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 2032611 }[ XBL ] max77705_set_auto_current : get_charger_status(1)
+{ 2046214 }[ XBL ] charger_command_polling : OP 0x16 Response OP 0x16 @ 1msec
+{ 2046245 }[ XBL ] charger_command_polling : Command 0x16 delay : 1msec
+{ 2059817 }[ XBL ] charger_command_polling : OP 0x15 Response OP 0x15 @ 1msec
+{ 2060336 }[ XBL ] charger_command_polling : Command 0x15 delay : 1msec
+{ 2060336 }[ XBL ] [CHARGER] max77705_set_usbc_input_current : CHGIN_ILIM [0x13]
+{ 2061708 }[ XBL ] max77705_chg_set_vbuslimit : current(500), data(0x93)
+{ 2061739 }[ XBL ] max77705_chg_set_input_limit : input_limit=500
+{ 2062349 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4165), data(0xD042)
+{ 2063721 }[ XBL ] max77705_chg_set_charging_current : current(500), data(0x4A)
+{ 2214117 }[ XBL ] max77705_set_buck_enable : reg(0x15)
+{ 2220003 }[ XBL ] max77705_set_buck_enable : buck(1), reg(0x15)
+{ 2220522 }[ XBL ] max77705_set_charge_enable : reg(0x15)
+{ 2226378 }[ XBL ] max77705_set_charge_enable : chg(1), reg(0x15)
+{ 2226744 }[ XBL ] max77705_check_pd_state : pd_state:25
+{ 2226744 }[ XBL ] max77705_get_max_current : rp_current:1,is_sink:1,pd_state:25
+{ 2226774 }[ XBL ] pd max current = 500 mA
+{ 2226774 }[ XBL ] [set_auto_current]
+{ 2227323 }[ XBL ] max77705_read_adc: RID = 7
+{ 2227323 }[ XBL ] (RID_OPEN)
+{ 2227720 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2228269 }[ XBL ] max77705_read_adc: RID = 7
+{ 2228269 }[ XBL ] (RID_OPEN)
+{ 2228269 }[ XBL ] Not ADC Oriented Device
+{ 2228269 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 2228299 }[ XBL ] max77705_set_auto_current : get_charger_status(1)
+{ 2241872 }[ XBL ] charger_command_polling : OP 0x16 Response OP 0x16 @ 1msec
+{ 2241902 }[ XBL ] charger_command_polling : Command 0x16 delay : 1msec
+{ 2255505 }[ XBL ] charger_command_polling : OP 0x15 Response OP 0x15 @ 1msec
+{ 2256024 }[ XBL ] charger_command_polling : Command 0x15 delay : 1msec
+{ 2256024 }[ XBL ] [CHARGER] max77705_set_usbc_input_current : CHGIN_ILIM [0x13]
+{ 2257396 }[ XBL ] max77705_chg_set_vbuslimit : current(500), data(0x93)
+{ 2257396 }[ XBL ] max77705_chg_set_input_limit : input_limit=500
+{ 2258006 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4178), data(0xD0F0)
+{ 2259379 }[ XBL ] max77705_chg_set_charging_current : current(500), data(0x4A)
+{ 2409805 }[ XBL ] max77705_set_buck_enable : reg(0x15)
+{ 2415661 }[ XBL ] max77705_set_buck_enable : buck(1), reg(0x15)
+{ 2416179 }[ XBL ] max77705_set_charge_enable : reg(0x15)
+{ 2422035 }[ XBL ] max77705_set_charge_enable : chg(1), reg(0x15)
+{ 2422645 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4182), data(0xD120)
+{ 2422676 }[ XBL ] [fuel_gauge_init]
+{ 2422676 }[ XBL ] max77705_init_fuelgauge : Start!!
+{ 2425177 }[ XBL ] get_battery_temperature : ADC VALUE[844528] success[5]
+{ 2425207 }[ XBL ] get_battery_temperature : Temp(279), Temp-ADC(844528)
+{ 2425207 }[ XBL ] max77705_init_fuelgauge : isDesignCapCorrupted = 0
+{ 2425238 }[ XBL ] max77705_init_fuelgauge : read temp = 279
+{ 2426092 }[ XBL ] max77705_fg_src_change : CNFG_07 reg_data(0x34)
+{ 2426092 }[ XBL ] max77705_check_batt_type : apply 4500mAh + 5mohm battery data 
+{ 2427922 }[ XBL ] max77705_init_fuelgauge : battery_type:1
+{ 2427922 }[ XBL ] max77705_init_fuelgauge : DesignCap_REG:0xFEF, status:0x80, Jig:0, read Ver:0x6
+{ 2427952 }[ XBL ] max77705_init_fuelgauge : read_val:0xFEF
+{ 2427952 }[ XBL ] max77705_init_fuelgauge: batt_data_max77705[batt_type].DesignCap:0xFEF
+{ 2427952 }[ XBL ] max77705_init_fuelgauge : Already initialized (0x0FEF)
+{ 2427983 }[ XBL ] max77705_check_validation_with_tablesoc : Start!!
+{ 2429172 }[ XBL ] max77705_fuelgauge_read_soc : SOC(84), data(0x54B1)
+{ 2429782 }[ XBL ] max77705_fuelgauge_read_ocv : VFOCV(4163), data(0xD02D)
+{ 2429813 }[ XBL ] max77705_calculate_table_soc : low(8) high(15) mid(7) table_soc(0)
+{ 2429813 }[ XBL ] max77705_calculate_table_soc : low(12) high(15) mid(11) table_soc(0)
+{ 2429813 }[ XBL ] max77705_calculate_table_soc : low(14) high(15) mid(13) table_soc(0)
+{ 2429843 }[ XBL ] max77705_calculate_table_soc : low(15) high(15) mid(14) table_soc(0)
+{ 2429843 }[ XBL ] max77705_calculate_table_soc : low(15) high(14) mid(15) table_soc(0)
+{ 2429843 }[ XBL ] max77705_calculate_table_soc : vcell [4163] table_soc [90]
+{ 2429874 }[ XBL ] max77705_calculate_differ_between_tablesoc_soc : differ(6), table_soc(90), RepSOC(84)
+{ 2430484 }[ XBL ] max77705_fuelgauge_read_ocv : VFOCV(4163), data(0xD02D)
+{ 2431033 }[ XBL ] max77705_read_adc: RID = 7
+{ 2431033 }[ XBL ] (RID_OPEN)
+{ 2431399 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2431978 }[ XBL ] max77705_read_adc: RID = 7
+{ 2431978 }[ XBL ] (RID_OPEN)
+{ 2431978 }[ XBL ] Not ADC Oriented Device
+{ 2431978 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 2432558 }[ XBL ] max77705_read_adc: RID = 7
+{ 2432558 }[ XBL ] (RID_OPEN)
+{ 2432924 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2432924 }[ XBL ] max77705_fuel_gauge_get_soc_diff_limit : diff_limit(50) in charging status!
+{ 2432954 }[ XBL ] max77705_fuel_gauge_get_soc_diff_limit: vcell(4163),soc_diff_limit(50), low_temp_reset(0)
+{ 2433564 }[ XBL ] max77705_fuelgauge_read_ocv : VFOCV(4163), data(0xD02D)
+{ 2434174 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4182), data(0xD120)
+{ 2434174 }[ XBL ] max77705_init_fuelgauge : OCV(4163), VCELL(4182)
+{ 2434205 }[ XBL ] [charger_enable_charging]
+{ 2434205 }[ XBL ] max77705_set_charger_state : (1, 1) 
+{ 2434723 }[ XBL ] max77705_set_buck_enable : reg(0x15)
+{ 2440579 }[ XBL ] max77705_set_buck_enable : buck(1), reg(0x15)
+{ 2441098 }[ XBL ] max77705_set_charge_enable : reg(0x15)
+{ 2446954 }[ XBL ] max77705_set_charge_enable : chg(1), reg(0x15)
+{ 2446984 }[ XBL ] [charger_enable_charging]
+{ 2446984 }[ XBL ] max77705_set_charger_state : (1, 1) 
+{ 2447503 }[ XBL ] max77705_set_buck_enable : reg(0x15)
+{ 2453359 }[ XBL ] max77705_set_buck_enable : buck(1), reg(0x15)
+{ 2453877 }[ XBL ] max77705_set_charge_enable : reg(0x15)
+{ 2459733 }[ XBL ] max77705_set_charge_enable : chg(1), reg(0x15)
+{ 2460130 }[ XBL ] max77705_read_adc: RID = 7
+{ 2460160 }[ XBL ] (RID_OPEN)
+{ 2460160 }[ ABL ]  ReadAdc: 7
+{ 2460191 }[ ABL ] CcicReadAdc: 7
+{ 2460740 }[ XBL ] max77705_read_adc: RID = 7
+{ 2460740 }[ XBL ] (RID_OPEN)
+{ 2461106 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2461136 }[ ABL ]  GetDeviceType: 1
+{ 2461136 }[ ABL ] MuicGetDeviceType: 1
+{ 2461777 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4182), data(0xD120)
+{ 2461777 }[ ABL ] FgGetVoltage: 4182
+{ 2461807 }[ ABL ] FgGetVoltage: 4182 mV
+{ 2462417 }[ XBL ] max77705_fuelgauge_read_soc : SOC(84), data(0x54B1)
+{ 2462417 }[ ABL ] FgGetSoc: 84
+{ 2462448 }[ ABL ] FgGetSoc: 84
+{ 2462509 }[ ABL ] [SAPA] RTC  =21616410
+{ 2462539 }[ XBL ] [SAPA] EFI_PmicRTCGetAlarmValueRaw: err=0, temp=0
+{ 2462570 }[ ABL ] [SAPA] ALARM=0
+{ 2462783 }[ ABL ] [SAPA] PARAM=0
+{ 2462814 }[ XBL ] DisplayDxe_SetMode: +++: set is_doing_setmode
+{ 2462844 }[ XBL ] DisplayDxe_SetMode: ---: release is_doing_setmode
+{ 2462844 }[ ABL ] GlibBltOperationInit: Display Size H=1440, V=3200
+{ 2462875 }[ XBL ] DestinationX = 0, DestinationY = 0, Width = 1440, Height = 3200, uFrameBufferWidth = 1440, uFrameBufferHeight =3200
+{ 2465193 }[ XBL ] CopyHeight = 3200, CopyWidth = 1440, CopyHeight * CopyWidth = 4608000
+{ 2465620 }[ ABL ] [KEY] PWD(0x0) INT(0x0) DN(0x0) UP(0x0) :: 0x0
+{ 2466962 }[ ABL ] BootReason: 1C
+{ 2467145 }[ ABL ] PARAM Flag is PARAM_BOOT_CHARGING
+{ 2488342 }[ ABL ] [LoadBKSecApp] call success status=0, BKSecAppId=4
+{ 2489623 }[ ABL ] [EMC] f: 0x3, 0x2
+{ 2489654 }[ ABL ] [EMC] F: U
+{ 2498438 }[ ABL ] [EMC]em_cmd_print_command : [CMD] : [EM_CMD_INIT]
+{ 2498621 }[ ABL ] [EMC]bootloader_key_first_do_step : init state is [COMPLETED], pass
+{ 2498743 }[ ABL ] [EMC]BLInitToken: No need to write Core data(0x0000000000000000)
+{ 2498773 }[ ABL ] [EMC]BLInitToken: No need to write ESI data(0x0000000000000000)
+{ 2498804 }[ ABL ] [EMC]BLInitToken: BLInitToken ret = 0x00000000
+{ 2499139 }[ ABL ] [EMC]em_token_get_issuer_info : token is all zero
+{ 2499200 }[ ABL ] IsUnlocked : (0)
+{ 2499231 }[ ABL ] Device already locked!
+{ 2610434 }[ ABL ] BOTA : 0x0, 22
+{ 2612660 }[ ABL ] [InitSecureParam]
+{ 2612874 }[ ABL ] [KnoxCustom] knoxcustom_value : FFFFFFFF 
+{ 2613514 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4183), data(0xD130)
+{ 2613545 }[ ABL ] FgGetVoltage: 4183
+{ 2614307 }[ XBL ] max77705_read_adc: RID = 7
+{ 2614338 }[ XBL ] (RID_OPEN)
+{ 2614704 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2615253 }[ XBL ] max77705_read_adc: RID = 7
+{ 2615283 }[ XBL ] (RID_OPEN)
+{ 2615283 }[ XBL ] Not ADC Oriented Device
+{ 2615283 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 2615314 }[ ABL ] ChgGetChargerStatus: 1
+{ 2615893 }[ XBL ] max77705_read_adc: RID = 7
+{ 2615893 }[ XBL ] (RID_OPEN)
+{ 2616259 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2616290 }[ ABL ]  MuicGetJigType: 0
+{ 2616320 }[ ABL ] LPMModeChecker: cable_status = 1
+{ 2616961 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4183), data(0xD130)
+{ 2616961 }[ ABL ] FgGetVoltage: 4183
+{ 2616991 }[ ABL ] PonReason.KPDPWR = 0
+{ 2617022 }[ ABL ] PonReason.HARD_RESET = 1
+{ 2617052 }[ ABL ] cable_status = 1
+{ 2617083 }[ ABL ] BootMode = 0
+{ 2617113 }[ ABL ] jig_status = 0
+{ 2619584 }[ XBL ] get_battery_temperature : ADC VALUE[844549] success[5]
+{ 2619584 }[ XBL ] get_battery_temperature : Temp(279), Temp-ADC(844549)
+{ 2619584 }[ ABL ] GetBattTemp: 279
+{ 2619614 }[ ABL ] BAT_TEMP:279, COOLDOWN_TEMP:850 cooldown_status:0
+{ 2620255 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4183), data(0xD130)
+{ 2620285 }[ ABL ] FgGetVoltage: 4183
+AST_POWERON
+{ 2620346 }[ ABL ] ==== GlibDrawBootImage Start(2621) ==== 
+{ 2621048 }[ ABL ] GlibDrawBootImage : IMAGE_BLACK|IMAGE_NETWORK_DEFAULT 
+{ 2626507 }[ ABL ] GlibDrawJpegImage : HorizontalResolution : 1440, VerticalResolution : 3200
+{ 2626568 }[ ABL ] GlibDrawJpegImage : PosX : 104, PoxY : 1208, ImgW : 840, ImgH : 136
+{ 2636359 }[ ABL ] GlibDrawJpegImage : HorizontalResolution : 1440, VerticalResolution : 3200
+{ 2636389 }[ ABL ] GlibDrawJpegImage : PosX : 88, PoxY : 1408, ImgW : 1256, ImgH : 168
+{ 2638799 }[ ABL ] GlibDrawJpegImage : HorizontalResolution : 1440, VerticalResolution : 3200
+{ 2638829 }[ ABL ] GlibDrawJpegImage : PosX : 832, PoxY : 1648, ImgW : 512, ImgH : 64
+{ 2640049 }[ ABL ] GlibDrawJpegImage : HorizontalResolution : 1440, VerticalResolution : 3200
+{ 2640080 }[ ABL ] GlibDrawJpegImage : PosX : 432, PoxY : 2784, ImgW : 296, ImgH : 64
+{ 2642916 }[ ABL ] GlibDrawJpegImage : HorizontalResolution : 1440, VerticalResolution : 3200
+{ 2642947 }[ ABL ] GlibDrawJpegImage : PosX : 432, PoxY : 2856, ImgW : 576, ImgH : 96
+{ 2643130 }[ ABL ] ==== GlibDrawBootImage Finish(2644) ====
+{ 2643191 }[ XBL ] vib_init REV : 14
+{ 2643221 }[ XBL ] [VIB] cs40l25_vib_init
+{ 2643221 }[ XBL ] i2c driver is not initialized
+{ 2643282 }[ XBL ] [VIB] AP GPIO reset
+{ 2644319 }[ XBL ] [VIB] AP GPIO reset done
+{ 2646820 }[ XBL ] [VIB] set config: FREQ: 150 LEVEL: 250 DURATION: 25
+{ 2649291 }[ XBL ] [VIB] get config:150 250 25
+{ 2649291 }[ XBL ] vib_onoff: 1
+{ 2649321 }[ XBL ] [VIB] cs40l25_vib_onoff: 1
+{ 2650053 }[ ABL ] [2651] +[VIB] VibStart : Timer Start for 100 ms
+{ 2650602 }[ XBL ] max77705_read_adc: RID = 7
+{ 2650602 }[ XBL ] (RID_OPEN)
+{ 2650999 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2651548 }[ XBL ] max77705_read_adc: RID = 7
+{ 2651548 }[ XBL ] (RID_OPEN)
+{ 2651548 }[ XBL ] Not ADC Oriented Device
+{ 2651578 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 2651578 }[ ABL ] ChgGetChargerStatus: 1
+{ 2652219 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4183), data(0xD130)
+{ 2652219 }[ ABL ] FgGetVoltage: 4183
+{ 2652798 }[ XBL ] max77705_read_adc: RID = 7
+{ 2652798 }[ XBL ] (RID_OPEN)
+{ 2653164 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2653164 }[ ABL ]  MuicGetJigType: 0
+{ 2653805 }[ XBL ] max77705_fuelgauge_read_soc : SOC(84), data(0x54B1)
+{ 2653805 }[ ABL ] FgGetSoc: 84
+{ 2656275 }[ XBL ] get_battery_temperature : ADC VALUE[844549] success[5]
+{ 2656275 }[ XBL ] get_battery_temperature : Temp(279), Temp-ADC(844549)
+{ 2656306 }[ ABL ] GetBattTemp: 279
+{ 2656306 }[ ABL ] CheckLowBattery : jig=0, vcell=4183, soc=84, cooldown_status=0
+{ 2656336 }[ ABL ] skip check low battery
+{ 2656336 }[ ABL ] Booting Into Mission Mode
+{ 2656397 }[ ABL ] Total DDR Size: 0x00000002F9900000 
+{ 2656458 }[ ABL ] [LoadBKSecApp] call success status=0, BKSecAppId=4
+{ 2656489 }[ ABL ] InitAuthInfoTables Start
+{ 2663809 }[ ABL ] IsUnlocked : (0)
+{ 2664022 }[ ABL ] [FRP]challenge_size is 4D, 77
+{ 2664266 }[ ABL ] [OEM]Oem unlock value is 0
+{ 2664266 }[ ABL ] [FRP][OEM] init succeed!
+{ 2664327 }[ ABL ] init cc mode flag 0x0
+{ 2664358 }[ ABL ] [MDM] mdm_value : 0 
+{ 2664815 }[ ABL ] GetDdiBinaryTypeInt: will return 0x0
+{ 2664846 }[ ABL ] [AFW] afw flag is Unknown
+{ 2664846 }[ ABL ] [AFW] afw flag : 00 00 00 00
+{ 2664876 }[ ABL ] [AFW] afw_value  : FFFFFFFF
+{ 2715598 }[ ABL ] [KG]QseecomStartApp (vk) call success status=0, VKAppId=5
+{ 2721545 }[ ABL ] [KG]QseecomShutdownApp (vk) shutdown success status=0, VKAppId=0
+{ 2721576 }[ ABL ] [KG]KGstatus = ALLZERO(CBCBCB00), Rsp: 0
+{ 2722033 }[ ABL ] Will return ImageStatus to DevAuth 
+{ 2722094 }[ ABL ] 0[0x2]1[0x2]2[0x2]3[0x2]4[0x0]5[0x2]6[0x2]7[0x2]8[0x2]9[0x0]10[0x2]11[0x0]
+{ 2722094 }[ ABL ] Booting Into Mission Mode
+{ 2722125 }[ ABL ] IsUnlocked : (0)
+avb_slot_verify.c:559: DEBUG: Loading vbmeta struct from partition 'vbmeta'.
+{ 2723467 }[ ABL ] Load Image vbmeta total time: 1 ms 
+{ 2727920 }[ ABL ] Load Image recovery total time: 1 ms 
+avb_slot_verify.c:554: DEBUG: Loading vbmeta struct in footer from partition 'recovery'.
+{ 2728530 }[ ABL ] Load Image recovery total time: 0 ms 
+{ 2732952 }[ ABL ] Load Image dtbo total time: 1 ms 
+avb_slot_verify.c:554: DEBUG: Loading vbmeta struct in footer from partition 'dtbo'.
+{ 2733562 }[ ABL ] Load Image dtbo total time: 0 ms 
+{ 2735118 }[ ABL ] [2736] -[VIB] Timer Stop for vibration
+{ 2735148 }[ XBL ] vib_onoff: 0
+{ 2735179 }[ XBL ] [VIB] cs40l25_vib_onoff: 0
+{ 2751618 }[ ABL ] Load Image dtbo total time: 12 ms 
+avb_slot_verify.c:293: DEBUG: dtbo: success: Image verification completed
+{ 2763422 }[ ABL ] Load Image prism total time: 1 ms 
+avb_slot_verify.c:554: DEBUG: Loading vbmeta struct in footer from partition 'prism'.
+{ 2764093 }[ ABL ] Load Image prism total time: 1 ms 
+{ 2768759 }[ ABL ] Load Image optics total time: 0 ms 
+avb_slot_verify.c:554: DEBUG: Loading vbmeta struct in footer from partition 'optics'.
+{ 2769369 }[ ABL ] Load Image optics total time: 1 ms 
+{ 2777696 }[ ABL ] Load Image abl total time: 4 ms 
+avb_slot_verify.c:293: DEBUG: abl: success: Image verification completed
+{ 2848730 }[ ABL ] Load Image boot total time: 55 ms 
+avb_slot_verify.c:293: DEBUG: boot: success: Image verification completed
+{ 2933947 }[ ABL ] Load Image hyp total time: 3 ms 
+avb_slot_verify.c:293: DEBUG: hyp: success: Image verification completed
+{ 2941786 }[ ABL ] Load Image tz total time: 7 ms 
+avb_slot_verify.c:293: DEBUG: tz: success: Image verification completed
+{ 2952735 }[ ABL ] Load Image xbl total time: 5 ms 
+avb_slot_verify.c:293: DEBUG: xbl: success: Image verification completed
+{ 2959140 }[ ABL ] IsUnlocked : (0)
+{ 2960421 }[ ABL ] Requested Partition: boot
+{ 2960452 }[ ABL ] Requested Partition: abl
+{ 2960452 }[ ABL ] Requested Partition: xbl
+{ 2960482 }[ ABL ] Requested Partition: tz
+{ 2960513 }[ ABL ] Requested Partition: hyp
+{ 2960513 }[ ABL ] Requested Partition: dtbo
+{ 2960543 }[ ABL ] Total loaded partition 6
+{ 2960574 }[ ABL ] DstLen 4296, SrcLen 31
+{ 2960574 }[ ABL ] AVB CMD LINE [ androidboot.verifiedbootstate=]
+{ 2960604 }[ ABL ] DstLen 4265, SrcLen 5
+{ 2960604 }[ ABL ] AVB CMD LINE [green]
+{ 2960635 }[ ABL ] DstLen 4260, SrcLen 24
+{ 2960635 }[ ABL ] AVB CMD LINE [ androidboot.keymaster=1]
+{ 2960665 }[ ABL ] DstLen 4236, SrcLen 1
+{ 2960665 }[ ABL ] AVB CMD LINE [ ]
+{ 2960696 }[ ABL ] GetUnlockCount : (0)
+{ 2960696 }[ ABL ] GetUnlockCount : (0)
+{ 2960726 }[ ABL ] ulcnt 0 -> str 0 
+{ 2960726 }[ ABL ] DstLen 4235, SrcLen 19
+{ 2960757 }[ ABL ] AVB CMD LINE [ androidboot.ulcnt=]
+{ 2960757 }[ ABL ] DstLen 4216, SrcLen 2
+{ 2960787 }[ ABL ] AVB CMD LINE [0 ]
+{ 2960818 }[ ABL ] DstLen 4214, SrcLen 449
+{ 2960818 }[ ABL ] AVB CMD LINE [androidboot.vbmeta.device=PARTUUID=4b7a15d6-322c-42ac-8110-88b7da0c5d77 androidboot.vbmeta.device=PARTUUID=4b7a15d6-322c-42ac-8110-88b7da0c5d77 androidboot.vbmeta.avb_version=1.0 androidboot.vbmeta.device_state=locked androidboot.vbmeta.hash_alg=sha256 androidboot.vbmeta.size=17472 androidboot.vbmeta.digest=1621f122061ffef09356fa80136a479f6e01262bbf496ce3b96a2d0646ccdd89 androidboot.vbmeta.invalidate_on_error=yes androidboot.veritymode=enforcing]
+{ 2965759 }[ ABL ] VB2: Found OsVersion from vbmeta (override)
+{ 2965789 }[ ABL ] VB2: Found SecurityLevel from vbmeta (override)
+{ 2965850 }[ ABL ] VbHashToBksecapp
+{ 2966704 }[ ABL ] VB2: Authenticate complete! boot state is: green
+{ 2966735 }[ ABL ] GetUnlockCount : (0)
+{ 2966765 }[ ABL ] VB2: The device unlocked 0 times
+{ 2966765 }[ ABL ] VB2: boot state: green(0)
+{ 2967558 }[ ABL ] Using SignerV2
+{ 2968443 }[ ABL ] Signature verification succeed
+{ 2968473 }[ ABL ] will update ImageStatus to storage
+{ 2968534 }[ ABL ] 0[0x2]1[0x2]2[0x2]3[0x2]4[0x0]5[0x2]6[0x2]7[0x2]8[0x2]9[0x0]10[0x2]11[0x0]
+{ 2969083 }[ ABL ] [Sec_Lib]ddi : saved
+{ 2969144 }[ ABL ] (Booting) AUTHENTICATE Succeed Vbmeta binary: vbmeta
+{ 2969175 }[ ABL ] Using SignerV2
+{ 3052714 }[ ABL ] Signature verification succeed
+{ 3052775 }[ ABL ] boot Updated status 2
+{ 3052806 }[ ABL ] will update ImageStatus to storage
+{ 3052836 }[ ABL ] 0[0x2]1[0x2]2[0x2]3[0x2]4[0x0]5[0x2]6[0x2]7[0x2]8[0x2]9[0x0]10[0x2]11[0x0]
+{ 3053751 }[ ABL ] [Sec_Lib]ddi : saved
+{ 3053812 }[ ABL ] [RP] boot, RpVerOnFuse = 12, RpVerOnIMG = 12
+{ 3053843 }[ ABL ] (Booting) AUTHENTICATE Succeed Kernel binary: boot
+{ 3053873 }[ ABL ] Using SignerV2
+{ 3065616 }[ ABL ] Signature verification succeed
+{ 3065677 }[ ABL ] dtbo Updated status 2
+{ 3065707 }[ ABL ] will update ImageStatus to storage
+{ 3065738 }[ ABL ] 0[0x2]1[0x2]2[0x2]3[0x2]4[0x0]5[0x2]6[0x2]7[0x2]8[0x2]9[0x0]10[0x2]11[0x0]
+{ 3066653 }[ ABL ] [Sec_Lib]ddi : saved
+{ 3066714 }[ ABL ] [RP] dtbo, RpVerOnFuse = 12, RpVerOnIMG = 12
+{ 3066744 }[ ABL ] (Booting) AUTHENTICATE Succeed Dtbo binary: dtbo
+{ 3066775 }[ ABL ] AuthSuperOnboot : called and checking
+{ 3068025 }[ ABL ] IsUnlocked : (0)
+{ 3068635 }[ ABL ] Boot State is : 0
+{ 3070008 }[ XBL ] QCOM_VB_Send_Milestone: hit set_fuse (TZ_HLOS_BL_MILESTONE_FUSE) successfully!
+{ 3070496 }[ ABL ] Memory Base Address: 0x80000000
+{ 3087332 }[ ABL ] Override DTB: GetBlkIOHandles failed loading user_dtbo!
+{ 3087637 }[ ABL ] EDTBO check fail
+{ 3563986 }[ ABL ] Apply Overlay total time: 477 ms 
+{ 3564047 }[ ABL ] Error finding  dtbo-version property at Dtb
+{ 3591924 }[ ABL ] [LoadIcccApp] call success status=0, IcccAppId=6
+{ 3591954 }[ ABL ] [ConvertWBReasonToChar]: 0x0 -> '0'
+{ 3591985 }[ ABL ] [ICCC] UsedIcccToIccc
+{ 3592015 }[ ABL ] IcccBlDataToIccc:
+{ 3593540 }[ ABL ] IcccRotDataToIccc
+{ 3594943 }[ ABL ] IcccSysToIccc
+{ 3596438 }[ ABL ] IcccKernToIccc
+{ 3597810 }[ ABL ] [ICCC]: 0:1:34000:191:991:991:0 
+{ 3597841 }[ ABL ] HdmLoadPolicy:
+{ 3651643 }[ ABL ] [LoadHdmApp] call success status=0, AppId=7
+{ 3660976 }[ ABL ] [ShutDownHdmApp] shutdown success status=0, AppId=0
+{ 3661860 }[ ABL ] UFS Vendor : SAMSUNG
+{ 3661891 }[ ABL ] FW rev     : 0089
+{ 3661891 }[ ABL ] Product    : KLUDG4UHDB-B2D1
+{ 3661921 }[ ABL ] UFS MD     : 1119
+{ 3663507 }[ XBL ] ccic_check_active
+{ 3663538 }[ ABL ]  CheckActive: 1
+{ 3663568 }[ ABL ]  FgGetFgReset: 0
+{ 3664819 }[ ABL ] Unknown DumpSink(0x0)
+{ 3665551 }[ ABL ] [serialno] change to barcode serialnum
+{ 3666008 }[ ABL ] [UCS] ucs flag is Unknown
+{ 3666039 }[ ABL ] [UCS] ucs flag : 00 00 00 00
+{ 3666039 }[ ABL ] [UCS] ucs_value  : 0
+{ 3666069 }[ ABL ] [WP] Value : 0x0,0x1,0x0
+{ 3666161 }[ ABL ] !!!!!!! Dtbo_Version = -1 
+{ 3667106 }[ ABL ] GetHdmStatus:
+{ 3718285 }[ ABL ] [LoadHdmApp] call success status=0, AppId=8
+{ 3725605 }[ ABL ] [ShutDownHdmApp] shutdown success status=0, AppId=0
+{ 3725636 }[ ABL ] hdm_status len : 4
+{ 3725666 }[ ABL ] Memory Base Address: 0x80000000
+{ 3725910 }[ ABL ] USRF : GetUserPartitionFlashed = 0x55535246
+{ 3726246 }[ ABL ] 
+{ 3726368 }[ ABL ] RAM Partitions
+{ 3726398 }[ ABL ] Add Base: 0x0000000080000000 Available Length: 0x0000000039900000 
+{ 3726947 }[ ABL ] Add Base: 0x0000000200000000 Available Length: 0x0000000180000000 
+{ 3727466 }[ ABL ] Add Base: 0x00000000C0000000 Available Length: 0x0000000140000000 
+{ 3754855 }[ ABL ] ERROR: Could not get splash memory region node
+{ 3852668 }[ ABL ] GetDdiBinaryTypeInt: will return 0x0
+{ 3876702 }[ ABL ] Update Device Tree total time: 150 ms 
+{ 3884541 }[ ABL ] [WP] Value : 0x0,0x1,0x0
+{ 3908483 }[ ABL ] [USEWP] Value : 0x1(3:1)
+{ 3908514 }[ ABL ] [USEWP] Already set SecureWP
+{ 3911015 }[ ABL ] [USEWP] Result : 0x1(3:1)
+{ 3912601 }[ ABL ] [ShutDownbkSecApp] shutdown success status=0, BKSecAppId=0
+{ 3912845 }[ ABL ] SPU:5 
+{ 3912875 }[ ABL ] 
+Shutting Down UEFI Boot Services: 3914 ms
+{ 3916047 }[ ABL ] LogFlush:SecDebugLog Flushing
+{ 3953562 }[ XBL ] Start EBS        [ 3955] 
+{ 3955057 }[ XBL ] BDS: LogFs sync skipped, Unsupported
+{ 3956307 }[ XBL ] MDPLibProfile: splash enabled
+{ 3961523 }[ XBL ] App Log Flush : 0 ms
+{ 3961553 }[ XBL ] Exit EBS        [ 3963] UEFI End
+
+Boot info:
+Last boot reason: reboot
+

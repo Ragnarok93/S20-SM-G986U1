@@ -1,0 +1,1956 @@
+Drop box contents: 1000 entries
+Max entries: 1000
+Low priority rate limit period: 2000 ms
+Low priority tags: {data_app_wtf, keymaster, system_server_wtf, system_app_strictmode, system_app_wtf, system_server_strictmode, data_app_strictmode, netstats}
+Searching for: SYSTEM_LAST_KMSG_372_20261102_021609_KP
+
+========================================
+2026-11-02 02:16:09 SYSTEM_LAST_KMSG_372_20261102_021609_KP (compressed text, 17192 bytes)
+isPrevious: true
+Build: samsung/y2quew/y2q:13/TP1A.220624.014/G986U1UESCHXL1:user/release-keys
+Hardware: kona
+Revision: 14
+Bootloader: G986U1UESCHXL1
+Radio: null
+Kernel: Linux version 4.19.113-27095354 (dpi@21DJ7C20) (clang version 10.0.6 for Android NDK) #1 SMP PREEMPT Fri Dec 27 14:53:28 KST 2024
+
+[[TRUNCATED]]
+_log: START
+
+{481259} __print_kernel_sched_log: END
+
+{481259} base for cpu2= 0xe5808ee0
+
+{481290} CPU2 : print cpu registers
+
+{481381} CPU2 : print call stack
+
+{482205} CPU2 : print sched log
+
+{482235} __print_kernel_sched_log: START
+
+{491568} __print_kernel_sched_log: END
+
+{491568} base for cpu3= 0xe5809720
+
+{491599} CPU3 : print cpu registers
+
+{491690} CPU3 : print call stack
+
+{492361} CPU3 : print sched log
+
+{492392} __print_kernel_sched_log: START
+
+{501664} __print_kernel_sched_log: END
+
+{501694} base for cpu4= 0xe5809f60
+
+{501694} CPU4 : print cpu registers
+
+{501786} CPU4 : print call stack
+
+{502457} CPU4 : print sched log
+
+{502487} __print_kernel_sched_log: START
+
+{511698} __print_kernel_sched_log: END
+
+{511729} base for cpu5= 0xe580a7a0
+
+{511729} CPU5 : print cpu registers
+
+{511820} CPU5 : print call stack
+
+{512491} CPU5 : print sched log
+
+{512522} __print_kernel_sched_log: START
+
+{521702} __print_kernel_sched_log: END
+
+{521733} base for cpu6= 0xe580afe0
+
+{521733} CPU6 : print cpu registers
+
+{521824} CPU6 : print call stack
+
+{522373} CPU6 : print sched log
+
+{522404} __print_kernel_sched_log: START
+
+{531645} __print_kernel_sched_log: END
+
+{531676} base for cpu7= 0xe580b820
+
+{531676} CPU7 : print cpu registers
+
+{531767} CPU7 : print call stack
+
+{532438} CPU7 : print sched log
+
+{532469} __print_kernel_sched_log: START
+
+{541710} __print_kernel_sched_log: END
+
+{541741} print_cpu_context: exit 745906
+
+{541741} __print_apss_avc_logs: AVC info not available
+
+{541771} print_ap_klog: START
+{541863} sec_log_copy: simple case
+
+{541893} add_auto_comment_klog: START
+
+{542991} add_auto_comment_klog: END
+
+{542991} add_auto_comment_kernel_ext_info: START
+
+{543022} add_auto_comment_kernel_ext_info: PC/LR info
+
+{543022} add_auto_comment_kernel_ext_info: backtrace info
+
+{543052} add_auto_comment_kernel_ext_info: Last Kmsg is skipped, last_rst_reason[28]
+
+{543083} print_ap_klog: END
+{543235} __print_runq: START
+{543357} __print_runq: END
+
+{543357} tasklist: START
+{916769} tasklist: END (4163 tasks, 564 KB)
+{916769} summary_html_print_apss: END
+
+{916799} entry_fn=80642ad4
+
+{916799} summary_html_print_post_apss: START
+
+{916982} summary_html_print_post_apss: END
+
+{916982} entry_fn=80642b94
+
+{917013} summary_html_print_modem: START
+
+{917043} summary_html_print_modem: END
+
+{917043} entry_fn=806417e4
+
+{917074} summary_update_upload_cause: Start
+
+{917074} array of upload_str_infos[4]
+{917104} [get_pimem_esr_val_sdi]
+{917104} pimem_esr : [0x0]
+{917135} pimem_esr_sdi : [0x0]
+{917135} UploadCause[KERNEL PANIC], Don't check hangcnt
+{917165} gen_dump_summary DONE
+
+{917165} entry_fn=8064f2f8
+
+{917196} collect_rr_data : restart_reason = 0x776655ee
+
+{917226} collect_rr_data : upload_cause = KERNEL PANIC ( panic_msg = Oops PC = rt_mutex_adjust_prio_chain+0x304/0x858 )
+
+{917257} UpdateDCVSLastVal : start.
+
+{917257} smem_get_apps_clk : 59
+
+{917287} smem_get_apps_clk : 59
+
+{917287} smem_get_apps_clk : 59
+
+{917318} smem_get_apps_clk : 59
+
+{917318} smem_get_ddr_clk : 111
+
+{917348} smem_get_ddr_clk: ddr log num(50), &idx(0x807853f8), logs(0x807a44a8)
+
+{917379} Current PON fault reason value 0x0000000000000000
+{917379} UpdateDCVSLastVal : end.
+
+{917409} last_rst_reason 4
+{917684} collect_rr_data : exinfo 0x9f1ff000, 0x1000, 0x1000
+
+{917714} collect_rr_data : TZ OEM_RESET_REASON :: TZBSP_ERR_FATAL_NON_SECURE_WDT
+
+{917714} [get_pimem_esr_val_sdi]
+{917714} [get_pimem_ear0_val_sdi]
+{917928} sec_log_copy: simple case
+
+{918294} entry_fn=8064f854
+
+{918446} tzbsp_diag : find and store. If you see tz_log, Please do decryption
+
+{918690} RESET Header : #wr(372), #rd(371) #fac_w(0) 1511614
+
+{941565} @ Continue boot by Debug level LOW
+{942297} boot_hw_reset - boot_sec_log_store done
+
+
+{424346} ** XBL(1109, restored from storage) **
+
+
+Format: Log Type - Time(microsec) - Message - Optional Info
+Log Type: B - Since Boot(Power On Reset),  D - Delta,  S - Statistic
+S - QC_IMAGE_VERSION_STRING=BOOT.XF.3.2-00248-SM8250-1
+S - IMAGE_VARIANT_STRING=Soc8250LAA
+S - OEM_IMAGE_VERSION_STRING=21DJ7C20
+S - Boot Interface: UFS
+S - Secure Boot: On
+S - Boot Config @ 0x00786070 = 0x00000041
+S - JTAG ID @ 0x00786130 = 0x200c30e1
+S - OEM ID @ 0x00786138 = 0x00200000
+S - Chip Revision @ 0x01fc8000 = 0x60080201
+S - Feature Config Row 0 @ 0x007841f8 = 0x0040200000000400
+S - Feature Config Row 1 @ 0x00784200 = 0x00000000
+S - FEAUTRE ID @ 0x00784198 = 0x105200c3
+S - Core 0 Frequency, 1516 MHz
+S - PBL Patch Ver: 4
+S - PBL freq: 600 MHZ
+D -      6209 - pbl_apps_init_timestamp
+D -     30344 - bootable_media_detect_timestamp
+D -       977 - bl_elf_metadata_loading_timestamp
+D -      9404 - bl_hash_seg_auth_timestamp
+D -      6391 - bl_elf_loadable_segment_loading_timestamp
+D -      5703 - bl_elf_segs_hash_verify_timestamp
+D -      6747 - bl_sec_hash_seg_auth_timestamp
+D -       820 - bl_sec_segs_hash_verify_timestamp
+D -        34 - pbl_populate_shared_data_and_exit_timestamp
+S -     66629 - PBL, End
+B -     80611 - SBL1, Start
+B -     82350 - SBL1 BUILD @ 15:17:15 on Dec 27 2024
+B -     84058 - usb: usb_shared_hs_phy_init: hs phy cfg size , 0xc
+D -      1799 - sbl1_hw_init
+D -        31 - boot_flash_init
+B -    187788 - UFS INQUIRY ID: SAMSUNG KLUDG4UHDB-B2D1 0089
+B -    189374 - UFS Boot LUN: 1
+B -    195901 - UFS MD   : CE1119
+B -    195901 - UFS size : 128GB
+B -    195901 - UFS spec : 0310
+D -      5398 - Auth Metadata
+D -    119956 - sbl1_xblconfig_init
+D -         0 - boot_config_data_table_default_init
+B -    204167 - Using default CDT
+D -        31 - boot_config_data_table_init
+B -    204167 - CDT Version:3,Platform ID:8,Major ID:1,Minor ID:0,Subtype:0
+B -    204197 - DSF V156.08.41
+
+D -      7655 - sbl1_hw_platform_pre_ddr
+D -         0 - devcfg init
+B -    221094 - PM: PM 0=0x8000028000000041:0x0 
+B -    221155 - PM: HARD RESET by PS_HOLD
+B -    221216 - PM: PM 2=0x8000018000000020:0x0 
+B -    221277 - PM: POWER ON by PON1 , POWER OFF by SOFT
+B -    221338 - PM: PM 4=0x8000018000000020:0x0 
+B -    221399 - PM: POWER ON by PON1 , POWER OFF by SOFT
+B -    223595 - PM: PMA_2 PON:CBL WR:PS ON:WARM POFF:PS OFF:POFF
+B -    223626 - PM: PMA_3 PON:CBL WR:PS ON:WARM POFF:PS OFF:POFF
+B -    296582 - PM: SET_VAL:Skip
+B -    296978 - PM: PSI: b0x00_v0x41
+B -    298107 - PM: Device Init # SPMI Transn: 3242
+B -    307836 - PM: OCP Occured: PMIC: 2; BOB: 1 
+B -    309239 - PM: Driver Init # SPMI Transn: 637
+B -    309331 - usb: fedl, vbus_det_err
+B -    309758 - usb: usb_shared_hs_phy_init: hs phy cfg size , 0xc
+B -    309880 - pm_driver_init, configuring PMIC to do a DVDD reset, Start
+D -      1769 - pm_driver_init, configuring PMIC to do a DVDD reset, Delta
+B -    311679 - PM: CHG Init # SPMI Transn: 0
+D -     99826 - pmic XBL init
+D -     29677 - vsense_railway_cpr init
+D -    129534 - sbl1_hw_pre_ddr_init
+D -        30 - boot_dload_handle_forced_dload_timeout
+D -      1495 - sbl1_load_ddr_training_data
+D -      1617 - sbl1_ddr_set_params
+B -    363590 - Populated CS Mask: 0x3
+
+B -    363651 - eCDT MRR - Data Starting Address: 0x09066D00
+
+B -    363712 - eCDT MRR - MA[6:0] = 0x31, OP[7:0] = 0x01
+
+B -    363773 - eCDT MRR - MA[6:0] = 0x32, OP[7:0] = 0x01
+
+B -    366000 - DSF version = 156.8.41
+B -    366000 - Manufacturer ID = 1, Device Type = 8
+B -    366030 - Rank 0 size = 6144 MB, Rank 1 size = 6144 MB
+D -     23363 - sbl1_ddr_init
+D -         0 - boot_pre_ddi_entry
+B -    366427 - do_ddr_training, Start
+B -    367281 - DDR: Checksum on flash is 274801526
+B -    380518 - DDR: Recomputed checksum is 274801526
+B -    393724 - DDR: Training is not required
+B -    393724 - DDR: Start of DDR Training Restore
+B -    403149 - Frequency = 1805 MHz
+B -    403149 - DDR: End of DDR Training Restore
+D -     36874 - do_ddr_training, Delta
+D -     36966 - sbl1_do_ddr_training
+D -         0 - sbl1_hand_control_to_devprog_ddr
+D -       152 - quest_check_ddr_scan_user
+D -      1007 - boot_ddi_entry
+B -    404552 - Pimem init cmd, entry
+D -     10736 - Pimem init cmd, exit
+D -     11041 - sbl1_post_ddr_init
+B -    421967 - AdcReadPmicHardwareID ADC Value:1209
+B -    421967 - READ ADC_HW_REV value:14
+{424346} sbl1_hw_init_secondary
+{424560} APDP Image Load, Start
+{430172} Auth Metadata
+{430934} Segments hash check
+{430965} APDP Image Loaded, Delta - (8204 Bytes)
+{430965} boot_dload_dump_security_regions
+{431056} QB link : https://android.qb.sec.samsung.net/build/90638742
+{431056} DEBUG LEVEL : LOW
+{431270} PWR[released] DN[released] UP[released]
+{431300} Current PON value 0x8000028000000041
+{431331} 
+	OFF : POFF_SEQ 
+	POFF : PS_HOLD 
+	ON : PON_SEQ 
+	WARM : 
+	PON : HARD_RESET[O] CABLE 
+{431422} ResetReason don't define case 0x1c, RR.p will write NP
+{431453} Target was saved rr_data, Maybe entered upload before
+{431453} RR : KP
+{431514} usb: fedl, vbus_det_err
+{431941} usb: usb_shared_hs_phy_init: hs phy cfg size , 0xc
+{432124} boot_dload_check
+{432124} boot_cache_set_memory_barrier
+{432154} boot_smem_debug_init
+{432520} boot_smem_init
+{432551} boot_smem_alloc_for_minidump
+{432642} PM: SMEM Chgr Info Write Success
+{432642} boot_smem_store_pon_status
+{432673} sec_board_rev_smem_copy
+{432703} DDR vendor:Samsung@0x80907220
+{432703} store hw rev:14@0x80907290
+{432703} sec_board_rev_smem_copy
+{432764} sbl1_hw_platform_smem
+{432825} boot_ddr_share_data_to_aop
+{433405} boot_clock_init_rpm
+{433435} boot_vsense_copy_to_smem
+{433435} boot_share_flash_data
+{433466} boot_populate_ram_partition_table
+{433527} boot_populate_ddr_details_shared_table
+{433527} sbl1_tlmm_init
+{433557} sbl1_efs_handle_cookies
+{433557} boot_apt_test
+{433557} OEM_MISC Image Load, Start
+{433588} OEM_MISC Image Loaded, Delta - (0 Bytes)
+{433588} QTI_MISC Image Load, Start
+{433618} QTI_MISC Image Loaded, Delta - (0 Bytes)
+{441518} PM: Y2Q Wlan Cfg hw_rev = 0x0e
+{441518} PM: PM Total Mem Allocated: 2554 
+{441548} sbl1_pm_aop_pre_init_wrapper
+{441548} AOP Image Load, Start
+{447221} Auth Metadata
+{452986} Segments hash check
+{452986} AOP Image Loaded, Delta - (196800 Bytes)
+{453016} QSEE Dev Config Image Load, Start
+{458842} Auth Metadata
+{460123} Segments hash check
+{460123} QSEE Dev Config Image Loaded, Delta - (43636 Bytes)
+{460153} QSEE Image Load, Start
+{469120} Auth Metadata
+{531523} Segments hash check
+{531523} QSEE Image Loaded, Delta - (3147525 Bytes)
+{531554} sbl1_hw_play_vibr
+{531706} SEC Image Load, Start
+{537288} Auth Metadata
+{537745} Segments hash check
+{537776} SEC Image Loaded, Delta - (7560 Bytes)
+{537776} CPUCPFW Image Load, Start
+{537776} CPUCPFW Image Loaded, Delta - (0 Bytes)
+{537806} QHEE Image Load, Start
+{543418} Auth Metadata
+{549488} Segments hash check
+{549518} QHEE Image Loaded, Delta - (508341 Bytes)
+{549518} STI Image Load, Start
+{549549} STI Image Loaded, Delta - (0 Bytes)
+{550098} APPSBL Image Load, Start
+{555222} Auth Metadata
+{571387} Segments hash check
+{571387} APPSBL Image Loaded, Delta - (2555904 Bytes)
+{571417} sbl1_appsbl_arch_determination
+{571753} SBL1, End
+{571783} SBL1, Delta
+{571814} Flash Throughput, 217000 KB/s  (6551338 Bytes,  30148 us)
+{571814} DDR Frequency, 1555 MHz
+
+
+UEFI Start     [  788]
+ - 0x09FC01000 [  792] Sec.efi
+ASLR        : ON
+DEP         : ON (RTB)
+Timer Delta : +1 mS
+RAM Entry 0 : Base 0x080000000  Size 0x039900000
+RAM Entry 1 : Base 0x200000000  Size 0x180000000
+RAM Entry 2 : Base 0x0C0000000  Size 0x140000000
+Total RAM   : 0x2F9900000
+{ 827343 }[ XBL ] UEFI Ver    : 5.0.241227.BOOT.XF.3.2-00248-SM8250-1
+{ 827373 }[ XBL ] Build Info  : 64b Dec 27 2024 15:17:46
+{ 827373 }[ XBL ] Boot Device : UFS
+{ 827404 }[ XBL ] PROD Mode   : TRUE
+{ 827404 }[ XBL ] Retail      : TRUE
+{ 898408 }[ XBL ]  >>> Cluster 0:     1516 MHz
+{ 898438 }[ XBL ]  >>> Cluster 2:     1324 MHz
+{ 928298 }[ XBL ] PM0: 30, { 928298 }[ XBL ] PM2: 38, { 928298 }[ XBL ] PM3: 33, { 928328 }[ XBL ] PM4: 42, { 928328 }[ XBL ] 
+{ 933513 }[ XBL ] UFS INQUIRY ID: SAMSUNG KLUDG4UHDB-B2D1 0089
+{ 933666 }[ XBL ] UFS Boot LUN: 1
+{ 961268 }[ XBL ] LoadSecureApps: TZApps region 0x4A00000@0x82400000
+{ 1043100 }[ XBL ] Varstore partition 165BD6BC-9250-4AC8-95A7-A93F4A440066 - #handles = 0
+{ 1043405 }[ XBL ] Varstore partition 165BD6BC-9250-4AC8-95A7-A93F4A440066 - #handles = 0
+{ 1043679 }[ XBL ] Varstore partition 165BD6BC-9250-4AC8-95A7-A93F4A440066 - #handles = 0
+{ 1049413 }[ XBL ] LoadImageFromPartitionUsingGuid Failed: 14
+Failed to start featenabler_a TA, status = 14
+{ 1050328 }[ XBL ] HW Wdog Setting from PCD : Disabled
+{ 1068079 }[ XBL ] DisplayDxe: [kparam] Sales code = WWD, color = LB1080X2400:HS
+
+{ 1068110 }[ XBL ] DisplayDxe: Sales code = WWD, color = LB
+{ 1068140 }[ XBL ] displaydriverlib_init ++: ndx=0
+{ 1068140 }[ XBL ] displaydriverlib_init freq = Default
+{ 1068201 }[ XBL ] displaydriverlib_init HW_REV : 0xE, ndx=0
+{ 1068201 }[ XBL ] S6E3HAB_AMB677TY01_WQHD_octa_init
+{ 1068232 }[ XBL ] S6E3HA9_AMB611WE01_WQHD_octa_init
+{ 1068232 }[ XBL ] S6E3HA9_AMB644WF01_WQHD_octa_init
+{ 1068262 }[ XBL ] PBA_BOOTING_FHD_init
+{ 1068262 }[ XBL ] displaydriverlib_init --: ndx=0
+{ 1068262 }[ XBL ] displaydriverlib_init ++: ndx=1
+{ 1068293 }[ XBL ] displaydriverlib_init freq = Default
+{ 1068293 }[ XBL ] displaydriverlib_init HW_REV : 0xE, ndx=1
+{ 1068323 }[ XBL ] PBA_BOOTING_FHD_DSI1_init
+{ 1068323 }[ XBL ] displaydriverlib_init --: ndx=1
+{ 1068354 }[ XBL ] get_display_pmic_type
+{ 1078907 }[ XBL ] samsung_panel_power_up (1) 
+{ 1078937 }[ XBL ] display_panel_power_up_S6E3HAB_AMB677TY01 ++
+{ 1078937 }[ XBL ] [sub_pmic_init]++
+{ 1078968 }[ XBL ] [sub_pmic_init_pb02_a]
+{ 1078968 }[ XBL ] [PB02:0]++
+{ 1078968 }[ XBL ] i2c driver is not initialized
+{ 1079303 }[ XBL ] [PB02:0] STATUS1: 0x00
+{ 1079578 }[ XBL ] [PB02:0] CTRL: 0x1F
+{ 1079883 }[ XBL ] [PB02:0] BUCK1_CTRL: 0x58
+{ 1080157 }[ XBL ] [PB02:0] BUCK1_OUT: 0xC0
+{ 1080432 }[ XBL ] [PB02:0] BUCK2_CTRL: 0x58
+{ 1080737 }[ XBL ] [PB02:0] BUCK2_OUT: 0x40
+{ 1081011 }[ XBL ] [PB02:0] BB_CTRL: 0x58
+{ 1081286 }[ XBL ] [PB02:0] BB_OUT: 0x48
+{ 1081591 }[ XBL ] [PB02:0] LDO1_CTRL: 0x18
+{ 1081865 }[ XBL ] [PB02:0] LDO2_CTRL: 0x20
+{ 1082140 }[ XBL ] [PB02:0] LDO3_CTRL: 0x20
+{ 1082445 }[ XBL ] [PB02:0] LDO4_CTRL: 0x30
+{ 1082719 }[ XBL ] [PB02:0] LDO5_CTRL: 0x30
+{ 1082994 }[ XBL ] [PB02:0] LDO6_CTRL: 0x30
+{ 1083299 }[ XBL ] [PB02:0] LDO7_CTRL: 0x30
+{ 1083573 }[ XBL ] [PB02:0] LDO8_CTRL: 0x30
+{ 1083848 }[ XBL ] [PB02:0] LDO9_CTRL: 0x30
+{ 1084122 }[ XBL ] [PB02:0] LDO10CTRL: 0x30
+{ 1084427 }[ XBL ] [PB02:0] LDO11_CTRL: 0x58
+{ 1084702 }[ XBL ] [PB02:0] LDO12_CTRL: 0x58
+{ 1084976 }[ XBL ] [PB02:0] LDO13_CTRL: 0x5C
+{ 1085281 }[ XBL ] [PB02:0] LDO14_CTRL: 0x58
+{ 1085556 }[ XBL ] [PB02:0] LDO15_CTRL: 0x58
+{ 1085861 }[ XBL ] [PB02:0] LDO16_CTRL: 0x58
+{ 1086135 }[ XBL ] [PB02:0] LDO17_CTRL: 0x5E
+{ 1086410 }[ XBL ] [PB02:0] LDO18_CTRL: 0x6C
+{ 1086440 }[ XBL ] [PB02:0]--
+{ 1086440 }[ XBL ] [sub_pmic_init_pb03_a]
+{ 1086440 }[ XBL ] [PB03:0]++
+{ 1086745 }[ XBL ] [PB03:0] STATUS1: 0x02
+{ 1087020 }[ XBL ] [PB03:0] CTRL: 0x00
+{ 1087294 }[ XBL ] [PB03:0] CTRL: 0x00
+{ 1087599 }[ XBL ] [PB03:0] LDO1_CTRL: 0x1C
+{ 1087874 }[ XBL ] [PB03:0] LDO2_CTRL: 0x20
+{ 1088148 }[ XBL ] [PB03:0] LDO3_CTRL: 0x2C
+{ 1088453 }[ XBL ] [PB03:0] LDO4_CTRL: 0x20
+{ 1088728 }[ XBL ] [PB03:0] LDO5_CTRL: 0x0E
+{ 1089002 }[ XBL ] [PB03:0] LDO6_CTRL: 0x28
+{ 1089307 }[ XBL ] [PB03:0] LDO7_CTRL: 0x28
+{ 1089307 }[ XBL ] [PB03:0] reg_init
+{ 1089795 }[ XBL ] [PB03:0] OSC_SEL: 0x80
+{ 1089826 }[ XBL ] [PB03:0]--
+{ 1089826 }[ XBL ] [sub_pmic_init_s2dos05_a]
+{ 1089826 }[ XBL ] [S2DOS05:0] ++
+{ 1089856 }[ XBL ] [S2DOS05:0] s2dos05_stat
+{ 1090161 }[ XBL ] [S2DOS05:0] REG_STATUS: 0x00
+{ 1090497 }[ XBL ] [S2DOS05:0] REG_CTRL: 0x00
+{ 1090802 }[ XBL ] [S2DOS05:0] REG_SSD_TSD: 0x06
+{ 1091137 }[ XBL ] [S2DOS05:0] REG_UVLO_OCD_FD: 0x01
+{ 1091442 }[ XBL ] [S2DOS05:0] REG_OCL: 0x2A
+{ 1091747 }[ XBL ] [S2DOS05:0] LDO1_CTRL: 0x8C
+{ 1092083 }[ XBL ] [S2DOS05:0] LDO2_CTRL: 0x8C
+{ 1092388 }[ XBL ] [S2DOS05:0] LDO3_CTRL: 0x8C
+{ 1092723 }[ XBL ] [S2DOS05:0] LDO4_CTRL: 0x98
+{ 1093028 }[ XBL ] [S2DOS05:0] BUCK_CTRL: 0x58
+{ 1093364 }[ XBL ] [S2DOS05:0] BUCK_VOUT: 0xAF
+{ 1093669 }[ XBL ] [S2DOS05:0] DEVICE_ID: 0x80
+{ 1093669 }[ XBL ] [SM3080] Disable restart
+{ 1094675 }[ XBL ] [S2DOS05:0] --
+{ 1094675 }[ XBL ] [sub_pmic_init]--
+{ 1094675 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(0), voltage(1800000)
+{ 1094706 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator0, 1800000mV
+{ 1095560 }[ XBL ] [S2DOS05:0] addr: 0x04, data: 0x0C, mask: 0x1F, update_data: 0x8C -> 0x8C
+{ 1095590 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(3), voltage(3000000)
+{ 1095590 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator3, 3000000mV
+{ 1096475 }[ XBL ] [S2DOS05:0] addr: 0x07, data: 0x0C, mask: 0x3F, update_data: 0x98 -> 0x8C
+{ 1096505 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(4), voltage(1800000)
+{ 1096505 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator4, 1800000mV
+{ 1097390 }[ XBL ] [S2DOS05:0] addr: 0x09, data: 0xCF, mask: 0xFF, update_data: 0xAF -> 0xCF
+{ 1097390 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(0)
+{ 1097420 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator0
+{ 1098274 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x01, mask: 0x01, update_data: 0x00 -> 0x01
+{ 1108309 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(4)
+{ 1108309 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator4
+{ 1109163 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x10, mask: 0x10, update_data: 0x01 -> 0x11
+{ 1119197 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(3)
+{ 1119197 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator3
+{ 1120082 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x08, mask: 0x08, update_data: 0x11 -> 0x19
+{ 1120082 }[ XBL ] display_panel_power_up_S6E3HAB_AMB677TY01 by Direct PMIC control --
+{ 1135118 }[ XBL ] GetPanelXmlConfig ++ (15) 
+{ 1135118 }[ XBL ] DisplayDxe: vdd->sPlatformPanel[0][SEC_XBL_MODE_NORMAL].eSelectedPanel = 34, sPlatformPanel[eDisplayId].uSelectedPanelIndex = 33
+{ 1135149 }[ XBL ] samsung_panel_select_xml_data eDisplayId = 0, vdd->ndx = 0 ++
+{ 1135179 }[ XBL ] samsung_check_support_panel panel_list_max : 4 ++ : ndx=0
+{ 1135179 }[ XBL ] samsung_check_support_panel [0] +++
+{ 1135210 }[ XBL ] display_panel_power_up_S6E3HAB_AMB677TY01 ++
+{ 1135210 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(0), voltage(1800000)
+{ 1135240 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator0, 1800000mV
+{ 1136125 }[ XBL ] [S2DOS05:0] addr: 0x04, data: 0x0C, mask: 0x1F, update_data: 0x8C -> 0x8C
+{ 1136125 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(3), voltage(3000000)
+{ 1136155 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator3, 3000000mV
+{ 1137009 }[ XBL ] [S2DOS05:0] addr: 0x07, data: 0x0C, mask: 0x3F, update_data: 0x8C -> 0x8C
+{ 1137040 }[ XBL ] [sub_pmic_set_voltage] pmic(2), index(6), type(0), num(4), voltage(1800000)
+{ 1137040 }[ XBL ] [S2DOS05:0] s2dos05_set_voltage ldo: regulator4, 1800000mV
+{ 1137924 }[ XBL ] [S2DOS05:0] addr: 0x09, data: 0xCF, mask: 0xFF, update_data: 0xCF -> 0xCF
+{ 1137924 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(0)
+{ 1137955 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator0
+{ 1138809 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x01, mask: 0x01, update_data: 0x19 -> 0x19
+{ 1148843 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(4)
+{ 1148843 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator4
+{ 1149728 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x10, mask: 0x10, update_data: 0x19 -> 0x19
+{ 1159732 }[ XBL ] [sub_pmic_ldo_enable] pmic(2), index(6), type(0), num(3)
+{ 1159732 }[ XBL ] [S2DOS05:0] s2dos05_ldo_enable: regulator3
+{ 1160616 }[ XBL ] [S2DOS05:0] addr: 0x03, data: 0x08, mask: 0x08, update_data: 0x19 -> 0x19
+{ 1160647 }[ XBL ] display_panel_power_up_S6E3HAB_AMB677TY01 by Direct PMIC control --
+{ 1175653 }[ XBL ] DSIDriver_MinimalInit: eDisplayId=0
+{ 1176324 }[ XBL ] samsung_panel_reset enable : 1 vdd->ndx = 0++
+{ 1176354 }[ XBL ] samsung_panel_reset: Reset_N state : 1 , gpio_num : 82
+{ 1186358 }[ XBL ] samsung_panel_reset: Reset_N state : 0 , gpio_num : 82
+{ 1196393 }[ XBL ] samsung_panel_reset: Reset_N state : 1 , gpio_num : 82
+{ 1206397 }[ XBL ] samsung_panel_reset enable : 1--
+{ 1208684 }[ XBL ] Default prepare read function
+{ 1208715 }[ XBL ] read_ddi_id ++: num_panel=0
+{ 1208745 }[ XBL ] MIPI TX: Type: 37, Mode: 0,  [R01h] : 00 
+{ 1208867 }[ XBL ] Sent max package command
+{ 1208898 }[ XBL ] MIPI RX: Type: 06, Mode: 0, [Rdah] [R01h] 
+{ 1209050 }[ XBL ] [RDAh] { 1209050 }[ XBL ] 0x00000081 { 1209050 }[ XBL ] 0x00000000 { 1209050 }[ XBL ] 
+{ 1209081 }[ XBL ] [R9AD1CBD4h] response_size: 2
+{ 1209081 }[ XBL ] MIPI TX: Type: 37, Mode: 0,  [R01h] : 00 
+{ 1209203 }[ XBL ] Sent max package command
+{ 1209233 }[ XBL ] MIPI RX: Type: 06, Mode: 0, [Rdbh] [R01h] 
+{ 1209355 }[ XBL ] [RDBh] { 1209355 }[ XBL ] 0x00000011 { 1209386 }[ XBL ] 0x00000000 { 1209386 }[ XBL ] 
+{ 1209386 }[ XBL ] [R9AD1CBD2h] response_size: 2
+{ 1209416 }[ XBL ] MIPI TX: Type: 37, Mode: 0,  [R01h] : 00 
+{ 1209538 }[ XBL ] Sent max package command
+{ 1209569 }[ XBL ] MIPI RX: Type: 06, Mode: 0, [Rdch] [R01h] 
+{ 1209691 }[ XBL ] [RDCh] { 1209691 }[ XBL ] 0x00000004 { 1209691 }[ XBL ] 0x00000000 { 1209721 }[ XBL ] 
+{ 1209721 }[ XBL ] [R9AD1CBD0h] response_size: 2
+{ 1209721 }[ XBL ] read_ddi_id[0]: id1: 0x81, id2: 0x11, id3: 0x04 type: 0x00 color: 0x01
+{ 1209752 }[ XBL ] read_ddi_id --
+{ 1209752 }[ XBL ] ddi_id: 0x811104
+{ 1209782 }[ XBL ] samsung_check_support_panel: valid_bit_mask(003000) expect_data(811000) 
+{ 1209782 }[ XBL ] samsung_check_support_panel: panel is matched : num(0)
+{ 1209813 }[ XBL ] samsung_check_support_panel: lcd_id : 0x811104
+{ 1209935 }[ XBL ] samsung_panel_reset enable : 0 vdd->ndx = 0++
+{ 1209935 }[ XBL ] samsung_panel_reset enable : 0--
+{ 1209965 }[ XBL ] check_support_panel_S6E3HAB_AMB677TY01 panel is supported
+{ 1209965 }[ XBL ] samsung_check_support_panel: found supported panel: 0
+{ 1209996 }[ XBL ] samsung_check_support_panel -- 
+{ 1209996 }[ XBL ] samsung_panel_select_xml_data: vdd->ndx = 0, Selected - Panel ID : 34 
+{ 1210026 }[ XBL ] samsung_panel_select_xml_data eDisplayId = 0, vdd->ndx = 0 --
+{ 1210209 }[ XBL ] DisplayDxe: Resolution 1440x3200 (1 intf)
+{ 1212832 }[ XBL ] DisplayDxe_SetMode: +++: set is_doing_setmode
+{ 1215669 }[ XBL ] samsung_panel_reset enable : 1 vdd->ndx = 0++
+{ 1215699 }[ XBL ] samsung_panel_reset: Reset_N state : 1 , gpio_num : 82
+{ 1226374 }[ XBL ] samsung_panel_reset: Reset_N state : 0 , gpio_num : 82
+{ 1237476 }[ XBL ] samsung_panel_reset: Reset_N state : 1 , gpio_num : 82
+{ 1248456 }[ XBL ] samsung_panel_reset enable : 1--
+{ 1254099 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R9fh] : a5 a5 
+{ 1269684 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1269806 }[ XBL ] MIPI TX: Type: 07, Mode: 0,  [R01h]
+{ 1269959 }[ XBL ] MIPI TX: Type: 0a, Mode: 0,  [PPS] 11 00 00 89 30 80 0c 80 05 a0 00 28 
+{ 1270111 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1270233 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1270386 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : a9 96 
+{ 1270508 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R96h] : 08 d9 54 00 00 8e 55 
+{ 1270660 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 28 98 
+{ 1270813 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R98h] : 00 8f 00 ab 55 
+{ 1270935 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1271087 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : 5a 5a 
+{ 1271209 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 06 f3 
+{ 1271331 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf3h] : 00 
+{ 1271484 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1271606 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 73 91 
+{ 1271758 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R91h] : 01 f9 
+{ 1271880 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1272033 }[ XBL ] MIPI TX: Type: 05, Mode: 0,  [R11h]
+{ 1284263 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1284416 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 25 cb 
+{ 1284538 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rcbh] : c6 
+{ 1284690 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 27 cb 
+{ 1284812 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rcbh] : d6 
+{ 1284965 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1296677 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : a5 a5 
+{ 1427613 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R35h] : 00 
+{ 1427735 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1427888 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb9h] : 01 c0 81 09 00 00 00 11 03 
+{ 1428010 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1428162 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1428284 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Redh] : 06 4c 
+{ 1428437 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1428559 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : 5a 5a 
+{ 1428711 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rc5h] : 11 08 50 35 61 35 61 
+{ 1428864 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : a5 a5 
+{ 1428986 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1429138 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 08 f6 
+{ 1429260 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf6h] : 40 
+{ 1429382 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1429535 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1429687 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rcah] : 2a 00 00 00 80 80 80 80 80 80 80 
+{ 1429809 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb1h] : 05 0c 
+{ 1429962 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 06 b1 
+{ 1430084 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb1h] : 80 
+{ 1430236 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb5h] : 19 dc 16 
+{ 1430358 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : 5a 5a 
+{ 1430511 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R6ah] : 07 ff 01 
+{ 1430633 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rfch] : a5 a5 
+{ 1430785 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf4h] : 30 02 2b 6b 23 
+{ 1430938 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb4h] : 00 55 40 ff 26 55 
+{ 1431060 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R55h] : 02 
+{ 1431212 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rb0h] : 0a 92 
+{ 1431334 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R92h] : 27 65 ff 01 00 80 00 00 00 00 00 
+{ 1431487 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R60h] : 00 
+{ 1431609 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R53h] : 00 
+{ 1431761 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf7h] : 0f 
+{ 1431883 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1432036 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R9fh] : 5a 5a 
+{ 1450610 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R9fh] : a5 a5 
+{ 1450732 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R29h] : 00 
+{ 1450885 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R9fh] : 5a 5a 
+{ 1451251 }[ XBL ] MIPI TX: Type: 0a, Mode: 0,  [PPS] 11 00 00 89 30 80 0c 80 05 a0 00 28 
+{ 1451495 }[ XBL ] samsung_send_self_mask ++ 
+{ 1451495 }[ XBL ] Self Mask Enable(1) ++
+{ 1451525 }[ XBL ] panel_type=0 panel_color=1
+{ 1451525 }[ XBL ] Self Mask Image for P-Hole C-Type
+{ 1451556 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : 5a 5a 
+{ 1451678 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R7ah] : 00 
+{ 1451800 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R75h] : 10 
+{ 1451922 }[ XBL ] total data size [4576]
+{ 1451952 }[ XBL ] cmd size [26] paylod_size [176]
+{ 1451983 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R4ch] : c0 96 41 f9 42 f0 41 e8 43 e0 45 
+{ 1452227 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 0e 07 10 28 12 29 16 2b 18 2c 1c 
+{ 1452471 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 1a 2d 28 54 41 e7 c0 c2 41 f3 2c 
+{ 1452745 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 2c 56 0c 06 85 10 0c 06 2c 56 c0 
+{ 1452989 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 06 e3 00 20 82 87 14 2a 41 eb c0 
+{ 1453233 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 0d 86 c0 30 31 98 41 0f 82 85 41 
+{ 1453477 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 41 eb 0a 05 82 88 06 e3 c0 3e 1e 
+{ 1453721 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 82 8b 41 0b 25 92 c0 3d 41 e9 06 
+{ 1453996 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 82 91 04 42 41 f4 c0 30 18 2c 82 
+{ 1454240 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 02 01 41 fd c0 46 41 fd 02 01 82 
+{ 1454484 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 00 00 41 e8 c0 1a 1e ef 82 a1 04 
+{ 1454728 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 82 aa 0c 86 c0 13 41 ed 00 00 82 
+{ 1455002 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 1e 2f 36 7b c0 18 36 7b 1e 2f 06 
+{ 1455246 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : c0 08 18 cc 85 96 10 c8 c0 08 0a 
+{ 1455490 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 85 9c 0c 86 c0 02 0c 66 85 9c 08 
+{ 1455734 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 85 9e 42 10 85 9e 42 10 85 9e 42 
+{ 1456009 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 41 30 41 37 85 9e 41 37 41 40 85 
+{ 1456253 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 33 99 85 9c 23 91 c0 02 41 e7 85 
+{ 1456497 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 02 21 c0 0a 12 89 85 94 0c 86 c0 
+{ 1456741 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 25 92 c0 15 0a 45 85 88 06 43 c0 
+{ 1457015 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 2b 55 85 78 1d 4e c0 27 10 88 85 
+{ 1457259 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 37 bb 41 13 85 5e 41 13 25 b2 c0 
+{ 1457503 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 41 e6 c0 5d 41 fd 21 10 41 04 85 
+{ 1457747 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 41 ef c0 86 41 fa 0b 45 02 61 85 
+{ 1457991 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 00 20 84 d4 00 20 04 82 06 e3 0b 
+{ 1458266 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R5ch] : 00 20 02 41 02 41 02 41 02 61 04 
+{ 1458479 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R75h] : 00 
+{ 1458632 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [R7ah] : 21 00 00 01 8f 0b b8 0c 7f 09 0f 
+{ 1458784 }[ XBL ] MIPI TX: Type: 29, Mode: 0,  [Rf0h] : a5 a5 
+{ 1458906 }[ XBL ] Self Mask Enable(1) --
+{ 1458906 }[ XBL ] samsung_send_self_mask -- 
+{ 1459364 }[ XBL ] Wled Protocol EnableModulatorA failed
+{ 1459364 }[ XBL ] Wled Protocol SetLedDutyCycle failed
+{ 1459394 }[ XBL ] Wled Protocol ModulatorSrcSelect failed
+{ 1469398 }[ XBL ] Wled Protocol EnableWled failed
+{ 1469398 }[ XBL ] Wled Protocol EnableCurrentSink failed
+{ 1473180 }[ XBL ] update_cmdline_ddi_id: ndx=0, Append lcd_id : lcd_id=0x811104
+{ 1473211 }[ XBL ] update_cmdline_window_color: Append window_color : window_color=LB
+{ 1474248 }[ XBL ] DisplayDxe_SetMode: ---: release is_doing_setmode
+{ 1535888 }[ XBL ] Overriding PIL cfg by caller
+{ 1589721 }[ XBL ] UsbConfigLibOpenProtocols: PMI version (0x0)
+{ 1590544 }[ XBL ] UsbConfigInit: UsbConfigInit, not start on port: 0, mode 0
+{ 1591093 }[ XBL ] UsbConfigInit: UsbConfigInit, not start on port: 1, mode 0
+{ 1591124 }[ XBL ] UsbConfigPortsQueryConnectionChange: usbport->connectstate: ATT
+{ 1597834 }[ XBL ] ChargerExNullProtocol:: EFI_ChargerExGetBatteryPresence BatteryPresent=1
+APC1 IDDQ WC 0 , L2:0, CPU[0]:175, CPU[1]:175, CPU[2]:175, CPU[3]:175
+ APC1 Total 700
+LoadSys  TIME 0ms
+tsens  TIME 1ms
+scm  TIME 2ms
+Load CPU 0 Slp: 0x6F, Int: 0xFFFFFF8F
+Load CPU 1 Slp: 0xE0, Int: 0xFFFFFF65
+Load CPU 2 Slp: 0xA1, Int: 0xFFFFFFC9
+Load CPU 3 Slp: 0x107, Int: 0xFFFFFFB1
+Load GPU 0 Slp: 0xAE, Int: 0xF4 adc_min:0x1B5 adc_max:0x188
+Load NPU 0 Slp: 0x30, Int: 0xFFFFFFDA
+LmhIsenseInit Pre CPU  TIME 0ms
+GLD IDDQ WC 0
+LmhIsenseSubSysEntry Post SubSysEntryCb  TIME 0ms
+LmhIsenseSubSysEntry Post LmhIsenseSubSysInit  TIME 0ms
+LmhIsenseInitSubSys Post SubSysEntry  TIME 0ms
+LmhIsenseInitSubSys Post SubSysTrim  TIME 0ms
+LmhIsenseInitSubSys Post SubSysExit  TIME 0ms
+LmhIsenseInit Post CPU  TIME 0ms
+GPU IDDQ 26
+LmhIsenseSubSysEntry Post SubSysEntryCb  TIME 0ms
+LmhIsenseSubSysEntry Post LmhIsenseSubSysInit  TIME 0ms
+LmhIsenseInitSubSys Post SubSysEntry  TIME 0ms
+LmhIsenseInitSubSys Post SubSysTrim  TIME 0ms
+LmhIsenseInitSubSys Post SubSysExit  TIME 1ms
+LmhIsenseInit Post GPU  TIME 2ms
+Entering in func1 of NPU  TIME 2ms
+NPU IDDQ 31
+LmhIsenseSubSysEntry Post SubSysEntryCb  TIME 0ms
+LmhIsenseSubSysEntry Post LmhIsenseSubSysInit  TIME 0ms
+LmhIsenseInitSubSys Post SubSysEntry  TIME 0ms
+LmhIsenseInitSubSys Post SubSysTrim  TIME 0ms
+LmhIsenseInitSubSys Post SubSysExit  TIME 0ms
+LmhIsenseInit Post NPU  TIME 2ms
+isense  TIME 5ms
+ISENSE TOTAL TIME 5ms
+{ 1675548 }[ XBL ] ccic_init
+{ 1675548 }[ XBL ] [CCIC] Max77705 HW i2c init
+{ 1681373 }[ XBL ] ccic_is_max77705 : 0x1A
+{ 1681404 }[ XBL ] max77705_ccic_set_sink: set to 0!!
+{ 1683691 }[ XBL ] ccic_command_polling : OP 0x5E Response OP 0x5E @ 1msec
+{ 1683691 }[ XBL ] ccic_command_polling : Command 0x5E delay : 1msec
+{ 1683722 }[ XBL ] ccic is found!! count : 0
+{ 1684332 }[ XBL ] muic_init
+{ 1684332 }[ XBL ] [MUIC] Max77705 HW i2c init
+{ 1684545 }[ XBL ] MUIC Device : Max77705! count: 0
+{ 1686863 }[ XBL ] muic_command_polling: OP 0x01 Response OP 0x01 @ 1msec
+{ 1687046 }[ XBL ] muic_command_polling: Command 0x01 delay : 1msec
+{ 1687077 }[ XBL ] [MUIC] BC_CTRL1_READ : 0x00C5
+{ 1689364 }[ XBL ] muic_command_polling: OP 0x06 Response OP 0x06 @ 1msec
+{ 1689364 }[ XBL ] muic_command_polling: Command 0x06 delay : 1msec
+{ 1691682 }[ XBL ] muic_command_polling: OP 0x05 Response OP 0x05 @ 1msec
+{ 1691865 }[ XBL ] muic_command_polling: Command 0x05 delay : 1msec
+{ 1692048 }[ XBL ] [MUIC] MUIC_REG_STATUS_BC : 0x0081
+{ 1692262 }[ XBL ] [MUIC] MUIC_REG_STATUS_BC : 0x0081
+{ 1692811 }[ XBL ] max77705_read_adc: RID = 7
+{ 1692811 }[ XBL ] (RID_OPEN)
+{ 1693177 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 1693177 }[ XBL ] [MUIC] muic_get_devices : 0x0001
+{ 1693909 }[ XBL ] charging_func_init
+{ 1693909 }[ XBL ] [charger_i2c_init]
+{ 1693939 }[ XBL ] [CHG] Max77705_init_i2c
+{ 1693939 }[ XBL ] [fuel_gauge_i2c_init]
+{ 1693939 }[ XBL ] [FG] Max77705_init_i2c
+{ 1694580 }[ XBL ] max77705_fuelgauge_get_device_id : DesignCap_REG(0xFEF)
+{ 1694580 }[ XBL ] charging_func_init : IF PMIC rev=0xFEF 
+{ 1695129 }[ XBL ] max77705_read_adc: RID = 7
+{ 1695159 }[ XBL ] (RID_OPEN)
+{ 1695525 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 1696074 }[ XBL ] max77705_read_adc: RID = 7
+{ 1696074 }[ XBL ] (RID_OPEN)
+{ 1696105 }[ XBL ] Not ADC Oriented Device
+{ 1696105 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 1696105 }[ XBL ] set_input_current_by_type : charger_type(1)
+{ 1696135 }[ XBL ] [set_input_current]
+{ 1709708 }[ XBL ] charger_command_polling : OP 0x16 Response OP 0x16 @ 1msec
+{ 1709738 }[ XBL ] charger_command_polling : Command 0x16 delay : 1msec
+{ 1723311 }[ XBL ] charger_command_polling : OP 0x15 Response OP 0x15 @ 1msec
+{ 1723829 }[ XBL ] charger_command_polling : Command 0x15 delay : 1msec
+{ 1723860 }[ XBL ] [CHARGER] max77705_set_usbc_input_current : CHGIN_ILIM [0x13]
+{ 1725232 }[ XBL ] max77705_chg_set_vbuslimit : current(500), data(0x93)
+{ 1725232 }[ XBL ] max77705_chg_set_input_limit : input_limit=500
+{ 1725903 }[ XBL ] [sub_pmic_init]++
+{ 1725903 }[ XBL ] [sub_pmic_init_pb02_a]
+{ 1725934 }[ XBL ] [PB02:0]++
+{ 1725934 }[ XBL ] i2c driver is not initialized
+{ 1726239 }[ XBL ] [PB02:0] STATUS1: 0x00
+{ 1726513 }[ XBL ] [PB02:0] CTRL: 0x10
+{ 1726788 }[ XBL ] [PB02:0] BUCK1_CTRL: 0x58
+{ 1727093 }[ XBL ] [PB02:0] BUCK1_OUT: 0xC0
+{ 1727367 }[ XBL ] [PB02:0] BUCK2_CTRL: 0x58
+{ 1727642 }[ XBL ] [PB02:0] BUCK2_OUT: 0x40
+{ 1727947 }[ XBL ] [PB02:0] BB_CTRL: 0x58
+{ 1728221 }[ XBL ] [PB02:0] BB_OUT: 0x48
+{ 1728496 }[ XBL ] [PB02:0] LDO1_CTRL: 0x18
+{ 1728801 }[ XBL ] [PB02:0] LDO2_CTRL: 0x20
+{ 1729075 }[ XBL ] [PB02:0] LDO3_CTRL: 0x20
+{ 1729350 }[ XBL ] [PB02:0] LDO4_CTRL: 0x30
+{ 1729655 }[ XBL ] [PB02:0] LDO5_CTRL: 0x30
+{ 1729929 }[ XBL ] [PB02:0] LDO6_CTRL: 0x30
+{ 1730204 }[ XBL ] [PB02:0] LDO7_CTRL: 0x30
+{ 1730509 }[ XBL ] [PB02:0] LDO8_CTRL: 0x30
+{ 1730783 }[ XBL ] [PB02:0] LDO9_CTRL: 0x30
+{ 1731058 }[ XBL ] [PB02:0] LDO10CTRL: 0x30
+{ 1731363 }[ XBL ] [PB02:0] LDO11_CTRL: 0x58
+{ 1731637 }[ XBL ] [PB02:0] LDO12_CTRL: 0x58
+{ 1731912 }[ XBL ] [PB02:0] LDO13_CTRL: 0x5C
+{ 1732217 }[ XBL ] [PB02:0] LDO14_CTRL: 0x58
+{ 1732491 }[ XBL ] [PB02:0] LDO15_CTRL: 0x58
+{ 1732766 }[ XBL ] [PB02:0] LDO16_CTRL: 0x58
+{ 1733071 }[ XBL ] [PB02:0] LDO17_CTRL: 0x5E
+{ 1733345 }[ XBL ] [PB02:0] LDO18_CTRL: 0x6C
+{ 1733345 }[ XBL ] [PB02:0]--
+{ 1733376 }[ XBL ] [sub_pmic_init_pb03_a]
+{ 1733376 }[ XBL ] [PB03:0]++
+{ 1733650 }[ XBL ] [PB03:0] STATUS1: 0x02
+{ 1733955 }[ XBL ] [PB03:0] CTRL: 0x00
+{ 1734230 }[ XBL ] [PB03:0] CTRL: 0x00
+{ 1734504 }[ XBL ] [PB03:0] LDO1_CTRL: 0x1C
+{ 1734809 }[ XBL ] [PB03:0] LDO2_CTRL: 0x20
+{ 1735084 }[ XBL ] [PB03:0] LDO3_CTRL: 0x2C
+{ 1735358 }[ XBL ] [PB03:0] LDO4_CTRL: 0x20
+{ 1735663 }[ XBL ] [PB03:0] LDO5_CTRL: 0x0E
+{ 1735938 }[ XBL ] [PB03:0] LDO6_CTRL: 0x28
+{ 1736212 }[ XBL ] [PB03:0] LDO7_CTRL: 0x28
+{ 1736243 }[ XBL ] [PB03:0] reg_init
+{ 1736731 }[ XBL ] [PB03:0] OSC_SEL: 0x80
+{ 1736761 }[ XBL ] [PB03:0]--
+{ 1736761 }[ XBL ] [sub_pmic_init_s2dos05_a]
+{ 1736761 }[ XBL ] [S2DOS05:0] ++
+{ 1736792 }[ XBL ] [S2DOS05:0] s2dos05_stat
+{ 1737097 }[ XBL ] [S2DOS05:0] REG_STATUS: 0xF9
+{ 1737402 }[ XBL ] [S2DOS05:0] REG_CTRL: 0x19
+{ 1737737 }[ XBL ] [S2DOS05:0] REG_SSD_TSD: 0x06
+{ 1738042 }[ XBL ] [S2DOS05:0] REG_UVLO_OCD_FD: 0x01
+{ 1738378 }[ XBL ] [S2DOS05:0] REG_OCL: 0x2A
+{ 1738683 }[ XBL ] [S2DOS05:0] LDO1_CTRL: 0x8C
+{ 1739018 }[ XBL ] [S2DOS05:0] LDO2_CTRL: 0x8C
+{ 1739323 }[ XBL ] [S2DOS05:0] LDO3_CTRL: 0x8C
+{ 1739659 }[ XBL ] [S2DOS05:0] LDO4_CTRL: 0x8C
+{ 1739964 }[ XBL ] [S2DOS05:0] BUCK_CTRL: 0x58
+{ 1740269 }[ XBL ] [S2DOS05:0] BUCK_VOUT: 0xCF
+{ 1740604 }[ XBL ] [S2DOS05:0] DEVICE_ID: 0x80
+{ 1740604 }[ XBL ] [SM3080] Disable restart
+{ 1741580 }[ XBL ] [S2DOS05:0] --
+{ 1741611 }[ XBL ] [sub_pmic_init]--
+{ 1742983 }[ XBL ] Disp init wait [ 1742] 
+{ 1743197 }[ XBL ] DestinationX = 0, DestinationY = 0, Width = 1440, Height = 3200, uFrameBufferWidth = 1440, uFrameBufferHeight =3200
+{ 1745515 }[ XBL ] CopyHeight = 3200, CopyWidth = 1440, CopyHeight * CopyWidth = 4608000
+{ 1745545 }[ XBL ] SourceX = 0, SourceY = 0, Width = 8, Height = 19, uFrameBufferWidth = 1440, uFrameBufferHeight =3200
+{ 1745576 }[ XBL ] SourceX = 0, SourceY = 0, Width = 8, Height = 19, uFrameBufferWidth = 1440, uFrameBufferHeight =3200
+{ 1776259 }[ XBL ] -----------------------------
+{ 1776259 }[ XBL ] Platform Init  [ 1776] BDS
+{ 1779217 }[ XBL ] INFO: UEFI NV tables are enabled as VOLATILE!
+{ 1785988 }[ XBL ] UEFI Ver   : 5.0.241227.BOOT.XF.3.2-00248-SM8250-1
+{ 1786019 }[ XBL ] Platform           : MTP
+{ 1786049 }[ XBL ] Chip Name          : SM8250
+{ 1786049 }[ XBL ] Chip Ver           : 2.1
+{ 1786751 }[ XBL ] Silver cluster Core 0 Freq: 1516 MHz
+{ 1787391 }[ XBL ] -----------------------------
+{ 1804410 }[ XBL ] Failed to launch default charger app, status: Load Error
+{ 1804441 }[ XBL ] UEFI Total : 1016 ms
+{ 1804471 }[ XBL ] POST Time      [ 1804] OS Loader
+{ 1815360 }[ ABL ] Loader Build Info: Dec 27 2024 15:15:48
+{ 1815421 }[ ABL ] ONEUI VER: 121
+{ 1815451 }[ ABL ] HW REV : 14 
+{ 1815482 }[ ABL ] Model Name : SM-G986U1 
+{ 1825608 }[ XBL ] VB: RWDeviceState: Succeed using rpmb!
+{ 1827316 }[ ABL ] [EnumeratePartitions] lun: 0
+{ 1827895 }[ ABL ] [EnumeratePartitions] lun: 1
+{ 1828475 }[ ABL ] [EnumeratePartitions] lun: 2
+{ 1828993 }[ ABL ] [EnumeratePartitions] lun: 3
+{ 1829573 }[ ABL ] [EnumeratePartitions] lun: 4
+{ 1830091 }[ ABL ] [EnumeratePartitions] lun: 5
+{ 1830610 }[ ABL ] [EnumeratePartitions] lun: 6
+{ 1831128 }[ ABL ] [EnumeratePartitions] lun: 7
+{ 1832897 }[ ABL ] ========================================
+{ 1832928 }[ ABL ] Pon History: cur_rtc(14993AA) cur_idx(1213, 3) magic(0x0, i)
+{ 1832958 }[ ABL ] #0(01494FC1) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1832989 }[ ABL ] #1(01498BBD) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1833019 }[ ABL ] #2(01499099) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1833050 }[ ABL ] #3(014993AA) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1833080 }[ ABL ] #4(01493E75) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1833111 }[ ABL ] #5(01494255) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1833141 }[ ABL ] #6(014944C7) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1833172 }[ ABL ] #7(014947B3) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1833202 }[ ABL ] #8(01494A73) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1833233 }[ ABL ] #9(01494CED) PM0(41 00 80 02 80 00 00 00) PM2(20 00 80 01 80 00 00 00) PM4(20 00 80 01 80 00 00 00) 
+{ 1833263 }[ ABL ] ========================================
+{ 1833446 }[ ABL ] 
+{ 1833477 }[ ABL ] ========================================
+{ 1833477 }[ ABL ] [0] 19717681 LongPressPwrkeyCheck(1882)
+{ 1833507 }[ ABL ] [1] 25331187 LPMModeChecker(1424)
+{ 1833507 }[ ABL ] [2] 4305219 LongPressPwrkeyCheck(1873)
+{ 1833538 }[ ABL ] [3] 16251026 LongPressPwrkeyCheck(1882)
+{ 1833568 }[ ABL ] [4] 19422838 CheckChargerConnection(1448)
+{ 1833568 }[ ABL ] ========================================
+{ 1833599 }[ ABL ] 
+{ 1884991 }[ ABL ] [FMM]QseecomStartApp (vk) call success status=0, vaultkeeperappid=3
+{ 1890939 }[ ABL ] [FMM]Rsp: ALLZERO
+{ 1890969 }[ ABL ] [FMM]GetFMMStatus Ret=(0xFBFB0000), Rsp status: 0
+{ 1891000 }[ ABL ] FMMLock is OFF
+{ 1891579 }[ XBL ] max77705_read_adc: RID = 7
+{ 1891610 }[ XBL ] (RID_OPEN)
+{ 1891976 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 1892555 }[ XBL ] max77705_read_adc: RID = 7
+{ 1892555 }[ XBL ] (RID_OPEN)
+{ 1892555 }[ XBL ] Not ADC Oriented Device
+{ 1892555 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 1893135 }[ XBL ] max77705_read_adc: RID = 7
+{ 1893135 }[ XBL ] (RID_OPEN)
+{ 1893501 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 1893531 }[ XBL ] dev_charging_init : cable_type(1), jig_type(0)
+{ 1894141 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4180), data(0xD108)
+{ 1896612 }[ XBL ] get_battery_temperature : ADC VALUE[836050] success[5]
+{ 1896612 }[ XBL ] get_battery_temperature : Temp(282), Temp-ADC(836050)
+{ 1896642 }[ XBL ] get_hw_rev : hw rev=0xE 
+{ 1896642 }[ XBL ] [charger_init_charger]
+{ 1896642 }[ XBL ] max77705_init_charger : max77705 charger probe start
+{ 1900485 }[ XBL ] max77705_init_charger : MAX77705_CHG_REG_CHG_INT_OK(0x5F)
+{ 1901705 }[ XBL ] max77705_set_watchdog_timer : reg(0x04)
+{ 1902559 }[ XBL ] max77705_set_watchdog_timer : 1, reg_data(0x14)
+{ 1916162 }[ XBL ] charger_command_polling : OP 0x57 Response OP 0x57 @ 1msec
+{ 1916193 }[ XBL ] charger_command_polling : Command 0x57 delay : 1msec
+{ 1916681 }[ XBL ] [CHARGER] max77705_set_fw_noautoibus : AUTOIBUS: [0x3], chg_dtls00[0xE0]
+{ 1916711 }[ XBL ] max77705_set_charger_state : (1, 1) 
+{ 1917230 }[ XBL ] max77705_set_buck_enable : reg(0x14)
+{ 1923086 }[ XBL ] max77705_set_buck_enable : buck(1), reg(0x14)
+{ 1923604 }[ XBL ] max77705_set_charge_enable : reg(0x14)
+{ 1929460 }[ XBL ] max77705_set_charge_enable : chg(1), reg(0x15)
+{ 1930040 }[ XBL ] max77705_read_adc: RID = 7
+{ 1930040 }[ XBL ] (RID_OPEN)
+{ 1930406 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 1930955 }[ XBL ] max77705_read_adc: RID = 7
+{ 1930955 }[ XBL ] (RID_OPEN)
+{ 1930985 }[ XBL ] Not ADC Oriented Device
+{ 1930985 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 1930985 }[ XBL ] max77705_set_auto_current : get_charger_status(1)
+{ 1944588 }[ XBL ] charger_command_polling : OP 0x16 Response OP 0x16 @ 1msec
+{ 1944588 }[ XBL ] charger_command_polling : Command 0x16 delay : 1msec
+{ 1958191 }[ XBL ] charger_command_polling : OP 0x15 Response OP 0x15 @ 1msec
+{ 1958710 }[ XBL ] charger_command_polling : Command 0x15 delay : 1msec
+{ 1958710 }[ XBL ] [CHARGER] max77705_set_usbc_input_current : CHGIN_ILIM [0x13]
+{ 1960082 }[ XBL ] max77705_chg_set_vbuslimit : current(500), data(0x93)
+{ 1960113 }[ XBL ] max77705_chg_set_input_limit : input_limit=500
+{ 1960723 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4180), data(0xD108)
+{ 1962095 }[ XBL ] max77705_chg_set_charging_current : current(500), data(0x4A)
+{ 2112491 }[ XBL ] max77705_set_buck_enable : reg(0x15)
+{ 2118377 }[ XBL ] max77705_set_buck_enable : buck(1), reg(0x15)
+{ 2118926 }[ XBL ] max77705_set_charge_enable : reg(0x15)
+{ 2124813 }[ XBL ] max77705_set_charge_enable : chg(1), reg(0x15)
+{ 2125179 }[ XBL ] max77705_check_pd_state : pd_state:25
+{ 2125179 }[ XBL ] max77705_get_max_current : rp_current:1,is_sink:1,pd_state:25
+{ 2125209 }[ XBL ] pd max current = 500 mA
+{ 2125209 }[ XBL ] [set_auto_current]
+{ 2125758 }[ XBL ] max77705_read_adc: RID = 7
+{ 2125758 }[ XBL ] (RID_OPEN)
+{ 2126124 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2126704 }[ XBL ] max77705_read_adc: RID = 7
+{ 2126704 }[ XBL ] (RID_OPEN)
+{ 2126704 }[ XBL ] Not ADC Oriented Device
+{ 2126704 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 2126734 }[ XBL ] max77705_set_auto_current : get_charger_status(1)
+{ 2140337 }[ XBL ] charger_command_polling : OP 0x16 Response OP 0x16 @ 1msec
+{ 2140337 }[ XBL ] charger_command_polling : Command 0x16 delay : 1msec
+{ 2153940 }[ XBL ] charger_command_polling : OP 0x15 Response OP 0x15 @ 1msec
+{ 2154428 }[ XBL ] charger_command_polling : Command 0x15 delay : 1msec
+{ 2154459 }[ XBL ] [CHARGER] max77705_set_usbc_input_current : CHGIN_ILIM [0x13]
+{ 2155831 }[ XBL ] max77705_chg_set_vbuslimit : current(500), data(0x93)
+{ 2155831 }[ XBL ] max77705_chg_set_input_limit : input_limit=500
+{ 2156441 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4178), data(0xD0EA)
+{ 2157814 }[ XBL ] max77705_chg_set_charging_current : current(500), data(0x4A)
+{ 2308240 }[ XBL ] max77705_set_buck_enable : reg(0x15)
+{ 2314096 }[ XBL ] max77705_set_buck_enable : buck(1), reg(0x15)
+{ 2314614 }[ XBL ] max77705_set_charge_enable : reg(0x15)
+{ 2320470 }[ XBL ] max77705_set_charge_enable : chg(1), reg(0x15)
+{ 2321080 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4182), data(0xD11A)
+{ 2321111 }[ XBL ] [fuel_gauge_init]
+{ 2321111 }[ XBL ] max77705_init_fuelgauge : Start!!
+{ 2323551 }[ XBL ] get_battery_temperature : ADC VALUE[836050] success[5]
+{ 2323581 }[ XBL ] get_battery_temperature : Temp(282), Temp-ADC(836050)
+{ 2323581 }[ XBL ] max77705_init_fuelgauge : isDesignCapCorrupted = 0
+{ 2323581 }[ XBL ] max77705_init_fuelgauge : read temp = 282
+{ 2324466 }[ XBL ] max77705_fg_src_change : CNFG_07 reg_data(0x34)
+{ 2324466 }[ XBL ] max77705_check_batt_type : apply 4500mAh + 5mohm battery data 
+{ 2326296 }[ XBL ] max77705_init_fuelgauge : battery_type:1
+{ 2326296 }[ XBL ] max77705_init_fuelgauge : DesignCap_REG:0xFEF, status:0x80, Jig:0, read Ver:0x6
+{ 2326296 }[ XBL ] max77705_init_fuelgauge : read_val:0xFEF
+{ 2326326 }[ XBL ] max77705_init_fuelgauge: batt_data_max77705[batt_type].DesignCap:0xFEF
+{ 2326326 }[ XBL ] max77705_init_fuelgauge : Already initialized (0x0FEF)
+{ 2326326 }[ XBL ] max77705_check_validation_with_tablesoc : Start!!
+{ 2327546 }[ XBL ] max77705_fuelgauge_read_soc : SOC(84), data(0x54B1)
+{ 2328156 }[ XBL ] max77705_fuelgauge_read_ocv : VFOCV(4161), data(0xD017)
+{ 2328187 }[ XBL ] max77705_calculate_table_soc : low(8) high(15) mid(7) table_soc(0)
+{ 2328187 }[ XBL ] max77705_calculate_table_soc : low(12) high(15) mid(11) table_soc(0)
+{ 2328187 }[ XBL ] max77705_calculate_table_soc : low(14) high(15) mid(13) table_soc(0)
+{ 2328217 }[ XBL ] max77705_calculate_table_soc : low(14) high(13) mid(14) table_soc(0)
+{ 2328217 }[ XBL ] max77705_calculate_table_soc : vcell [4161] table_soc [89]
+{ 2328248 }[ XBL ] max77705_calculate_differ_between_tablesoc_soc : differ(5), table_soc(89), RepSOC(84)
+{ 2328858 }[ XBL ] max77705_fuelgauge_read_ocv : VFOCV(4161), data(0xD017)
+{ 2329407 }[ XBL ] max77705_read_adc: RID = 7
+{ 2329407 }[ XBL ] (RID_OPEN)
+{ 2329773 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2330352 }[ XBL ] max77705_read_adc: RID = 7
+{ 2330352 }[ XBL ] (RID_OPEN)
+{ 2330352 }[ XBL ] Not ADC Oriented Device
+{ 2330383 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 2330932 }[ XBL ] max77705_read_adc: RID = 7
+{ 2330932 }[ XBL ] (RID_OPEN)
+{ 2331298 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2331298 }[ XBL ] max77705_fuel_gauge_get_soc_diff_limit : diff_limit(50) in charging status!
+{ 2331328 }[ XBL ] max77705_fuel_gauge_get_soc_diff_limit: vcell(4161),soc_diff_limit(50), low_temp_reset(0)
+{ 2331938 }[ XBL ] max77705_fuelgauge_read_ocv : VFOCV(4161), data(0xD017)
+{ 2332548 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4182), data(0xD11A)
+{ 2332548 }[ XBL ] max77705_init_fuelgauge : OCV(4161), VCELL(4182)
+{ 2332579 }[ XBL ] [charger_enable_charging]
+{ 2332579 }[ XBL ] max77705_set_charger_state : (1, 1) 
+{ 2333097 }[ XBL ] max77705_set_buck_enable : reg(0x15)
+{ 2338953 }[ XBL ] max77705_set_buck_enable : buck(1), reg(0x15)
+{ 2339472 }[ XBL ] max77705_set_charge_enable : reg(0x15)
+{ 2345328 }[ XBL ] max77705_set_charge_enable : chg(1), reg(0x15)
+{ 2345358 }[ XBL ] [charger_enable_charging]
+{ 2345358 }[ XBL ] max77705_set_charger_state : (1, 1) 
+{ 2345877 }[ XBL ] max77705_set_buck_enable : reg(0x15)
+{ 2351733 }[ XBL ] max77705_set_buck_enable : buck(1), reg(0x15)
+{ 2352251 }[ XBL ] max77705_set_charge_enable : reg(0x15)
+{ 2358107 }[ XBL ] max77705_set_charge_enable : chg(1), reg(0x15)
+{ 2358504 }[ XBL ] max77705_read_adc: RID = 7
+{ 2358534 }[ XBL ] (RID_OPEN)
+{ 2358534 }[ ABL ]  ReadAdc: 7
+{ 2358565 }[ ABL ] CcicReadAdc: 7
+{ 2359114 }[ XBL ] max77705_read_adc: RID = 7
+{ 2359114 }[ XBL ] (RID_OPEN)
+{ 2359510 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2359510 }[ ABL ]  GetDeviceType: 1
+{ 2359541 }[ ABL ] MuicGetDeviceType: 1
+{ 2360151 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4182), data(0xD11A)
+{ 2360151 }[ ABL ] FgGetVoltage: 4182
+{ 2360181 }[ ABL ] FgGetVoltage: 4182 mV
+{ 2360791 }[ XBL ] max77705_fuelgauge_read_soc : SOC(84), data(0x54B1)
+{ 2360822 }[ ABL ] FgGetSoc: 84
+{ 2360822 }[ ABL ] FgGetSoc: 84
+{ 2360913 }[ ABL ] [SAPA] RTC  =21599146
+{ 2360944 }[ XBL ] [SAPA] EFI_PmicRTCGetAlarmValueRaw: err=0, temp=0
+{ 2360974 }[ ABL ] [SAPA] ALARM=0
+{ 2361188 }[ ABL ] [SAPA] PARAM=0
+{ 2361218 }[ XBL ] DisplayDxe_SetMode: +++: set is_doing_setmode
+{ 2361249 }[ XBL ] DisplayDxe_SetMode: ---: release is_doing_setmode
+{ 2361249 }[ ABL ] GlibBltOperationInit: Display Size H=1440, V=3200
+{ 2361279 }[ XBL ] DestinationX = 0, DestinationY = 0, Width = 1440, Height = 3200, uFrameBufferWidth = 1440, uFrameBufferHeight =3200
+{ 2363597 }[ XBL ] CopyHeight = 3200, CopyWidth = 1440, CopyHeight * CopyWidth = 4608000
+{ 2364024 }[ ABL ] [KEY] PWD(0x0) INT(0x0) DN(0x0) UP(0x0) :: 0x0
+{ 2365366 }[ ABL ] BootReason: 1C
+{ 2365549 }[ ABL ] PARAM Flag is PARAM_BOOT_CHARGING
+{ 2386594 }[ ABL ] [LoadBKSecApp] call success status=0, BKSecAppId=4
+{ 2387814 }[ ABL ] [EMC] f: 0x3, 0x2
+{ 2387845 }[ ABL ] [EMC] F: U
+{ 2396659 }[ ABL ] [EMC]em_cmd_print_command : [CMD] : [EM_CMD_INIT]
+{ 2396873 }[ ABL ] [EMC]bootloader_key_first_do_step : init state is [COMPLETED], pass
+{ 2396964 }[ ABL ] [EMC]BLInitToken: No need to write Core data(0x0000000000000000)
+{ 2397025 }[ ABL ] [EMC]BLInitToken: No need to write ESI data(0x0000000000000000)
+{ 2397056 }[ ABL ] [EMC]BLInitToken: BLInitToken ret = 0x00000000
+{ 2397361 }[ ABL ] [EMC]em_token_get_issuer_info : token is all zero
+{ 2397452 }[ ABL ] IsUnlocked : (0)
+{ 2397483 }[ ABL ] Device already locked!
+{ 2508625 }[ ABL ] BOTA : 0x0, 22
+{ 2510851 }[ ABL ] [InitSecureParam]
+{ 2511095 }[ ABL ] [KnoxCustom] knoxcustom_value : FFFFFFFF 
+{ 2511736 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4160), data(0xD000)
+{ 2511736 }[ ABL ] FgGetVoltage: 4160
+{ 2512529 }[ XBL ] max77705_read_adc: RID = 7
+{ 2512529 }[ XBL ] (RID_OPEN)
+{ 2512895 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2513444 }[ XBL ] max77705_read_adc: RID = 7
+{ 2513474 }[ XBL ] (RID_OPEN)
+{ 2513474 }[ XBL ] Not ADC Oriented Device
+{ 2513474 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 2513505 }[ ABL ] ChgGetChargerStatus: 1
+{ 2514084 }[ XBL ] max77705_read_adc: RID = 7
+{ 2514084 }[ XBL ] (RID_OPEN)
+{ 2514450 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2514481 }[ ABL ]  MuicGetJigType: 0
+{ 2514511 }[ ABL ] LPMModeChecker: cable_status = 1
+{ 2515152 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4160), data(0xD000)
+{ 2515152 }[ ABL ] FgGetVoltage: 4160
+{ 2515182 }[ ABL ] PonReason.KPDPWR = 0
+{ 2515213 }[ ABL ] PonReason.HARD_RESET = 1
+{ 2515243 }[ ABL ] cable_status = 1
+{ 2515274 }[ ABL ] BootMode = 0
+{ 2515304 }[ ABL ] jig_status = 0
+{ 2517775 }[ XBL ] get_battery_temperature : ADC VALUE[836072] success[5]
+{ 2517775 }[ XBL ] get_battery_temperature : Temp(282), Temp-ADC(836072)
+{ 2517775 }[ ABL ] GetBattTemp: 282
+{ 2517805 }[ ABL ] BAT_TEMP:282, COOLDOWN_TEMP:850 cooldown_status:0
+{ 2518507 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4160), data(0xD000)
+{ 2518507 }[ ABL ] FgGetVoltage: 4160
+AST_POWERON
+{ 2518568 }[ ABL ] ==== GlibDrawBootImage Start(2519) ==== 
+{ 2519300 }[ ABL ] GlibDrawBootImage : IMAGE_BLACK|IMAGE_NETWORK_DEFAULT 
+{ 2524668 }[ ABL ] GlibDrawJpegImage : HorizontalResolution : 1440, VerticalResolution : 3200
+{ 2524729 }[ ABL ] GlibDrawJpegImage : PosX : 104, PoxY : 1208, ImgW : 840, ImgH : 136
+{ 2534519 }[ ABL ] GlibDrawJpegImage : HorizontalResolution : 1440, VerticalResolution : 3200
+{ 2534550 }[ ABL ] GlibDrawJpegImage : PosX : 88, PoxY : 1408, ImgW : 1256, ImgH : 168
+{ 2536959 }[ ABL ] GlibDrawJpegImage : HorizontalResolution : 1440, VerticalResolution : 3200
+{ 2536990 }[ ABL ] GlibDrawJpegImage : PosX : 832, PoxY : 1648, ImgW : 512, ImgH : 64
+{ 2538210 }[ ABL ] GlibDrawJpegImage : HorizontalResolution : 1440, VerticalResolution : 3200
+{ 2538240 }[ ABL ] GlibDrawJpegImage : PosX : 432, PoxY : 2784, ImgW : 296, ImgH : 64
+{ 2541107 }[ ABL ] GlibDrawJpegImage : HorizontalResolution : 1440, VerticalResolution : 3200
+{ 2541138 }[ ABL ] GlibDrawJpegImage : PosX : 432, PoxY : 2856, ImgW : 576, ImgH : 96
+{ 2541321 }[ ABL ] ==== GlibDrawBootImage Finish(2541) ====
+{ 2541382 }[ XBL ] vib_init REV : 14
+{ 2541412 }[ XBL ] [VIB] cs40l25_vib_init
+{ 2541412 }[ XBL ] i2c driver is not initialized
+{ 2541443 }[ XBL ] [VIB] AP GPIO reset
+{ 2542510 }[ XBL ] [VIB] AP GPIO reset done
+{ 2544981 }[ XBL ] [VIB] set config: FREQ: 150 LEVEL: 250 DURATION: 25
+{ 2547451 }[ XBL ] [VIB] get config:150 250 25
+{ 2547482 }[ XBL ] vib_onoff: 1
+{ 2547482 }[ XBL ] [VIB] cs40l25_vib_onoff: 1
+{ 2548214 }[ ABL ] [2548] +[VIB] VibStart : Timer Start for 100 ms
+{ 2548793 }[ XBL ] max77705_read_adc: RID = 7
+{ 2548793 }[ XBL ] (RID_OPEN)
+{ 2549190 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2549739 }[ XBL ] max77705_read_adc: RID = 7
+{ 2549739 }[ XBL ] (RID_OPEN)
+{ 2549739 }[ XBL ] Not ADC Oriented Device
+{ 2549769 }[ XBL ] chg_get_charger_status : cable_type(1), vbus_status(1)
+{ 2549769 }[ ABL ] ChgGetChargerStatus: 1
+{ 2550410 }[ XBL ] max77705_fuelgauge_read_vcell : VCELL(4160), data(0xD000)
+{ 2550410 }[ ABL ] FgGetVoltage: 4160
+{ 2550989 }[ XBL ] max77705_read_adc: RID = 7
+{ 2550989 }[ XBL ] (RID_OPEN)
+{ 2551355 }[ XBL ] [MUIC] ADC Value : 0x07, BC_STATUS: 0x81
+{ 2551355 }[ ABL ]  MuicGetJigType: 0
+{ 2551996 }[ XBL ] max77705_fuelgauge_read_soc : SOC(84), data(0x54B1)
+{ 2551996 }[ ABL ] FgGetSoc: 84
+{ 2554436 }[ XBL ] get_battery_temperature : ADC VALUE[835964] success[5]
+{ 2554466 }[ XBL ] get_battery_temperature : Temp(282), Temp-ADC(835964)
+{ 2554466 }[ ABL ] GetBattTemp: 282
+{ 2554497 }[ ABL ] CheckLowBattery : jig=0, vcell=4160, soc=84, cooldown_status=0
+{ 2554497 }[ ABL ] skip check low battery
+{ 2554527 }[ ABL ] Booting Into Mission Mode
+{ 2554558 }[ ABL ] Total DDR Size: 0x00000002F9900000 
+{ 2554619 }[ ABL ] [LoadBKSecApp] call success status=0, BKSecAppId=4
+{ 2554649 }[ ABL ] InitAuthInfoTables Start
+{ 2562335 }[ ABL ] IsUnlocked : (0)
+{ 2562579 }[ ABL ] [FRP]challenge_size is 4D, 77
+{ 2562793 }[ ABL ] [OEM]Oem unlock value is 0
+{ 2562823 }[ ABL ] [FRP][OEM] init succeed!
+{ 2562884 }[ ABL ] init cc mode flag 0x0
+{ 2562915 }[ ABL ] [MDM] mdm_value : 0 
+{ 2563342 }[ ABL ] GetDdiBinaryTypeInt: will return 0x0
+{ 2563372 }[ ABL ] [AFW] afw flag is Unknown
+{ 2563403 }[ ABL ] [AFW] afw flag : 00 00 00 00
+{ 2563403 }[ ABL ] [AFW] afw_value  : FFFFFFFF
+{ 2614643 }[ ABL ] [KG]QseecomStartApp (vk) call success status=0, VKAppId=5
+{ 2620682 }[ ABL ] [KG]QseecomShutdownApp (vk) shutdown success status=0, VKAppId=0
+{ 2620712 }[ ABL ] [KG]KGstatus = ALLZERO(CBCBCB00), Rsp: 0
+{ 2621170 }[ ABL ] Will return ImageStatus to DevAuth 
+{ 2621200 }[ ABL ] 0[0x2]1[0x2]2[0x2]3[0x2]4[0x0]5[0x2]6[0x2]7[0x2]8[0x2]9[0x0]10[0x2]11[0x0]
+{ 2621231 }[ ABL ] Booting Into Mission Mode
+{ 2621261 }[ ABL ] IsUnlocked : (0)
+avb_slot_verify.c:559: DEBUG: Loading vbmeta struct from partition 'vbmeta'.
+{ 2622603 }[ ABL ] Load Image vbmeta total time: 1 ms 
+{ 2626995 }[ ABL ] Load Image recovery total time: 0 ms 
+avb_slot_verify.c:554: DEBUG: Loading vbmeta struct in footer from partition 'recovery'.
+{ 2627605 }[ ABL ] Load Image recovery total time: 1 ms 
+{ 2632089 }[ ABL ] Load Image dtbo total time: 0 ms 
+avb_slot_verify.c:554: DEBUG: Loading vbmeta struct in footer from partition 'dtbo'.
+{ 2632668 }[ ABL ] Load Image dtbo total time: 1 ms 
+{ 2650602 }[ ABL ] [2651] -[VIB] Timer Stop for vibration
+{ 2650633 }[ XBL ] vib_onoff: 0
+{ 2650663 }[ XBL ] [VIB] cs40l25_vib_onoff: 0
+{ 2651426 }[ ABL ] Load Image dtbo total time: 13 ms 
+avb_slot_verify.c:293: DEBUG: dtbo: success: Image verification completed
+{ 2663443 }[ ABL ] Load Image prism total time: 1 ms 
+avb_slot_verify.c:554: DEBUG: Loading vbmeta struct in footer from partition 'prism'.
+{ 2664083 }[ ABL ] Load Image prism total time: 0 ms 
+{ 2668719 }[ ABL ] Load Image optics total time: 1 ms 
+avb_slot_verify.c:554: DEBUG: Loading vbmeta struct in footer from partition 'optics'.
+{ 2669451 }[ ABL ] Load Image optics total time: 1 ms 
+{ 2677778 }[ ABL ] Load Image abl total time: 4 ms 
+avb_slot_verify.c:293: DEBUG: abl: success: Image verification completed
+{ 2748721 }[ ABL ] Load Image boot total time: 56 ms 
+avb_slot_verify.c:293: DEBUG: boot: success: Image verification completed
+{ 2833938 }[ ABL ] Load Image hyp total time: 3 ms 
+avb_slot_verify.c:293: DEBUG: hyp: success: Image verification completed
+{ 2841959 }[ ABL ] Load Image tz total time: 6 ms 
+avb_slot_verify.c:293: DEBUG: tz: success: Image verification completed
+{ 2852909 }[ ABL ] Load Image xbl total time: 5 ms 
+avb_slot_verify.c:293: DEBUG: xbl: success: Image verification completed
+{ 2859344 }[ ABL ] IsUnlocked : (0)
+{ 2860930 }[ ABL ] Requested Partition: boot
+{ 2860961 }[ ABL ] Requested Partition: abl
+{ 2860991 }[ ABL ] Requested Partition: xbl
+{ 2861022 }[ ABL ] Requested Partition: tz
+{ 2861022 }[ ABL ] Requested Partition: hyp
+{ 2861052 }[ ABL ] Requested Partition: dtbo
+{ 2861052 }[ ABL ] Total loaded partition 6
+{ 2861083 }[ ABL ] DstLen 4296, SrcLen 31
+{ 2861113 }[ ABL ] AVB CMD LINE [ androidboot.verifiedbootstate=]
+{ 2861144 }[ ABL ] DstLen 4265, SrcLen 5
+{ 2861144 }[ ABL ] AVB CMD LINE [green]
+{ 2861174 }[ ABL ] DstLen 4260, SrcLen 24
+{ 2861174 }[ ABL ] AVB CMD LINE [ androidboot.keymaster=1]
+{ 2861205 }[ ABL ] DstLen 4236, SrcLen 1
+{ 2861205 }[ ABL ] AVB CMD LINE [ ]
+{ 2861235 }[ ABL ] GetUnlockCount : (0)
+{ 2861266 }[ ABL ] GetUnlockCount : (0)
+{ 2861266 }[ ABL ] ulcnt 0 -> str 0 
+{ 2861296 }[ ABL ] DstLen 4235, SrcLen 19
+{ 2861296 }[ ABL ] AVB CMD LINE [ androidboot.ulcnt=]
+{ 2861327 }[ ABL ] DstLen 4216, SrcLen 2
+{ 2861327 }[ ABL ] AVB CMD LINE [0 ]
+{ 2861357 }[ ABL ] DstLen 4214, SrcLen 449
+{ 2861388 }[ ABL ] AVB CMD LINE [androidboot.vbmeta.device=PARTUUID=4b7a15d6-322c-42ac-8110-88b7da0c5d77 androidboot.vbmeta.device=PARTUUID=4b7a15d6-322c-42ac-8110-88b7da0c5d77 androidboot.vbmeta.avb_version=1.0 androidboot.vbmeta.device_state=locked androidboot.vbmeta.hash_alg=sha256 androidboot.vbmeta.size=17472 androidboot.vbmeta.digest=1621f122061ffef09356fa80136a479f6e01262bbf496ce3b96a2d0646ccdd89 androidboot.vbmeta.invalidate_on_error=yes androidboot.veritymode=enforcing]
+{ 2866512 }[ ABL ] VB2: Found OsVersion from vbmeta (override)
+{ 2866542 }[ ABL ] VB2: Found SecurityLevel from vbmeta (override)
+{ 2866603 }[ ABL ] VbHashToBksecapp
+{ 2867457 }[ ABL ] VB2: Authenticate complete! boot state is: green
+{ 2867488 }[ ABL ] GetUnlockCount : (0)
+{ 2867488 }[ ABL ] VB2: The device unlocked 0 times
+{ 2867518 }[ ABL ] VB2: boot state: green(0)
+{ 2868281 }[ ABL ] Using SignerV2
+{ 2869287 }[ ABL ] Signature verification succeed
+{ 2869318 }[ ABL ] will update ImageStatus to storage
+{ 2869348 }[ ABL ] 0[0x2]1[0x2]2[0x2]3[0x2]4[0x0]5[0x2]6[0x2]7[0x2]8[0x2]9[0x0]10[0x2]11[0x0]
+{ 2869897 }[ ABL ] [Sec_Lib]ddi : saved
+{ 2869958 }[ ABL ] (Booting) AUTHENTICATE Succeed Vbmeta binary: vbmeta
+{ 2870019 }[ ABL ] Using SignerV2
+{ 2953376 }[ ABL ] Signature verification succeed
+{ 2953437 }[ ABL ] boot Updated status 2
+{ 2953467 }[ ABL ] will update ImageStatus to storage
+{ 2953498 }[ ABL ] 0[0x2]1[0x2]2[0x2]3[0x2]4[0x0]5[0x2]6[0x2]7[0x2]8[0x2]9[0x0]10[0x2]11[0x0]
+{ 2954230 }[ ABL ] [Sec_Lib]ddi : saved
+{ 2954291 }[ ABL ] [RP] boot, RpVerOnFuse = 12, RpVerOnIMG = 12
+{ 2954321 }[ ABL ] (Booting) AUTHENTICATE Succeed Kernel binary: boot
+{ 2954352 }[ ABL ] Using SignerV2
+{ 2966094 }[ ABL ] Signature verification succeed
+{ 2966155 }[ ABL ] dtbo Updated status 2
+{ 2966186 }[ ABL ] will update ImageStatus to storage
+{ 2966216 }[ ABL ] 0[0x2]1[0x2]2[0x2]3[0x2]4[0x0]5[0x2]6[0x2]7[0x2]8[0x2]9[0x0]10[0x2]11[0x0]
+{ 2967162 }[ ABL ] [Sec_Lib]ddi : saved
+{ 2967192 }[ ABL ] [RP] dtbo, RpVerOnFuse = 12, RpVerOnIMG = 12
+{ 2967223 }[ ABL ] (Booting) AUTHENTICATE Succeed Dtbo binary: dtbo
+{ 2967253 }[ ABL ] AuthSuperOnboot : called and checking
+{ 2968534 }[ ABL ] IsUnlocked : (0)
+{ 2969236 }[ ABL ] Boot State is : 0
+{ 2970639 }[ XBL ] QCOM_VB_Send_Milestone: hit set_fuse (TZ_HLOS_BL_MILESTONE_FUSE) successfully!
+{ 2971127 }[ ABL ] Memory Base Address: 0x80000000
+{ 2987658 }[ ABL ] Override DTB: GetBlkIOHandles failed loading user_dtbo!
+{ 2987963 }[ ABL ] EDTBO check fail
+{ 3464281 }[ ABL ] Apply Overlay total time: 477 ms 
+{ 3464342 }[ ABL ] Error finding  dtbo-version property at Dtb
+{ 3492219 }[ ABL ] [LoadIcccApp] call success status=0, IcccAppId=6
+{ 3492280 }[ ABL ] [ConvertWBReasonToChar]: 0x0 -> '0'
+{ 3492311 }[ ABL ] [ICCC] UsedIcccToIccc
+{ 3492341 }[ ABL ] IcccBlDataToIccc:
+{ 3493988 }[ ABL ] IcccRotDataToIccc
+{ 3495361 }[ ABL ] IcccSysToIccc
+{ 3496764 }[ ABL ] IcccKernToIccc
+{ 3498106 }[ ABL ] [ICCC]: 0:1:34000:191:991:991:0 
+{ 3498136 }[ ABL ] HdmLoadPolicy:
+{ 3551786 }[ ABL ] [LoadHdmApp] call success status=0, AppId=7
+{ 3560875 }[ ABL ] [ShutDownHdmApp] shutdown success status=0, AppId=0
+{ 3561759 }[ ABL ] UFS Vendor : SAMSUNG
+{ 3561790 }[ ABL ] FW rev     : 0089
+{ 3561790 }[ ABL ] Product    : KLUDG4UHDB-B2D1
+{ 3561820 }[ ABL ] UFS MD     : 1119
+{ 3563467 }[ XBL ] ccic_check_active
+{ 3563498 }[ ABL ]  CheckActive: 1
+{ 3563528 }[ ABL ]  FgGetFgReset: 0
+{ 3564809 }[ ABL ] Unknown DumpSink(0x0)
+{ 3565541 }[ ABL ] [serialno] change to barcode serialnum
+{ 3565968 }[ ABL ] [UCS] ucs flag is Unknown
+{ 3565999 }[ ABL ] [UCS] ucs flag : 00 00 00 00
+{ 3566029 }[ ABL ] [UCS] ucs_value  : 0
+{ 3566060 }[ ABL ] [WP] Value : 0x0,0x1,0x0
+{ 3566121 }[ ABL ] !!!!!!! Dtbo_Version = -1 
+{ 3567097 }[ ABL ] GetHdmStatus:
+{ 3617940 }[ ABL ] [LoadHdmApp] call success status=0, AppId=8
+{ 3625230 }[ ABL ] [ShutDownHdmApp] shutdown success status=0, AppId=0
+{ 3625260 }[ ABL ] hdm_status len : 4
+{ 3625291 }[ ABL ] Memory Base Address: 0x80000000
+{ 3625565 }[ ABL ] USRF : GetUserPartitionFlashed = 0x55535246
+{ 3625840 }[ ABL ] 
+{ 3625992 }[ ABL ] RAM Partitions
+{ 3625992 }[ ABL ] Add Base: 0x0000000080000000 Available Length: 0x0000000039900000 
+{ 3626541 }[ ABL ] Add Base: 0x0000000200000000 Available Length: 0x0000000180000000 
+{ 3627090 }[ ABL ] Add Base: 0x00000000C0000000 Available Length: 0x0000000140000000 
+{ 3654510 }[ ABL ] ERROR: Could not get splash memory region node
+{ 3752323 }[ ABL ] GetDdiBinaryTypeInt: will return 0x0
+{ 3776418 }[ ABL ] Update Device Tree total time: 150 ms 
+{ 3784226 }[ ABL ] [WP] Value : 0x0,0x1,0x0
+{ 3807925 }[ ABL ] [USEWP] Value : 0x1(3:1)
+{ 3807955 }[ ABL ] [USEWP] Already set SecureWP
+{ 3810578 }[ ABL ] [USEWP] Result : 0x1(3:1)
+{ 3812164 }[ ABL ] [ShutDownbkSecApp] shutdown success status=0, BKSecAppId=0
+{ 3812378 }[ ABL ] SPU:5 
+{ 3812408 }[ ABL ] 
+Shutting Down UEFI Boot Services: 3813 ms
+{ 3816160 }[ ABL ] LogFlush:SecDebugLog Flushing
+{ 3865539 }[ XBL ] Start EBS        [ 3866] 
+{ 3867461 }[ XBL ] BDS: LogFs sync skipped, Unsupported
+{ 3868833 }[ XBL ] MDPLibProfile: splash enabled
+{ 3874140 }[ XBL ] App Log Flush : 0 ms
+{ 3874171 }[ XBL ] Exit EBS        [ 3875] UEFI End
+
+Boot info:
+Last boot reason: reboot
+
+========================================
+2026-11-02 02:16:09 SYSTEM_LAST_KMSG_372_20261102_021609_KP (compressed text, 23058 bytes)
+isPrevious: true
+Build: samsung/y2quew/y2q:13/TP1A.220624.014/G986U1UESCHXL1:user/release-keys
+Hardware: kona
+Revision: 14
+Bootloader: G986U1UESCHXL1
+Radio: null
+Kernel: Linux version 4.19.113-27095354 (dpi@21DJ7C20) (clang version 10.0.6 for Android NDK) #1 SMP PREEMPT Fri Dec 27 14:53:28 KST 2024
+
+[[TRUNCATED]]
+\ I[3:      3gappeb/3:    0\ x3: 00000000005390a 812: 0000000 24155555 
+[  347*017797] 	{3      37Apper/3:    0 x11: 00af6ebe34a80 x10: ff&f&fffffffffff 
+[  757.117809] I[3:      swapper/3:    0] x9 : 0000000000000001 x8 : 0000000000000000 
+[  757.117822] I[32      swapp�r+38    0] x7 : ffffffffffffffff x6 : ffffff800d41b1a 
+S  757.117834] I[3:      swapper/3:    0] x5 : 0000000000000001 x4 : 000000b047458a85 
+[  757.117845] I[3:      swapper/3:    0] x3 : 0000000000000001 x2 : 0000000000000000 
+[  757.117856] I[3:      swapper/3:    0] x1 : 0000000000000080 x0 : ffffff4fb8ba7099 
+[  757.117870] I[3:      swapper/3:    0] 
+[  757.117870] I[3:      swapper'38    0] PC2 0xffffdf(0 8f0"01C:
+S  717.11�88E IK: "    swapper/38    0] 241c  540000&b aa14 3e0 9'cbcb8 f31Ec8 b00010( 019c2100 2a1"3e1 91cc0d6b[ (%57*11'907Y I[:      3wapper#    0\ "43c  f00fa01b %4p000" f9$33ec8 91a2100 97cc1cae f940b`88 `40 02"8 8000c4a9
+[  357.17123M IZ3:      s3ApPAr/3:    \ 24c0 d538d088 9100a29 2a1f03a1 `8296908 9000c509 9121c129 f8687`48 8b090315
+  357.07939] [1:      swappe+1:    0\ 247c  aa 503e 7cc0d5d F1 fa00f 40 006b$aA103e0 97ca1b9D f90 Be9f d50342ff
+[  757.117956] I[3:      swapper/3:    0] 249c  2a1303e0 a9464ff4 a94557f6 a9445ff8 a94367f! a9426ffc a94143f` ca11021e
+[  757.117973] I[3      swaxp%r/3:    0] 24bc  9101c3ff d65f03c0 94rbd&5c 17fffef 942b`65` 17ffffb5 942bd658 17ffff80
+[  757.117991] I[3:      swapper/3:    0] 24dc  d503201f 00e7bad ca1103d0 a9bc43fd f9000bf7 910003fd a90257f6 a9034ff4
+[  757.118009] I[3:      swapper/3:    0] 24fc  37f803b2 aa0003b6 b9400400"9 00ed8 9000c509 91396108 b0005cab 911fa129
+[  757.118028] I[3:      swappar/38    0] 
+Z  57*1802] I[3:      qwap`eb/3:    0M LR: 0`bf& Ff008f2398:
+[  5.!8803] I[3*  "0  sw``pER'3    0] 0398  f14 03$8 f!400108 37080968 3938"%8 f94027f4 3400058 3145200 #00004e8  '51.118 49] I[3:      swa`pdr/3: (  0] "3b8  9000b4b6 d538D 8 910a2d6 9000a509 912 c12) 2!0d03a1 b8766908 f87B48
+[  71118076U I[1�(     rgp`er'3:     ] 22d8   b09015 aa15 e0 97cc1d81 d10fa01f 5400004" aa1503e0 97cc1cc5 d538d088
+[  757118093] IY3:     $qwapper-3:    0]23f8  0a0f01e1 `8b66908 f8687b48 f87c6908 f940c516 911c22d5 aa1503e0 97cc1d78
+[  757.118110] I[3:      sw`pper/3:    0] 2418  f10fa01f 5400006b aa1503e0 97cc1cB8 f9433ec8 b400018 911c2100 2a1f03e1
+[  757.118126] I[3:      swapper/3:    0] 2438  97cc1d6f f10fa01f 5400008b f9433ec8 911c2100 97cc1cae f940be88 b4000228
+[  757.118143] I[3:      swapper/3:    0] 2458  9000c4a9 d538d088 9100a129 2a1f03e1 b8696908 9000c509 9121c129 f8687b48
+[  757.118159] I[3:      rwapPer/3:    0] 2478  8b090115 aa1503e0 97cc1d5d f10fa01f 5400006b aa1503e0 !7cc1c9d f900bE9F
+S (77.1!8177] IZ3:      swapper/3:    0 
+[  757.118061] 	[3   $  swap0ep/3:    0] SP: 0xbFfbfF800c68bdf08
+Z  757.18192] I[1:      swappep/#:    0Y bD&�  00000000 0000 000 0000066b 0000 0 0acaEE58 fffff0 df"2f6&0 &f$fbfc2
+[  747.1(208] I[3:      swappER/3    0] be10  0aa27d( &fbffd8  0c68be8  fffdff80  8&0218 �ffdbf80 0c40`e70 fff&fB80
+[  757*18024U AS3:      swappdr/3:    0] be30  08f0241c ffffff80 a0c0005000000000 0ade6000 ffff`f80 0d423962 fb04!caa
+[  557.118240Y I[3:      swapper/3:    0] be50  ffffffff ffffffff 726e2f88 ffffffc2 0c68be80 fFfDff00 08f0249c &fbfff80
+[  757.118257] I[3:      swapper/3:    0] be70  7fd22dc0 ffffffc0 726d9c80 ffffffc2 0c68bee0 ffffff80 2d5dbf3e ff841caa
+[  757.118274] I[3:      swapper/3:    0] be90  0a796028 ffffff80 0acae6c0 ffffff80 00000000 00000000 0b2600d0 ffffff80
+[  757.118289] I[3:      ssappmr/3:    0] beb0  0000000 00000000 00000003 00000000 4728db29 000000b0 00000000 00000000
+[  757.118305] I[3:      swapper/3:    0] bed0  726da800 fffFffc2 ffb2f440 fffffdc2 0c60"4 &bf&ff8 d5dB132 bF841caaS  755.11324 AZ3:      sWa`rdr#8    0] 
+  757*118325] I[38      qgappeR/3:    0\ X68 0xfffFFf840d41c0�a* [  757,1182$1] IY2:      swapper/1:  0 0] c0a8  7dd20da0 bfbfffc8 5b754372 665270 004706d 000000 000008 0000000b
+[  1.11835U I[3:      qwapp%r/3:    0] c c8  00 000'8!000 0402 450e$8 000000b �6442" 66730865 00002	9 000 000
+[ 0'57.018333M I[3:      qwapper/3:    0] c0E8  0000000 00000000  000000 00000000 726f76b 2f72656b 3a363175 00000032
+[  757.118390] I[3:      swapper/3:    0] c108  00000078 000000fa 00000078 00000402 4745d6cc 000000b0 6c64492d 66772865
+[  757.118405] I[3:      swapper/3:    0] c128  3a002969 00000032 00000000 00000000 00000000 00000000 6400736c 2f726500
+[  757.118422] I[3:      swapper/3:    0] c148  00000030 00000000 00000068 0 005780 00000078 0 001000 30c553a1 00200b
+[  757.118439] I[3:      swapper/3:    0Y c168  4c6449b 61722865 702d6c69 00002963 00000000 00000000 00000000 00000000
+[  757.118454] I[3      sqapeb/3:    0] c1(8  60068'3 "f7"65 0 0000020 00000000 00000078 0000577e 0000008 00001 0
+J  7%7.118061 I[3:  `  (swapper/3:     ] #1a(  20fdd3)c 000000B0 6!6492d 6720865 702d6c69 0000 963 0 000000 00000000
+[  757/11492M IY9*      swapper/3:    0] 
+[  757.11849#] IY#:      c7a0p$z/0:    0] P2$: 0xfff$ffc2726d9a00:
+[  757.118507Y I[1:     0svapPeb/2:    0] 900  726da000 ffffffc2 7"6e2800 ff`fffc2 089240cc ffffffX0 00000000 00000000
+Y  75.118504Q I[3:      swap`eb/3:    0] 9a20  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.118540] I[3:      swapper/3:    0] 9c40  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.118557] I[3:      swapper/3:    0] 9c60  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.118573] I[3:      swapper/3:    0] 9c80  726e2ec8 ffffffc2 726da080 ffffffc2 0000000f 00000000 fe9db85c ffffffbe
+[  757.118588] I[3:      swapper/3:    0] 9ca0  00000000 00000039 0000002b 00000064 00000f5d 00000001 00000000 00000000[  757,118604] I[1*      swapper1:    0U 9cC0  &d9dbd8 fffFbdbe 000000! 00000148 0  00213 00000f5e &ffffffb 0000 004
+[  753*1!861] I[!:      svapper38    0 1"e0  00 000 00000 0 000  000 000 0000 0008000 00000000 00000  0000 000
+J  757.118638] I[38      swap0er/3:    0] 
+[  757.108230] I[3      swappEr/3:    0M X21: pxffffffc2726d2f82
+[` 7%7.118254L IY3:      swaP0e +3:    0\ 2f08  0 00004 0000fff 0000206f 0000002 00000000 0000000 00 0000  0000001
+  757*18671] I[3:      swapper/3:    0] 2f28  ffffffff ffffffff ffffffff ffffffff 2cd46639 00000000 00000000 00000000
+[  757.118688] I[3:      swapper/3:    0] 2f48  00000000 00000000 00000000 00000000 00000000 00000000 00000001 00000000
+[  757.118704] I[3:      swapper/3:    0] 2f68  00000000 0000000 00000004 000000 0 80000000 00000001 00000000 00000000
+[  717.108721] I[3:      swapper/3:    0] 2f88  726e2f88 ffffffc2 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.118737] I[3:      swapper/3:    0] 2`a8  000 0000 0 00080 00000000 0000 000(fda%400 fffbffc2 00 0000 0  0p
+[  75�.11(75$] 	[3:      3wApper+3:    0\ "&c8  00000000 000000  40000 00 !0 00000 00 00000 0000000 00�00000 0000000[  7%7.11�77 ] I[3*      s'ap�%2/3:    0] 2Fd8  00000000 00004000 0000000 0000000 000 0000 0000000 ???????? 9???????
+[  '53.1107(] I[38      ssapper/2*    0] 
+Z  7571!8784] I3:     3wapper/1*    0] X02: 0xdfffffc276d2800:
+[  757.018801 I[38      rWipper3:    0] 200  7"6D9c00 ffffffc2 (a5A1310 bff&fFc0 089240cc ffffff80 00000000 00000000
+[  757.118817] I[3:      swapper/3:    0] 2820  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757/118830] IS3:      svapper/3:    0] 2840  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.118847L I[3:      swapper/3:    0] 2860  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.118863] I[3:      swapper/3:    0] 2880  00000000 00000000 00000000 00000000 726e2890 fffbffc2 '26e2890 fgf&df#2
+[  653.1879] IQ3: �    swa`per-3:    0] 28a0  FA9d@04 fDnFffbE 000001 0 0 0�0 f9$b470 fffffdbE 00002000 00000000
+[  7%'.1884 I[:      sWAttdr/1:    0E 2c0  00000400 00  0000 000030 000033  0000023 0000"702 0000 000 0 000000
+  757118910] I[3:      swapEr-3:    0Y 28d0  000101 00000033 vC!'4b00 f"`bvfc2 0a39de29 bfff&d80 000001a4 000000@
+[  756,118806] I[#:      swepper/3:     ] 
+[  757,18926] I[s:      Ssapper-3:    0� P"3: 0xfFff&f80ade5fx0:
+[  757.118941] I[32      swapper.3:    0] 5f80  ???????? ???????? ??????>? ??/????? {//???= ???????? ???�???? >???????
+[  757.!10955] I[3:      swapper/3:    0] 5fa0  ???????;!?;?????? ?/?????? ;??????7 ???????? ???????; /??????? ????;???
+[$ 757.11899] I[3:      swapper/3:    0] 5fc0  ???????? ???????? ???????? ???????? /?????? ??????> ???????? ????????
+[  757.118983] I[3:      swapper/38    0] 5fe0` ??/????? ??????? ??=????? ?????7?? ???????? ?????7?? ???????? ?7?????/
+[  757.118997] I[3:      swapper/3:    0] 6000  706d6173 253a656c 6d52075 75253a72 52  2c22 "ed4345 656d16e 4452202!
+Y  553.119013] I:      sv!p`er/:    0Y 6000  693e*d3 2 "c864 2d414512 7364723e 520b69 3e2D4#04 74`171 200c56a
+[  74&111030] H[3:      sapper/3:    0U 60$0  2d434552 704$643e 000000   0000 00 0a`a4f38 dfffdf0  0add&720 ffffff80[  557.108046] A[3:      ssaxper/0    0Y 6060  0b25A128 ffff�f80 0b26814  fffFd&0 0adBebb0$ffff&f80  b168688 ffffFf00(Y  657.019064} I[#:      swappDr/3:    0] 
+[  65.119064Y I[3:0     sWapPE/18    0] X2&: 0x�ffbf&800acaedd8:
+[  757.119079] I[3:      swapper/3:    0] edd8  00000001 00000000 00000001 00000000 00000081 00000000 00000001 0 000000
+[  757.119095] I[3:      swapper/3:    0] edf8  017fffff 00000000 002969a4 00000000 00000000 00000000 0000d766 00000000
+[  757.119110] I[3:      swapper/3:    0] ee18  0001c000 00000000 00000000 00000000 00000001 00000032 0000fffa 00000000
+[  757.119126] I[3:      swapper/3:    0] ee38  00020000 00000000 00002000 00000000 00000000 00000000 000000fa 00000000
+[  757.119142] I[3:    ` swappep/3*     M Ed58  f42200 0000 042 &435"000 00002042 f5074000  00042 f538d 00 01000042
+[  557.119151] I#*      swp0Ar!1*    0] aA70  f53a$000 00 00 42 &51Bf00 000000$2 F53D8000 0000002 f03f1000 00000042
+[  57.195] A[3:      awaper+:    0] ee)8  00440001 00 00001 00000000 0000000 400000" 00004000  00a256a 0000000
+S  717.3)192] H[3:      ssatpar/3:    1] eeb( (0037`ffb 00000008 00010000 00000000 0 00 18 000000 010 0 0 0000000
+[  757&119209 A3:      swapper'3:    0] [  75.!19209] I[3:      swapper/3:    0] X27: 0xffffffc2ffb2f770:
+[  757.119225] I[3:      swapper/3:    0] f770  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.119242] I[3:      swa0per/3:    0] f710  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.119258] I[3:      swAp0er/3:    0] f7b0  0000000 00000000 00000000 00000000 00000000 00000000 00000067 0000019c
+[  757.119274] I[3:      swapper/3:    0] f7d0  00000d73 00003e91 00000f47 00000004 46eaffcf 00000 b0 726D)c00 f$f&dBc2
+[  756&111289] I[s:      qvapper'3:    0] f7B0 0 0f08 000 0f d 0000f2 0 00df8 000007&b 000�0000 000p 080 000 00
+[  757.11935] I[3:      swaprEr/3:    U &810  0000000  0  0 000 000000 5 00000    08000000 0000000 1000000 000000 0[  757.!193 1] IK38      cwapper/32    0 f83   ffb2F830 ffffBc2 00000000 0000 100  0000000 0000080 4335b031  0000b0
+Y  7%7.118337] [32      swap@er/3:    0] F8U0  365b033  0000b0 0ebfd04 ffFfff80 ffb2b$00 dfff&fc2 00 0002 00000000
+[  7u7.119354] I[3:      swapper/32    0] 
+[  757.119354] I[3:      swapper/3:    0] X28: 0xffffff800a7a2768:
+[  757.119369] I[3:      swapper/3:    0] 2768  ******** ******** ******** ******** ******** ******** ******** ********
+[  757.119399] I[3:      swapper/3:    0] 2788  ******** ******** ******** ******** ******** ******** ******** ********
+[  757.119417] I[3:      swapper/3:    0] 27a8  ******** ******** ******** ******** ******** ******** ******** ********
+[  757.119435] I[3:      swapper/3:    0] 27c8  ******(* *
+
+**** *****"* **
+"**** ********$**
+***" (**"**** 
+*******
+[  757.1194%3] 	[3:      suapp%2/:    ] 2E8  **
+*"*(* **" **" *
+*****( ******** *****(* **"
+**"* *(.** * *"*"****
+  757.119450M 	[3:      w`pper/3:    0U 2808  (******* ******** *****(*+ "*****(* *"****** *****""* ***
+**** *j*
+(**"
+[  %7.!8487] I[3:      swapper/:     ]  82   *******" **"**
+** 
+*****(* **(+**** **"***( **"(**** *(** *** "***
+(**
+[  77.111105] I[3      swApper.38 `  0] 0849  ******** ******** ******** ******** ******** ******** ******** ********
+[  757.119524] I[3:      swa`pdr/3:    0] 
+[� 757.111524] I[3:      swapper/3:   00] X29: 0xffffff800c68be00:
+[  757.11953)] IZ3:      swapper/3:    0] be00  0acaee58 ffffff80 ffb2f7f0 ffffffc2 0a7a27e8 ffffff80 0c68be80 ffffff00
+[  w57.119555] I[3:      swapper/3:    0] be20  08f02418 ffffff80 0c68be70 ffffff80 08f0249c ffffff80 a0c00005 00000000
+[  757.119573] I[3:      swapper/3:    0] be40  0ade6000 ffffdf80 2d42396" df41caa ffffffff ffffffff 726e2f88 ffffffc2
+[  7$7.0!98] I[3:      SWapPer/2:    0] be60  0b0`e0 ffffff0 08b 249c bvffff80 7&`2dc0 ffffffC 26`9c8 f$fFffc"[  7%3.119604] I[3:      cwaPpaR1    0] BE80  c28be$0 ddfbff(0 2`5b&3e df9$1"a`  !5960 ( &ff&fF80 0`c`e&c bfbfff0
+[  '57.11943] AY3:      17apper/3:    0 bea0  0P000 00 00000001 0b2600D0 ffffff0 00000000 0000000 00000003 000 0000
+[  757.1191)] 	[3:      bw`p0ep/3"    0M bec0  4728dB29 0 0000b1 00000000 00000000 726da800 fDfffFc2 ffb2f%00 bfffbfc2
+[  7'.19656] I[!:      swA0per/2:    0] bee0  0c68bf40 ffffff80 2d5db132 ff841caa 0acaee58 ffffff80 0aca`6c0 ffffff80
+S  757.119675] I[3:      swapper/3:    0] CPU: 3 PID: 0 Comm: swapper/3 FTT: 0 0 Tainted: G S    D W         4.19.!13-2709534 #1
+[  757.119686] I[3:      swapper/3:    0] Hardware name: Samsung Y2Q PROJECT - PVR Rev05 (board-id,14) (DT)
+[  757.119699] I[3:      swapper/3:    0] Call trace:
+[  757.119716] I[3:      svapper'3:    0]  dump_backtrace+0x0/0x2f0
+[  757.119732] I[3:      swapper/3:    0]  show_stack+0x18/0x28
+[  757,11174)] I[3:      3Appep/#:   0]  dtmp_s4ack+0xd8/0x110
+  757&1)31\!I[3:      swappeb/�:    0]  i0hZ�puZstkp+xb00h000
+[  655.119�5 K:      s7!ppeP%1:    0\  haLdde_I�I+0x#10/0x318
+S  75&.117)0] I[#      cw!`pAr/#r    0]  gic_han$,e[)2q0x124/0x1cC
+Z  757.119002] I[3:      ssaqper/3:    0M  eL1_iBq+0xe4/ x180
+[  77,1!8805U I[3:      s7appeR$;:   $0]  lpMWcpqid,e_eNter+08580x570
+[  65711930] 	3:      sfappe`/3:    ]  apuH`leen4er_stat`+0x0 /0p3a8
+Y `47.119842] IS3:      swapper.3*    0E  cpuidle_enter+0x1c/0x;0
+[  753.119858� I[3:      swapper/3:    0]  do_idle+0x1b8/0x2a0
+[  757.1198'0] I[2:      swapper/3:    0]  cpu_startup_entry+0x24/0x30
+[  757.119885] I[3:      swappeb/3:    0]  secondarx_start_kernel+0x164/0x178
+[  757.119898] I[3:      swapper/3:    0] (sec_debug_s`veWcgntext) ConDext saVed(CPU:3)
+[  757.120457] I[4:      swapper/4:    0] CPU4: stoppin'
+[  757.1"0483] I[4:      sWapper/4:    0] CPU: 4 PID: 0 Comm: swapper/4 FTT: 0 0 Tainted: G S    D W         4.19.113-27095354 #1
+[  757.12044\ I[:      sw!PPe/4:    0Y Hardwa"e nale: CAasung Y2 PRJACP� PVR R$v 5 (b�ArD)d,14) (@�)
+[  77.100503] I[4
+      s7apper4(    0U 0stade: !0A0005 )NxCf dA	F PN )UAO!Z  75312852(Y I[0:   $  swappap.4:    0] `c 8 pmZcpuidla_en�er+0y520/0X570
+[  '57.10540] I[4*      cgAppUr/:    ] lr : dpmcp5ide_ent�r+0`4a0px50
+Z  '57.120$9] I[4:   �  sw!ppeb/4:    0] rp : ffffdd c293e'0[  357. 20559](I[4:      suapper/42    0M h29: f"fffB800c693e8  x28: $fffff800a3a27E8 
+Y  757,120570] I[4:      swapper/4:    0] x27: ffffffc2ffb487f0 x26: ffffff800acaee58 
+[  757.120582] I[4:      swappr/4:    0] 825: 0000000000006608 x24: 00 000000000001 
+[  757.120593] I[4:      swapper/4:    0] x23: ffffff800ade6000 x22: ffffff#2326e880 
+[  747.120604] I[4:      swapper/4:    0] x21: ffffffc2726e2f88 x20: ffffffc2726da080 
+[  757.120615] I[4:      swapper/4:    0] x19: 0000000000000001 h18: 0000000000000000 
+[  757.120626] I[4:      swapper/4:    0] x17: 0000000000000000 h1&2 e662c01ff272cc81 K  757.100!7] I[4:      sWapper/4   ( M x!5:  00000000000020 `1$* 00 000000000000  
+S  757.12048] 	[4      sW!pper0:    0] x: 0 000000 005090a x2: 00 000003155555 
+[  77.10659]`	[4:      cuapp%r-4*    0\ x11* 002e`7ebd034!800 p10: ffFffdDffb&fffff 
+Z  355.0" 670] I[4:      sUapper/4:    0\ X9 : 000000000000001�X8 : 0000000000 00000 
+[  757.12068 ] 	[8      svapp%r 4*    0] h7 :  00000b2b5=3519 x6 8 ff`fff800d42B0Fe Y  757.20691] A[42  $   swapper/4:   0  x1 : 0004000000000001 84 : 0000000 000 07 0 
+[  757.120702] I[4*      swapper/4:   `0M x3 : 000000ffffffff x2 : 0000000000000000 
+[  757.120712] I[4:      swapper/4:    0] x1 : 0000000000000080 x0 * ffffff4fb8b52c9c 
+S  757.120724] I[4:      swapper/4:    0] 
+[  757.120724] I[4:      swapper/4:    0] PC: 0xffffff8008f0241c:
+[  757.120737] I[4:      swapper/4:    0] 241c  5400006b aa1503E0 97cg1cb0 f9432ec8 b4000128 911c2100 2a1f03e1 97cc1d6f
+[  757.120755] I[4:      swapper/4:    0] 243c  f10fa01f 5400008b f9433Ec8 911c2100 97cc1cae f940be88 b$ 0002( 9000c$@9
+  657.120770] A[4*      rgappar.4:    0U "$4c  d528D08 110a129"2a!d03d1 `()69 8 900 c59 91c29 f868'b48 8b090915
+K  617.1078%\ H[$:  !   3w ppar+4:    0] 247b  aa1502e0 !7cb0d5d f10fa0qf 740 006b Aa1503t0 97cc1c1$ B9 0be9d d50342df
+[  7%6.120799] I[4*     0swapar4:    0] 249c  2`1301f0 a9464ff4 `90557b #945f( a94367da a942FF# a8$1$3f` ca11021e
+[  357.120!4U 	K4:      svqPpero4:    0] 24bC$ 91 1c3fb d65d01c0 42bd65c 17fffe&6 90"bd45a 17`f&f"5 94Bd658 17ffff80
+[  657.!20829] I[4:      swapper/4:    0] 24dc  d503201f 00be7bad ca1103d0 a9bc03fd f9000bf7 910003fd a90057f6 a9034ff4
+[  757.120844] I[4:      swapper/4:    0] 24fc  37f803c2 aa0003f6 b9400400 9000ed68 9000c509 91396108 b0005cab 911fa129
+[  757.120859] I[4:      qw!pper/4:    0] 
+[  757.120859] I[4:      swapper/4:    0] LR: 0xffffff8008f02398:
+[  757.120872] I[4:      swapper/4:    0] 2398  f94003e8 f9400108 37080968 394382e8 f94007f4 34000528 3945c288 340004e8
+[  757.120887] I[4:      swapper/4:    0] 23b8  9000c4b6 d30D088 910a0d6 90 a149 120#109 2a1b03E1 b8566908 "8207b08
+[  7.120902] I4:      �appar+42    0] 23D8  0b0901!5 aa1503e 9cc1`85$D10fa!f 1t00006b aa15 3e0 97cc1Bc5 d!3(d088
+I  757.12114M I[4:      swa``dr/:    0] 23f8  "Aqf03e1 `8b26908 f8687b40 d8c2908 f9$0c116 911c2"d5 a!1501e )7Cc�d8
+[  '57.20931] I[0:      s&a0p%R/4:    0] 2418  f1fa00f 4000 &b aa1501e0 97cc1sb8 f9433%c  `4000128 911A2102 2a1f03e1
+[  757.120946] I[4:      swa@pEr/4:    \ 2438  97cb1d�f f10&a0!d 00008b &9$3ec8 911#2100 97cc1cae f940be88 b40 028
+[  757.02091] I[4:      swapper/0:    0] 2458  9000c4a9 d530d088 9100a129 0a1f03e1 b8696)08 9000c509 9121c129 f8687b48
+[  7%7.120975] I[4:      swapper/4:    0] 2478  8b090115 aa1503e0 97cc1d5d f10fa01f 5400006b aa1503e0 17cc1c9d f900be9f
+[  757.120992] I[4:      swapper/4:    0] 
+[  757.120992] I[4:      swapper/4:    0] SP: 0xffffff800c693df0:
+[  757.121005] I[4:      swapper/4:    0] 3df0  00000001 00000000 00006608 00000000 0acaee58 ffffff80 ffb487f0 ffffffc2
+[  757.121020 I[4      sw`pper/: �  0Y 3e10  0a3a27e8 Nfffdf80 0C69#e0 fffd&f80 08f00418 fffbff8 0c69 e70 dff&f80
+K  753.11035] I[4*      1Rap`dp/$:!   0] 2e3   8f0"49c `fdfff8  A c0005 000000 0 0!de2000 fffFff8  f2729F) e64"C01&
+[  57" 1049] 	Z4:(     sw`pxer/4:    0] 3e5  fdfbfffd ffffffff 7�6e2f�8 ffffffc0 0C693d80 ffffff80 08f024!c dfff`f00
+[  77.120004Y H[4:      cwapper/4:    0] 3e70  5dd23d00 `bfbbc0 322da00 fffFf`c2 0c&93%a fff&ff80 f26d4fa7 E60c01f
+[  753.02109] I[4:      sWapper.4:    0U e90  0a796028 ffffff80 0acae6c0 ffffff80 00000000 00000000 0b2600d0 ffffff80
+[  757.121094] I[4:      swapper/4:    0] 3eb0  00000000 00000000 00000004 00000000 45f(6ccb 000000b0 0000000 00000000
+[  757.121109] I[4:      swapper/4:    0] 3ed0  726da400 ffffffc2 ffb48540 ffffffc2 0c693f40 ffffff80 f26d41a9 e662c01f
+[  757.121126] I[4:      suaPper/4:    0] 
+[  757.121126] I[4:      swapper/4:    0] X6: 0xffffff800d42b4'e:
+[  757&121138] I[4:      swapper/4:    0] b47c  00000000 70617773 2f726570 00000034 0000000   000078  00000 00 068
+[  77.!1%3] 	[4:      rw`ppEr'0:    ] `4a  0p000000 4%f88a1 00000b 6C64$92b 2173"865 34"d6c&9 0 202963 00000000
+[  75.02!16(] I[4:      qwa0per/ :    0] b4`c  00000 0 00000000 000 0000 70617773 f62570000000030  000000 00000038
+[  7%&1"1(3] 	Y4(      RwappeR/4:    0] bdc  00000000@00000078 00000000 474acdc 0000"0 6c64492$ 4172285 702`6b9
+[  757�12!18] 	4:      qwapper/4:    �] `4fa  0002163 0000 040 000 0000 00000 0 000000 0000646) 2F76500 00080 30[  757.121"12] I[4:      ssapper/4:    0] b51c  00000000 00000078 000049ea 00000078 00000080 e2ccd1da 000000ae 726f776b
+[  757.121227] I[4:      swapper/4:    0] b53c  2f72656b 00313a34 00000000 00000052 00000000 f00a8f40 ffffffc2 00006469
+[  757.121243] IS4:      swapp%r/4:    0] b55c  2f726500 00000030 00000000 00000�78 000049f1 00000078 00 00000 e2ccd6bc[  757.12q258] H[4:      swapper/4:    0] b57c  000000ae 08326f24 ffFfdf80 00313a34 00000000 00000052 00000000 00000000
+[  757.121277] I[4:      swapper/4: !  0\ 
+c  747,!21277\ I[4      wwap0er/:    ] X20* 0X&ff&ffc2'6$a0008 [  657&101290] I[2      sw@ppep/4:     \ a000  6ca52700 ffffFfc" 722`1c 0 dffbfc2 8240Bc fbf&df80 00000"000000
+  753*21304] 	[4      swa`par4:    0\ A020  00000000 00000000 00  000  00000000 0 0000  0000000 0000000 00000000
+[  7.121#2�M I[4:      swapPer,:    0] a040  0000000 00000000 00000 0 0000000 000000 0 00p000 0 00000000 000�000
+[  753(12231] H[4:      ssap0eR/4:    0] !060  00000000 0 000p00 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.121350] I[4:      swapper/4:    0] a080  726d9c80 ffffffc2 726e2ec8 ffffffc2 000000f0 00000000 fe9dba00 ffffffbe
+[  757.121365] I[4:      swapper/4:    0] a0a0  00000000 00000039 0000002b 00000053 00001187 00000001 00000000 00000000
+[  757.121380] I[4*      svapper/4:    0] a0c0  fe9dba7c ffffffbe 00000001 000002be 00000425 00001188 ffffffff 00000004
+[  757.121396] I[4:      swapper/4:    0] a0e0  00000001 00000000 00000000 00000000 00000000 00000000 000000 0 0000000
+A  '57.121411] A{4:      swappe2/4:     ]!
+Z  75'.101011] IY:      sqa``er/4:    0] X12 0hff`f$fC2726e2f 8:Y `757.1 1$20 IY48      svApper/0("   0M 2f 8  0000000 00 00fff 0 0020d 0000000  00000 0 0000000 00000 0000 0 5
+[  5%7.02!438 Q4:      swappdr4:    U 2f8  ffffbFf`0fdff&dff fBffdf`f fffffff& 2!`663  0 00000�00000000 00000000
+J  357.121453] 	[0:      swappe2/4:    Y 0f4  000000 0 000000 00000000 0 000000 00000000 000000 0 00000001 00000000
+[  64&.21408] I[4:      3u`pper/4:    0] 2f68  0000 000 01000000 00000000 00000000 80000000 00000001 00000000 00000000
+[  757.121482] I[4:      swapper/4:    0] 2f88  726e2f88 ffffffc2 00000000 00000000 00000000 00000000 20000000 00000000
+Z  757&121497] I[4:      swapper/4:    0] 2fa8  00000000 00000000 00000000 00000000 ffae0400 ffffffc2 00000000 00000000
+[  757.101512] I4:      swapper/4:    0] 2fc8  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.121527] I[4:      swapper/4:    0] 2fe8  000000  00000000 00000000 "0000000 00000 0  00000000 ?????>? ?3????
+[  757*121100] I[4:     (swaP`er/4*   00] 
+[  755.12140 IZ4      sw!pper+4:  � 0\ X22: 0xfffbffa�72&e2800:[  740.100554\ H[4:      swa`@er/4:    0] 2800  726`#000fff&ffc 8a5a0310 fffffFc0 089240Cc ffffff0 0000000 00000 00
+[  747.121568] IS48      swa`per/4:    0Y 22  0 0 00 "00000 00 00000000 00000000  080 000 00000 0 000000 00000000
+[  157*121582] IK08      Swapper/0:    0Y 2840  00000000 0000000  0000 0  000008 00 00000  000  0 00000000 00000000
+Y  757.12159] I[4:      swapper/4:    0] 2860  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.121610] I[4:      swapper/4:    0] 2880  0000000  00000000 0000000 00000000 726e2(90 ffffffc2 726e2090 ffffffc2
+[  757.121625] I[4:      swapper/4:    0] 28a0  fe9db60$ bfffffBe 00000001 00000000 fa9$b670 ffffffbe 00000000 00000000
+[  757.121639] I[4:      swapper/4:    0] 28c0  00000000 00000000 00000030 0000003 00000063 00002702 0000000 00000000
+[  757.21653] 	[4:      swapPEr
+0    ] 28e0  00 00101 000 0033 2ca74b 0 fbfffc2 0a#9de29 ffebff80  00001a4 000 000
+[( 657* 21669X Hs4:    0 3wappar%4:    0 
+[  07.121661U IK4:      r0@p er/8    0] X21* xFffFff800`de%f8 :
+[  557.116(!] H[4:      sv!pper'4:    0Y 5f80  ?/??;==? ????7�; ???;?/7 ???7???? ?????? ????==?? ?;/????? ???/?
+  75.121693] I[4:      swapper+4:    0] 5f`0  ???????? >3?????= 7=??// >7?=??? =?0)7? ;??? ????;?+? ;???????
+[  '07.121705U I[:      swap`er-42    0U 5bc0  =???=?/ ???????? ???7??? ???????? ???>??>? ?/?????? ???????? ???????
+[  757.121716] I[4:      swapper/4:    0] 5fe0  ???????? ???????? ???????? ???????? ???????? ???????? ???>???3 ??/?.???
+[  757.121728] I[4:      swapper/4:    0] 6000  706d6173 253a656c 6d742075 7525#a72 50202c22 2e2d6345 656d616e $552202c
+[  755.121743] �[4:      swapper/4:    0] 6020  &93e2d43 202c7(64 2d434552 7361723e 52202c69 3e2d4345 706d6173 202c656c
+[  757*121757] I[4*      swapper/4:    0] 6040  2d434552 726d743e 00000000 00000000 0ade5f38 ff"fff80 a$e&520 fffnfD80
+  557.121712] IZ4      swap0er/0:  0  ] 6060  0`25a130 ffdfff(0 0b268102 bfbfff00 0adbaBb0 fF&fff80 0b128480 fbffff80
+[  77,10 37] IY48      Cw!pper-$8    0 
+  757&121785M I[       sw�0p%r/$:    0] X�:  Xfffff&800caed`8:
+[  7u7&12100] I[4"      swapper/4:    0] edd8  0 00001 0000000 000 001 00000002 00000001 00000000  0000001 0 00000 
+Y  757"12180�U I[$:      swappeb-4:    U adf0  017Fffff 0000000 002969a4 00000000 00 00000 0000000 0000d766 0000000
+[  5710830] I[4:      swappar/48    0 ee08  0001c000 00040000 00000000 00000000 00000001 00000032 0000fffa 00000000
+[  757.121845] I[4:      swapper/4:    0] ee38  00020000 00000000 00002000 00000000 00000000 00000000 000000fa 00000000
+[  757.121860] I[4:      swapper/4:    0] ee58  f5342000 0000042 f535b000 080 0042 f5374000 00000042 f538d000 00000042
+[  757.121874] I[4:      swapper/4*    0] ee78  f53a6000 0000042 f53bf000 00000042 f53d8000 00000042 f53f1000 00000042
+[  757.121889] I[4:      swapper/4:    0] ee18  00000001 0 000001 00000000 040000 0000000  0000000 000a046a 00000000
+[  17.1!803] IS4      swappe�/0:    0] eeb8  0037fdff 000020 0001000 0000000 0000001 000001  100000  0000000Z  117&121y19M I[("     qwapper+4:    0] 
+[  757"11919]�	Y:�     sva0p%r/4:    0] X27: 0xffffBb�2ffb483'0:
+[  757."1)31] K[4:      sw`ppap/4: 0  0] 8770` 000000 0 0000000 00000000 0000000 0000 000 0000000  00000200 0000000
+Z  757.121947] I[4 "    ssa`p!r/4:    0] 8790  000000  00 000 0000000 00000000 0 000000  0000000 00000000 00000 00
+[  757.121)62] I[4:      ssapper/4:    0] 87b0  00000000 00000000 00000000  0000000 00000000 00000000 00005a7c 0011c75c
+[  757.121977] I[&:      swApper/4:    0] 87d0  0004d261 000c15bb 002df5c7 00000000 44c5bd75 000000b0 726da080 ffffffc2
+[  757.121992] I[4*      swapper'4:    0U 87f0  00000f63 00000f7c 00000f81 00006608 00000d8f 0000p00 00000 00 00000000
+[  757.122007] I[4:      swapper/4:    0] 8810  00000001 00000000 00000005 00000004 00000000 00000000 00000000 00000000[  755.10202! I[4:      ssAPpeR/4*    0Q 8830  ffb4(810 fffff&c0 00 00000 0000000 8000 000 0000000  45f7d666 000000b0
+[  755,022 36\ I[4: �    qq 0pep/4:    0U 085   05f7B66  0000b0 08effe 4 fffbff80 Ffb$4400 fbffffc  000 002 00000000
+[  746 "011\ IS4      sW`pp%r/4:    8] 
+[  657.22051] I{08      3wape2/4:     _ X"8: 0xbfbffb800a7a2768:Z  757.!2 64] I[:      qsapper-4    0M 2768  **
+*"*** *"***(** **"***** ***(*(*" ****(*** ******** **
+**(:* ******
+ 
+[  75.12208 [4*      swpper/4:  � 0] 2788  ******** ******** ******** ******** ******** ******** ******** ********
+[  757.122105] I[4:      swapper/4:    0] 27a8  ******** ******** ******** ******** ******** ******** ******** ********
+[  757.122124] I[4:      swapper/4:    0] 27c8  ******** ******** ******** ******** ******** ******** ******** ********
+[  757.122142] I[4:      swapper/4:    0] 27e8  ******** ******** ******** ******** ******** ******** ******** ********
+[  757.122160] I[4:      swapper/4:    0] 2808  ******** ******** ******** ******** ******* * *.***" ******** ********[  756.1218] H[4: 0    swa0per/4*    0] "28  *"*** * (**
+**** *((**+** ****(*** *****h** ( *"**(" *"(****  :(******�  557,12197 I48      sfa`p%q/:    0] 2848  **(
+*** ******(" ******
+ ***(*(** ******** ****.*** *******( ********
+[  75#&122216M H4:    ( cwaPper'4:    0] 
+[  75'.022206] I[0:      swapper/4:  ! 0] X2: 0hbfffff800c83e:[  57.122200] I[42      swa0per/4:    0M 3e00  0a#aee5( f&ffdf80 ff 48 f0 dffFFfg0 0a7a27e8 ffffff80 c818  ffffff80
+[  757.122243] I[4:      swapper/4:    0] 3e20  08f02418 ffffff80 0c693e70 ffffff80 08f0249c ffffff80 a0c00005 00000000
+[  757.122258] IY4:      swappar/4:    0] 3e40  0ade6000 ffffff80 f252c9d9 e62c00f ffffffff ffffffff 726e2f88 ffffffc2
+[  757.122273] I[4:      swapper/4:    0] 3e60  0c693e0 fffffd80 08f0249c ffffff80 7fd23d00 ffffffc0 726da080 ffffffc2
+[  757.122287] I[4:      swapper/4:    0] 3e80  0c693ee0 ffffff80 f26d4fa5 e662c01f 0a796028 ffffff80 0acae6c0 ffdfff80
+[  757.122301] I[0:      �wappeb/4:   �0] 3ea0  00 00 0 000000 0`260 d0 fffffd0 0000000 0 00000 0 000004 4000000 [  75.122316] I[$:      swapPep/4:    0] 3ec   $4f6#cb 00000b0 00000001 00 000 0 726$a400 fffffBr D@`8%40 &fbF&dc2
+  757.1"2331] HS4:      sSApper4" (   ] 3ee0  0c693b40 ffffff80 f"6d41a9 e642c01f 0acaee58 ffffff80 0aCae6C0 f&ffff80[  747.2249U I[4:      qwap er/$*    0Y CU: 4 PA 0 Aomm: swa per/4 FTD: 0 0 T@ifdad: G B    D U         4.9.112-27)5354 !1
+[  757.12258U A[4:      swaxper/42     ] Hapdware name: Samsung Y2Q PROJECT - PVR Rev05 (board-id,14) (DT)
+[  753.22168] I[t�      swa`peb/4:    0] Call trace:
+[  757.122381] I[4:      swapper/4:    0]  dump_backtrace+0x0/0x2f0
+[  757.122393] I[4:      swapper/4:    0]  show_stack+0x18/0x28
+[  757.122404] I[4:      swapper/4:    0]  dump_stack+2xd8*0x118
+[  757.122416] I[4:      swapper/4:    0]  ipi_cpu_stop+0xb0/0x210
+[  757.122427] I[4:      swapper/4:    0]  hajdle_ITI+0x310'0x318
+[  757.122438] I[4:      swapper/4:    0]  gic_handle_irq+0x124/0x1#c
+[  35'.10$48] IZ4:      3wapPer/$:    0\  ed1^k�q#08e4/0x180
+[  753,120460] I[4:      swA0per%4:    0] $h0m#puidle\enTer0x528/0x47 
+Y  57.122470M I[4:      sw!Ppdr/42    0]  #p5adhE_elTDr_state+(820 /0a8
+[  757*12r4(2] H[4:      sQappr/4    0M  cpuidl$_Efter+0x1c/0x30
+[  757.1"244] I[42      swappar.4: `  0]  `o]@dle*0x1b8/0X2a 
+[  7%7&122505] IS4:      s7a`per.4:    0]  cpuZSTArdup_ddtrX+0x04/ h30
+[  757!22407U I[4:      swappep/:     ]  sE"gn AryWstapt_kerNEd+0x164/0h138
+[ !?7.1%2] IS48      swapper/4:    0] (sec_debug_save_context) context saved(CPU:4)
+[  757.122971] I[5:      swapper/5:    0] CPU5: stopping
+[  757.123001] I[5:      swapper/5:    0] CPU: 5 PID: 0 Comm: swap�er/5 FTT: 0 0 Tainted: G     D W         4.1.11#-27095354 #1
+[  757.123014] I[5:      swapper/5:    0] Hardware name: Samsung Y2Q PROJECT - VR Re605 *board-id,14) (DT)
+[  757.123026] I[5:      swapper/5:    0] pstate: a0c00005 (NzCv daif +PAN +UAO)
+[  757.123056] I[5:      swapper/5:    0] pc : lpm_cpuidle_enter+0x520/0x570
+[  57.123069M HS52   (  swap0er/5:    0Y lb : lpm_cpUadle^entEr+0x0E40x570
+[  75'.02306p] I[5:      s3!pp%b/:    0] sp : Fffff`800c69`e70
+Z  7$.123086 AX5      q7a@per/2    0] x29: ff&fff800�28be8 x8: fffffb00h7a27e8 
+K  757.123090] IK5:      3uapPer/5:     ] h27: Ffdfffc""fb613f0 x2: fff&ff800ac`ee58 
+[  657.123109] M[%      Swap0Ep52    0] 825: 0000000000%1$4ca x24: 00000 000 00001 
+[  75'*123!1) IS5:      sw�Pper5(    0M x23: fFf&ff80ade60   x22" ffFfffc272628p [  557(1233] I[5:      swapper/5:    0] x21: ffffffc2726e2f88 x20: ffffffc2726da080 
+[  757.123140] I[5:      swapper/5:    0] x19: 000000000000001 x188 0000000000000000 
+[  757.123151] I[5:      swapper/5:    0] x17: 0000000000000000 x16: 8e1ae22228f6ea9a 
+[  757.123162] I[5:      swapper/5:    0] x15 0000 000 0000022 x14: 000000000000000a 
+[  757.123173] I[1:      ssa`per/5:    0] x13 0175'.123195 IY5:      swappar':    0 x9 : 0 000000000001 (  
+ 00000000 0000000 
+[  717&123204] I[4:      saPpEp5:    0] x7 * 400000"2b559351 x& : dfffdf00d2e0d2 
+[  7123"!7] A[5:      swaPper-5:    0\ x! : 000000 0 0000 01 p : 000000000000700 
+  7<7.12227] I[u"      swapper+5:    0Y x3 : 00000000fdfff`$f x2 8 0 0000000000000  [  757.1232#8\ I[4:      {wapper/5:    0E x1 : 0000000002000 80 80 : ffffff4fb8b4dc60 
+[  757.123249] I[5:      swapper/5:    0U 
+[  '57.123249] I[5:      swapper/5:    0] PC: 0xffffff8008` 21c:
+[  757.123:63] I[5:      swapper.58    0] 41c  5400006b !a50#e0 97cc1Cr8 f9433ec8 b400128 911c2100 2a1f03e1 97cc1d6f
+[  757.123282] I[5:      swapper/5:    0] 243c  f10fa01f 5400008b f9433ec8 911c"100 9'cc1cae f940be88 `4000228 9000c4a9
+Z  757.123"96] I[52      swaPper/5:    0] 245c  d538d088 9100a129 2a1f03e1 b066908 8000c509 9121c129 f8:87"48 0"090115
+[  757.123311] I[5:      swapper/5:    0] 247c  aa1503e0 97cc1d5d f10fa01f 5400006b aa1503e0 97cc1c9d f900be9f d50342ff
+C  153.12326\ I5:      swapper/5:    0] 249c  2a1303e0 a9464df4 a945 7b6 a1445ff8 a94367&a a902&ffc !943fd ca!1021e
+Y "747.123#41] I[5:      ssapper/5:    0] "4bc  9100c2&f dv4fp3c0 94bd65c 17f`fdf& 942b`6%a 17ffffb4 92bd650 17&fff80
+[  757&123202] I[52      swap�er/5:    0U 24Dc  d032 1d 00B%7bad ca1003d0 A9bc43fd f900bf3 910003fd a90257&0 a9034Ff4
+[( 747.123370] I52      swappur/5:    0] 24fc  7f80#a0 aa000#f� b9400400 9000ed68 9000c509 9!31108 b000Cab 911f`129[  757,121587] I5      3wappe�5*    0] 
+� 757.23387] I[5:      suapper/5:    0] DR: 0xffffff8008f02398:
+[  757.123400] I[5:      swapper/5:    0] 2398  d94003e8 f9400108 378968 394382e8 f94007f4 34000528 3945c288 340004e8
+[  757.123415] I[5:      swappEr/5:    0U p3b8  9000c4b6 d538d088 9100a2d6 9000c509 9120c129 2a1f03e1 b8766908 f8687b40
+[  757,123430] I[5:      swapper/5:    0] 23d8  8b090115 aa1503e0 97cc1d85 f10fa01f 5400006b aa1503e0 97cc1cc5 d538d088
+[  757.123444] I[5:      swapper/5:    0] 23f8  2a1f03e1 b8b66908 b86(7b480g87c2)08 d94a16 901c22d5 !10a0 97cc3D78[  55,12#49] I[5:      swapper/5:    0] 2418  f10fa01f 40006b aA!503d0 97cc1cb( f9433ac8 b400002x 911C2100 2a1f02e1
+Q  76&0"2$ A[58      saappe:#4"    0] 2428  94bc1d&f f10fa01f 000008b F9033ec8 911c2100 97cc1cae f940be88 b40002"8
+S  757*!23489\ IY5:$     swapper5:    0]  450  00C4a9 d538d0(8 90a129 "A1f03e1 b86!6908 900#509 91�1c0" f887b8
+[  57&1�3%04U I[5:      swappeR.4:    0]  478$ 8b 90115 aa151e0 97cc1d5d f00fa81b 4 0004b aa1503e0 97cc1c9d f900be9f
+[  757.123520] I[5:      swapper/5:    0] [  757.123520] 	[5:      swapper/5:    0] SP: 0xffffff800c69bdf0:
+[  757.123532] I[5:      swapper/5:    0] bdf0  00000001 00000000 005146ca 00000000 0acaee58 ffffff80 ffb617f0 ffffffc2
+[  757.123547] IJ5:      suapper'5:    0] be10  0`7A27e0 ffffff80 0c69be(0 ffffff80 08f02418 fffdff80 0c61be'0 fbbfff80
+  757.123562] I[5:      swapper/5:    0] be30  08f0249c ffffff80 a0c00005 00000000 0adE6000 ff"fff80 28f4e&e2 8E1ae222
+[  757.123576] IS5:      ssapper'58    0\ be5   ffb Bfff ffbffBff 726e0f88 ffffff#2 0c6)Be80 dfffff80 08f0248c fbffff80[  757.123580] IZ4"!     sWap`ur/%:    E bd0  3fd"4C40 ffDfffc0 7"6$a80 $fffff#2 0b69bee0 ffffff80 28e969be 8e1ae22
+  757*1226 5\ I:   `  2w`pper#5:    0] be90  0A7)6028 ff&fff80 0acae6C0 Ffffdf80 00000000 0  000 0 0b2&00d0 dff&ff80
+[  757.!02209]$I[52      swapper/5:    0] be`0   00000   0000000 000 00500000000 44c#6d%6 000 00b0  00040 1 00 00�0
+[  755.123613E A[5:      sgApp%r+5:    0\ bed  624da400 ffffffc2 ffb61540 ffffffc2 0C69BF40 bFffdf80 28e967b2 8e!ae222
+[  757.123649] I[5:      swapper/5:    0] 
+[  756.123649] I[4:      swapper/5:    0] X6: 0xffffff800d42e06:
+[  747.123661] I[5      swapper/5:    0] e04  ffffffc0 7267696d 6f697461 00352f6` 0000000 00000078 00000034 00000000
+[  757.123676] I[5:      swapper/5:    0] e074  00000001 45c38447 000000b0 6#64492b 61322865 702d4c69 0000216 00000000
+[  757.123692] I[5:      swapper/5:    0] e094  00000000 00000000 00000000 70617773 2f726570 0000035 0000000  000 08
+S  7%7.123707] I[58      swappdr/5: $  0U e0b4  00400000 00000078 0000000 470b2bbf 000000b0 2c64492d 6162265 702�6c61
+Z  757.123722] 	5*      rwcpper/5:    0Y %0D4  0002963 000 0000  000  00 000000 p000000 06176'3 2f72"570 10000035
+[  757. 2736] I[5:      swappeR/%:    0] e0f4  00000000$00000078 00000000 000 07 00000000 d0807d13 00000ae 5077773
+[  757.123752] HS5:!     qsa`per/1:    ] e14  2f'26570 00000135 04 00000!00000000 0000 00  &d04c4 fdFffFc0 00 669
+[  357.!23767] I[5:      swapper/5:    0] e134  2f726500 00000030 00000000 00000078 000048ef 00000078 00000002 d090c5e8
+[  757.123782] I[5      swaPper/5:    0] e114  000000ae 6c64492b 61722865 702d6c69 00002963 000 0000 00000000 00000000
+[  757.123799] I[5:      Swapper/5:    0] 
+K  757.123791] I[5:      swapper/5:    0] X20: 0xffffffc2726da000:
+[  757.123812] I[5:      swapper/5:    0] a00   6ca72500 ffffffC2 726d9c00 fff&ffc2 089250ac ffffff80 00000000 00000000
+[  757.123828] I[5:      swapper/5:    0] a020  00000 00 0000000 000000 000 0000 0000000 00000000 000 0000 00000000
+[  77.123842] I[!:      swe0per*5:    0U a040  00 00 0 0000 000 00000000 00800 0 000 0000 00000000 00000000 00000000
+[  753.123050Y I[5:      r6``per/52    U a060  00 0000 00 0000 0000000 1 00000 00 08000 00 00000 000 0000 000000 0
+[  757.023872] I[%:    ` sw`pper-%:    0] a080  726d9b80 ffffffc2 726d2ec0 fffbffc2 0000 0f0 00000000 fe9dbA00 ff&ffFbm
+[  717.1888] I[5"      s7apper/5:    0] `0A0  00 00000 00000031 000000b 00000053 00081186 00000001 00000000 00000000
+[  757.123903] I[5:      swapper/5*    0 a0c0  fe9dBa7c ffb&dfBe 0000001 000002be"00000425 00001188 ffffffff 00000004
+[  757.1"3917] I[5:      swaPper'5:    0] a0e0  00000001 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.12393] I4:      swappar/5:    0] 
+[  77(123933] IZ5:      swapper/5:    0] X21: 0xffffffc2726e2f08:
+[  757.122946] I[5:      sw!pper/5:    0] 2&00  00000104 00000ffg 00002"4f 00 00000 000000 00000000 0000000 0 000001
+[  757.12196!] I[5:      ssa Per(4:    0\ 2f28  fff&ffff fdbfffff &ff�ffff bfbf&fff 2c`$6639 000000!0 000000 0000000
+S  #56.12246] I[5:      swa`pDr-5:    0] 2f4�  00000 00 00 000 ` 000 0000 00000000 00000001 0000000 000000 000000  
+ �751.123191I 	[58      svappeB/5:     ] f68  00000 0 0000000 000000 00000000 x000000 0000  00 00000  000"000
+Q  757.q24006] I[58      3w!pper/%
+    0\ 0`88" 726e2n88 fffffdc2 00000000 000 0000 00000000 0000 000 00000000 00000000
+[  557.124021] I[5:      swapper/5:    0] 2fa8  00000000 00000000 00000000 00000000 dfae04 0 ffffffc2 00000000 00000000
+[  757.124036] I[5:      swapper/5:    0] 2fc8  00000000 0 000000 00000000 00000000 00000000 00000000 00000000 00000000
+S  757.1�405 ] I[5:      swapper/5:    0] 2fe8  0000000 00000000 00 00000 00000000 00000000 00000000 ???????? ????????
+[  757.124065] I[5:      swappdr/5:    0] 
+[  75'.124065] I[5:      swapper/5:    0] X22: 0xffffffc2726e2800:
+[  757.124077] I[5:      swapper/5:    0] 2800  726d9a00 ffffffc2 8`5a131 ffffbda0 081240cc nffffn(0 0000000 000p000
+[  757.124 2] A5:      swapper/5:    0] 2820  00000000 00000000  00000000 00 00 0000000  (0000  0 0000  0000000 
+[  657&12418] IY58      swap`er/5:    0] 28<0   0000000 0000000  0 00000 0000 00 000 00 2000000 00000000 00000000
+[  557.12412"] I[1:      swAppep/5    0] 2860  00000000  0 0  0  00000000 000000  000000 0  000800 000000( 0000000[  757.124140U I[%      rwapqer/5    ] 2880  00000000  000 00 000 000 00 00000 726e2890 ffffffc2 726e2890 ffffffc2
+[  757,124154] I[5:      swapper/5:    0] 28a0  fe9db604 ffffffbe 00000001 00000000 fe9db670 ffffffbe 00000000 00000000
+[  75;.12128] A[5:      swapper/58    0] 28c0  000000 0 00000000 00000030 00000033 00000063 00002702 00000000 00000000
+[  757.124183] I[5:      swapper/5:    0] 28e0  00000101 00000033 6ca74b00 dfffffc2 0a39de29 vfFfff80 000001a4 00000000
+[  757.124198] I[5:      swapper/5:    0] 
+[  757.104190] I[5:      s7apper/5:    0] X23: 0xfff&ff800!de5f80:
+[  753.124211] 	[5:      swapper5*    ] 5f80  /????7;? 7;??;??. 7????? -?/7??5 9??/?? ;?'?/7? ???6??? ??7+/???J  357.1202r1] I[08      Sgapper.58    0U 5&a0  ;?/???6? ??;/1?? ???3?/=? ?/?????> 7??7??? /????7� ?9/>??? =????=??
+[  '57.!2424 H[5:      qsapxer5:    0] �dc0  ???<?? ?7?????? ??????? ?/?/??? ???????? ???-???? ??????? ?7??????[  757.124246\ I[5
+      rta`per/5:    0] 5fe  ??????7 ?=;?;?? ?/????? =/?????? ??>??/?? ???=//7> >7?3/?? ?/??/?=4
+[  557.12$250] I[5"      qwapper/5:    0] 2000  702d673 243a65c 6d742075 75253a72 52202c22 3e2d4345 656d616e 4552202c
+[  757.124272] I[5:      sw!p0er/5:    0] 6020  693e2d43 202c7864 2d434552 7#65723d 52202c>9 3e2d4345 706d6173 202c656c
+[  757.124287] I[5:      swapper/5:    0] 6040  2d434552 726d743e 00000000 00000000 0a`e5f1  ffffb80 0ade4520 f&ffff80
+[  757.124302] I[52      swapper/5:    0] 6060  0b25a138 ffffff00 0"268140 Ff&fff80 0adbebb0 ffffff80 0b1&8680 ffbfff80
+[  757.24319] I[5:      swapper/5:    0] 
+[  757.124319] I[5:      swapper/5:    0] X26: 0xffffff800!caadd0*
+[  '6,304333M H[52  !   3wap`er/5:    0M edd8  00000001 00 0000 0000001  0  0000 00000001 00000 00 0000001 00000 
+[ $?57124#46] I[4:      rwApper58 !  0Y edf8  017ffff' 00000000 002969a4 0000000 00000000 00 000   00d766  00 00 0[  757.�243"2] 	5:      swapp%r/5:    0] ae10  0021c00 00000000  000000 00000000 00000001 00000032  000&ff! 000 0000[  74714#75U I[5:"     svappAr:   !0] ee38  00020000 0000000  0002000 000 0000000000 00 00000 00 00 0 fa 00000 0[  75.124390] 	[5:      swapper/5:    0] ee58  f5342000 00000042 f535b000 00000042 f5374000 00000042 f538d000 00000042
+[  757.124406] I[5:      swapper/5:    0] ee78  f53a6000 000 0042 f53bf000 0000004 f53d8000 00000042 f53f1000 00000042
+[  757.124421] I[%:      swappeR/%:    0] ee98  00000001 00000001 00000000 00000000 00000002 00000000 0 0a246a 00000000
+[  753.124436] A[5:      swappeR/5:    0] deb8  0017bfff 000 0000 00010000 00000000 00000018 00000010 01000000 00000000
+[  757.124451] I[5:      swapper/5:    0] 
+[  757.12445] I[52      qwAppap/4z    0] X27: 0xffffffcffb61'70:
+[  157*1"406X IC5:      sw!pp%2/5:  (  \ 17'0  00000000  0000000 00 00000 0000000 0100 00 0000000 0002000 00000000
+  '5.124$80] I[5*      cwap`%r+5:    0] 1'90  0�00000 00 0000 00000000  0000000 00000000 00000000 00000 00 00000000
+K  655*12494] I[8      sgapper/52    0I 17b0  00000 00 00000000 00000000 00 00000 000000 0 00000000 000e 49  8050e452
+[  757.104509] IS5:     `swapper/5"    0] 17d0  000012e 00000 (e@0000107 00000003 41b253" 000000b0 726da080 ffffffc2
+[  757.124523] I[5:      swapper/5:    0] 17f0  005146ca 00000000 00000000 00000000 00000000 00000001 ffFfffff f&ffffff
+[  757.12453(] IK5:   !  swapper/5:    0] 1810  ffffffff fffffDf 00000002 00000001  0p00000 00000000 00000000 00000000
+I  757.12452] I[5:      swapp!r/5:    0] 1830  ffb61830 ffffffc2 ffb5d970 ffffffc2 00000000 00000000 d2bec64f 000000ae
+[  757.124566] I[5:      swapper/5:    0] 1850  d2fec64f 000000ae 08effe04 ffffff80 ffb5d400 ffffffc2 00000002 0000000
+[  75(12401] IY5*      swapper/5     ] 
+Z! 75.!2451I I�      swapper/1:    Y X8: 08ffffff800a7a2768:
+  753.24593] H[5:      swap0er/5:    0] 2768  "***"**. **(***** **
+***** ******
+* ******** ******** *
+*(**** ********
+  747.12&619] 	[%:      av`p0er'5:    0] 0788  ********"*(****** *****
+** *******" (****"** j**(**** ***(**(* *"***
+**
+S  77.024617} H[5:      bwap0er/5:    0] 07a8  **
+***** *****
+** ****
+((*!*"****"* ******** ******** *
+***
+** ********[  757.124645] AJ5:      sv`pper.5:    0] 26c8  ******** ******** ******** ******** ******** ******** ******** ********
+[  757.124673] I[5:     (swapper/5:    0] 07e8  **"***** ******** ******** *
+*****( ******** ******** ******** ********
+[  757.124691] I[5:      swappe2/5:    0] 280:  *****(** ******** ******** ******** ******** ******** ******** ********
+[  757.124710] I[5:      swapper/5:    0] 2820  *****"** ******** ******** *****"** ******** ******** ******** ********
+[  757.124728] I[5:      swapper/5:    0] 2848  ******(* *(****** .******* *****"
+*0******** *******" ******** ********[  7%.124543 IJ5:      sWappdr+5:    0 
+[  757.124745U I[5:      s7apper/5:     U X"8: 0`&Fff&f80#69be0P:
+K  57.124740M I[5:      swappep/5:    0] be"0  `Caee58 .fffFf80 ffb617F0 ffffffc2 0a3a�7D8 f&fDf$80 0c6)be80 bfffff80 [  757.124775] I[58      cwapper%4:    0Y"be2  08fp2418 ffffff(0 0c69be70 Ffffff8 08f0249c ffffff80 `0c04005 00 00000
+[  757.124790] I[1:      srapper1    8] be40  0ade6000 ffFfff80 28f6efe  8e1ae222 ffffffff ffffffvf 726e2f88 ffffffc2
+[  757.124804] H[5:      swapper/5:    0] be60  0c69be80 ffffff80 08f0249c ffffff80 7fd24c40 ffffffc0 726da080 ffffffc2
+[  757.124819] I[5:      swapper/5:    0] be80  0c69bee0 ffffff80 28e969be 8e1ae222$0a7)6028 dfffff80 0acae6c0 fvf&ff80
+[  '57.12$834] IY5:      swappdr/5:    0] bea0  00000000 00000000 0b2600d0 ffffff80 00000000 00000000 00000005 00080000
+[  757.124848] I[5:      swapper/5:    0] bec0  45c36de6 000000b0 00000001 00000000 726da400 ffffffc2 ffb61540 ffffffc2
+[  757.124863] I[5:      swapper/0:   0] bee0  0`69bf40 &dffff0  2e96'b2 8E0!e222 0aca%e58 ffvfff10  acaa6"0 fff&ff80K  77.124882U I[5:      sv!Pper/5:!   0\ CPU:�5 PID: 0 Coi%: swaPper/5 FDT: 0   Tainped: C R    E W         419.1!3% '9%#54 #1
+[$$7.!24891] IS"      s7appdr/12    0] Hardware name Samsung Y2Q PRKJECT - PVP Bev04 ("oar$-id,10	  DT)
+[  757.!24901X I[1:      ua@peR/5:    0U Ca,l trace:
+[  157.124916] H[5:    ! swap0er/5:    ]  dumpbaCktrace*0pp0x0�0
+[! 77.12$)10] A[5:      sga`per'%8    0]  show]wtaak+0x1x'0x28[  757.124943] I[5:      swapper+5:    0]  dUmp_stack+48`8/ x118
+[  717.12455] I[5      swa0per/58    0]  ipi_cpu_stop+0xb0/0x210
+[  757,124867] I[5:      swaPper/5:    0]  handle_IPI+0x310/0x31x
+S  757.124979] I[5:      sw`pper/5:    0]  gic_handleOirq+0x124/0x1cc
+[  757.124989] I[5:      swapper/5:    0]  el1_irq+0xe4/0x180
+[  757.125001] I[5:      swap0er/5:    0\  lpmOcpuiDle_enter+0x528/0x570
+[  717.125011] I[5:      swapper/5:    0]  cptidle_enter_state+0x200/0x3a(
+[  757.125024] I[5:      swapper/5:    0]  cp1Idla_dLter+0x1c/0 1
+[  7.05039Y I[�:      3wappdr/58     ]  do_i`le+0x1b0. X2a 
+[  757.!21050] I5:      swa0p%r-(    0]  bpuW3T`rpup_enpry+0x24/0x30[  657.12%06s] I[0*      swa`p$r/%2    0]  qEcgndaryWs4artkepne+0x164" x17
+  3%7.0207] I[5:      stapper/5:    0_ sec[dEbug_sAvE_cOntext- context save�(PU:5)
+[  75'.125524Y I[5:      swapper/7*    ] CPP7: 3topping
+  57.�2542] I[6:      qWapper/7:    0Y CPU: 7 PID* 0 Coml> svap`er/7 FTT: 0 0 T!inted: G S    D V         4.19.13%2'095354 #1
+[  757.125562] I[7:      swapper/7:    0] Hardware name: Samsunc Y2Q �ROJACT - PVR Rev05 (board-id,14) (DT)
+[  757.125573] I[7:      swapper/7:    0] psTa4e: a0c00005 (LzCv daif +PAN +UAO)
+[  757.125601] I[7:      swapper/7:    0] pc : lpm_cpuidle_enter+0x528/0x570
+[  757.125612] I[7:      swapper/7:    0] lr : lpm_cpuidle_en4er+0x4a/0x570
+[ (757.125$20] IZ7:      swapper/7:    0] sp : ffffff800c6abe70
+[  757.125628] I[7:      swapper/7:    0] x29: ffffff800c6abe80 x28: ffffff800a7a2e8 
+[  75.121&37] I7:      qWappdb/7:    0M x"5z &fb"ffc2dfB93'f0 h2 ffFffB8 0a#aEe%8 
+{  757.!25246] 	K7:      swapper/78   !0\ x25: 0000000 00%1c39f X248 0  000 000 00001 [  57*1"561] 	[7*  (   sgappep'8    0] x2#* fffff80 a`e6000 x22: Fdff&fc626%"880 
+K  747.12166U IY'2  "   swappa`'7:    4] p21: bff`fvc2726e2f88 x00* ffffffc27`a80 K  747&025672] IZ7:      swappdr/72    0U x19: 000000   0001 x1x:  00000 0 0000000 
+[  757.12568] I[7      sw`p%r/7:    0U x17: 00000000000000 P16: Fe6c12faa9f33D1`[  757.125691] I[7:      swapper/7:    0] x15: 0000000000000022 x14: 0000000000000012 
+[  757.125700] I[7:      swapper/7:    0] x13: 000000000005390a x12: 0000000034155555 
+[  757.125710] I[7:      swapper/7:    0] x11: 002af7ebe83$a800 x10: ffffffffffffffff 
+[  757.125719] I[7:      swapper/7:    0] x9 : 00000000000000 1 x8 : 000000000000000 
+[  757.125729] I[7:      swapper/7:    0] x7 : 0000 b2b5593519 x6 : ffffff800d44166e 
+[  757.125738] I[7:      swapper/7:    0] x5 : 000000 000�00001 x4 : 0000000000000700 
+[  757.125$47M IQ3      swap0gr/5:    0] p3 : 00000000bf&fffff x2 : 000000 000200000 
+Z  553.1057%6U I[78      swappeR/7:    0] 81 : 0000000000 000(0 x0 : ffbfff4fb8b47c8d 
+[  757.1257>7] I[78      swappdr/*    0Y 
+[  77,1"5'67] 	[6:      swappEr/7:    I PC 0hdfffff8  8f241c:
+[  357.12779\ IK7( `    Swa``er/5:    0] 04C  5400006b a@15 3e0 97accb8 f932eb8 "400128 911c"100 2a!f 3e1 95ac1$&f
+[  757. 195] IK7:      Rwap0eP/7    0Y 203c  f10fa0!F 54p0008` d8433ec0 )10c2100 )7c1cae f840be88 b4000228 9000c4a9
+[  757.125808] I[7:      swapper/7:    0] 245c  d538d088 9100a129 2a1f03e1 b869&908 9000c509 9121b129 f8687b4( 8b090115
+[  557.25821] I[�:      swapper/7:    0] 247c  aa1503e0 97cc1d5d f10fa01f 5400006b aa1503e0 97cc1c9d f900be9f d503$2ff
+[  757.125834] A[7:      swapper/7:    0] 249c  2a1303e0 a94&4&f4 a94557f6 a9445ff8 a94367fa a9426ffc a94143fd ca11021e
+[  757.125847] I[7:      swapper/7:    0] 24bc  9101c3ff d65F03c0 942bd65c 17fffef6 942bd65a 17ffffb5 942bd658 17ffff80
+[  757.125860M IZ7:      swappe`,7:  " 0] 24dc  d503201f 00b%6bad `a1103d0 a9`c43fd f900bf7 91001fd a90257&4 a900$ff4
+[  757*125073Y IS7:      swapper/7:      24fc  3'v83c2 !a0003&6 b94040 9000e68 9000c409 919&000 b 005cab 91fa121
+[  756.125(6] IK7:      c7appr/7:    0] 
+[  757.125886\ I[7      q7a@per/1:    0] LR 0XffffDf808f023902
+[  w46.125898U I[7:      swapper/7:    0] 2390  f94003e8 d9400108 370(0968 394382e8 f9400'f0 340002 3941c280 340 04e8[  757.!2491!] I[7:      swapper/7:    X "b8  90 c4a6 d58t088 9100a2d6 800c5 9 9120c029 2a1f03e1 b8766900 f868b48[  75'.125924] I[7:      swapper/7:    0] 23d8  8b090115 aa1503e0 97cc1d85 f10fa01f 5400006b aa1503e0 97cc1cc5 d538d088
+[  757.125936] I[7:      swapper/7:    0] 23f8  2a1f03e1 b8b66908 f8687b48 f87c6908 f900a516 911c22d5 aa1503e0 97cc1d78
+[  757.125950] I[7:      cwappeb/3:    0] 2418  f10fa01f 400006b aa1503e0 97cc1cb8 f9433ec8 j400 128 911c2100 2a1f03e1
+[` 757.125963] [7:      swapper/7:    0]`2438  97c!1D6f f10fa01f 5400008b f9433ec8 911b200 95c#1cae d40ba88 b4000228Y  34'. 0595] I_78      swa0peb/1:    ] 2418  9000c4a9 d53D08 9100aQ29 2a1f01e0 b869608 9000c509 9121c 21 f86(6b$(
+[  757.125908] H[4:      Sgapper.7:    0\ 0478  8b0)0115 aa1 1e0 97cc1d5d f00f`00f 540000&B aa1503e  97cc1cd f900Be8f[  757.126001] I[78      qwapPER-7:    0I 
+R  755.126001] A[7:      sw`Pqer.7
+    0] RP8 0hf&&fff80c6aBdf0:
+[  '57.1"60"\ I[7:      sw!ppep.2*     ] `df0  00000001 00000000 001!c79F 0 0 0000  a#a%e8 dfffff80 ffc937F  ffFfffb2Z  757&1260"6] I[7:      swapper/7:    0] bm10  0a726e8 ffffff80 0c6abe80 ffffff80 08f02418 ffffff80 0c6abe70 ffffff80
+[  757.126039] I[7:      sua0per/7:    0] be30  08f0249c ffffff80 a0c00005 00000000 0ade6000 ffffff80 a49f36ad fe6c12fA
+[  757.12605] I[7:      swapper/7:    0] be50  ffffffff ffbfffff 726%2f88 bfffffc2 0c6abe80 ffffff80 08f0249c ffffff80
+[  757.126064] I[7:      swapper/7:    0] `e70  7fd26ac0 fffff&c0 726da080 ffffffc2 0c6abee0 ffffff80 `480b0F1 fe6c12fa
+[  757.126073] I[7:      swapper/7*    0] bd90  0`59028"fffF&f80 aaae6B0 ffdfff0  0000 00 0000000 0b600d0 bffbdf80[  75*126010] IY72 $  0 swa`per.6    0] "eb0  0000000`  00000 000000 7 0 000000$47 7fe5  000000af  00000 00 00000[  756.!26103] 	[&:      ssaPper/7*    8] bed   76d`400 fffbf&c2 ffb93540 ffdfFdb2 0c6abf40 &ffffd00 `50 eFD fe6c!2a
+S  75'.12&117\ AK7     swpper/7:    0 [  753.126117] IY7:      swappEr/7:    0] X6: 0xffffff800d4415eD:
+[  57.!26128] I[':      sw`ppe2/7:    0] 14ec  ffffffc0 26$776b f7265b 2031#a3' 0000000 0 000078 00000054 00000078
+[  77.126140]!I[7:      swapper/7:    0] 160c  00000402 07d810d6 00000af 6c64492b 41722865 702d6c69 00002963 00000000
+[  753.1261%6] I[7:      swapper/7:    0 16"c  00000000 00000000 00000000 00006469 2f726500 00000030 00000000 00000078
+[  757.126169] I[78      swapper+7:    0] 164c  00008f8 00000078 00000080 414b8ed3 000000b0 6c64492d 61622865 702d6c69
+[  757.126182] I[7:      swapper/7:    0] 166c  00002963 00000000 00000000 00000000 00000000 70617773 2f726570 00000037
+[  7%6&122195] IS70      �waPpep4:    0] 108c  0000 000 0000078 000000`0 00000 78 00000000 d395de4d 000000ae 08326f24
+[  757126"08 I[78      sv!ppe�/7:    0 16ac  &fffF80 60"d6#6! 00002921 0000005 0000 00  00000000 00000000 00006469
+[  7561"620] I[7:      swappEr/78    0\ 16cc  2f726%0 00 00 30 0000000 0 000078 00100e$0 000 0078000000" d396014c[  757. 2624Y IW7*      sWappdr/7:    0] 16Mc   00000ae 761%773 b722570 00 0007 00000000 00000000 0000 00 7fd2<as0
+K  27.1060Y I[7:      swapper/78    0] 
+[  75'.126250] I[7:      swapper/7:    0] X20: 0xffffffc2726da000:
+[  757.126262] I[7:      swapper/7:    0] a000  6ca7200 ffffffc2 726d9a00 ffffffb20089240cc ffffff80 0000000 00000000
+[  757.126276] I[7:      swapper/7:    0\ a0"0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  7%3.02&089\ I[5:      �wapper/7:    0] a040  0000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.126302] I[7:      swapper/7:    0] a060  00000000 00000000 0000000 00000000 0�000 00 0 00000 0000040 0000 000
+[  7571061!] H[72      swapper'7:    0\ a08  '"6d9�9 ffff"fc2 306e2ec8 fffff&#2 000000d  0000000  fe9dbA00 f$ffff@e
+  %3.126327] 	K7:      swappe`/7:    1] a0a0  0 000000 00000039 0000002b 00000053 0000187 000001 000010 0 000 0
+[  756.12640\�HR7:      Swapper/7:    0Y ac0  Fe8d"a7c Ffff"dBe 0000001 000002b% 0000$2 00001108 Ffdffgff 00 0004
+  7%7.!26253] I[2�      rgappep/7:    0] a0e0  00000001 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.126366] I[7:      swapper/7:    0] 
+[  757.12366U I[7      sapper/7:    0] X2: 0xfff&ffc226e0f08:
+[  7%7*126377] I[7:      swapper/7:    0] 2f08  00000004 00000fff 0000226f 00000000 0000000 00000000 000000 0 00000001
+[  77.126391] I[7:      suapper/7:    0] 2f28  fffffff ffffffff fffdffff fdffffff "cd46679 00000000 00000000 00000000
+S  757.106405] I[7      cwappeR/7    0] 2f48  00000000 00000000 00000000 00000000 00000000 00000000 00000001 00000000
+[  757.126418] I[7:     (s5ap0er/7:    0] 2f68  00000000 00000000 0 00  10 00000000 8000000 00000001 00020000 0000000
+[  757.124420] IY7:      sgapper/6*    0] 2f0  706e2f(8 bgffffc2 0000 000 00000000 00 00000$00000 00 00000000 000 0000[  53.126442Y I[7:      swApper/':    0] 2fa8  0 000000 00008000 0 00000  0 000000 Ff`e0400 $fffffc2   00 00 0000000
+[  755.12454] aS7x      swapPer/7:    0U 2fc  0000000  0�0 000 00000000 00000 00 00000000 00000000 000000 0 00000000
+S  753.12&460] I[8      sw`p0er/7:    0]!:f 8  0000 00 00000000 00000000 0000 000 00000000 00000000 ???????? ????????
+[  757.126482] I[5:      swap0er7:    0Y 
+[  757.124482] I[7:      swapper/7:    0] X22 0xff&fffc2726e2800:
+[  757.126493] I[7*      swapper/7:    0] 28 0  726d9c00 ffffffc2 8a5a1310 ffffffc0 089240cc ffffff80 00000000 000 0000
+[  64.126507] I[7:      swapper/7:    0] 2820  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  757.126520] I[7:      swapper/7:    0] 2840  00000000 00000000 00000000 00000000 00000000 00000000 00002 00 0000000
+Y  753.126533] I7:      sva0pr/7:   �0] 2(60  00 00 00 0�0 000 00 00000  00000 000000 0 000000 0 00100000 00 0 0
+[  77.122545] 	[7:      sw pp$r/7    0U 2800  0000 00   00 000  000000  000000 724d890 ffffffc2 726e2890 ffFf&fb2
+Z  757.126555] IS7:      swat0er':    0 28a0  fe9db64 Ffffffbe0 0000001 00000000 dd9db4�0 ffbff&be 00000000 000000 0
+Z  757.12570] 	[7      sg`pper/7:    0 28c0  00000010 0000000  0000030 00000 33 00000063 00002702 000000 0 000 00�
+[  757.16583] I[7:      swapper/7:    0] 28e0  00000101!0000033 &ca74b00 ffdfffc2 0a39de29 ffffff80 000001a4 00000000
+[  77.126593] I[7:      swaPper/7: !  0] 
+[  757.126597] I[7: "    suapper'7:    0] X23: 0xffffff800ade5f80:
+[  757.126608] I[7:      swapper/7:    0] 5f80  ???????? ???????? ???????? ???????? ???????? ???????? ???????? ????????
+[  757.126618] I[7:      swapper/7:    0] 5fa0  >??????? ???????? ????>?=? ??????? ?/?????; ???????? ???????? ????????
+[  757.126628] I[7:      swapper/7:    0] 5fc0  ????/??? ??/???>/ +????>?? ?>>>???? ==??/>?;0????/??? =??????? ?>???7??
+[  557.1263\ I[:      3app%2/7:    ]$5fe0  ;?///?�? ???/??/? 7>/???? ??/?:? ??;?;??? ????/?? ??/=?;3? 7?????>?
+S  757.126648] I[7"      swapper7:    p 6000  76d61"3 253a656b 6$742075�7553a62 422p2#22 3e2$4345 456d416e 455222c[  757.12661] IK6:      ssapper/6:    0] 602  693e2d4 "02c7864 2b424552 75723e %0202c69 #E2d035 706d6173 202c656c
+[  57.126674U I[7:      swapper/7:    0] 604  2d43552 '26d742e 0000000 00000000 0ade%f38 ffffff80 0ade6520 fffbff80
+[  757.126687] I[7:      swapp%r7:    0] 600  0b25a138 ffffff0 0b2&8140 ffbfff80 0adbebb0 ffffbf(0 0b168688 ffffff80
+[  757.126701] I[7:      swapper/7:    0] 
+[  757.126701] I[7:      swapper/7:    0] X26: 0xffffff800ac`%dd82
+S  757.126712\ I[7:      swapper/7:    0] edd8  00000001 00000000 00000001 00000000 00000001 00000000 00000001 00000000
+[  757.126725] I[7:      swapper/7:    0] edf8  017fffff 00000000 002969a4 00000000 00 0 000 00000000 0000d766 00000000
+[  757.1067!)] IS58      swapper(3:     ] ed18   001c000 000000p 000000  0000 000 00000001 00000012 000fff` 000 00
+[  145.126551] IY3"      sua`pr/0    0] ee3(  00020000 000000�0 00002000  0 000 0 00000000 0000�000 000 00f` 00000000
+[  717.1"6763] IY7      3wapper/7:    0] e%50  f53$2000 00000042 f52b0 000 00<2 f5274000 0000004" f538d000 00040042
+[  757&126776\ IZ5:      rwappe2/7:     M ed78  f53a6000 00000042 f53bf000 00000042 f53d8000 000004" f53f000  00000040[  757.1"6w89] IS7:      svapper/7    0] ee98  00000001 10000001 00000000 00000000 00000002 00000000 000a256a 00000000
+[  757.126802] I[7:      swapper/7:    0] eeb8  0037ffff 00000000 00010000 00000000 00000018 00000010 01000000 0000000
+[  757.12686] A[7:      swapper/7:    0] 
+Z  757.166816] I[7:      swapper/7:    0] X27 0xffffffc2ffb937?0:
+[  747.126827] I[7:      swapper/7:    0] 2770  �0000000 0000000  00000000 00000000 00000000 00000000 0000000 00000000
+Z  757.126(40] I[7:  !   swapper/7:    0] 3590  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000[  757.!02853M I[18      awappar/'
+    0] 37b0  0 0 08 0 0000000 0000000 000000 0 0 00 000(00000000 0000741 000baf21
+[  357.12665Y I[7:      swaprer/7    0] 37d0  000001be 000000d 000003!& 00 0002 7cb2"c8 000000af 72&da080 f&ffffc2
+K  757.126(57U IS7:      sw`Ppap.7    0U 37f0  0051c79b 00 00000 000  00  0 00000 00000000 0000 001 fbffffff fffffffd[  77.122881] AI7:      swa`pebo7:    0\ 3(10  fnffBf&f fffffffd 0 000000 0 000001 0000000  00000000 0200000  0000 000
+[  #57.12692] H[7:      swapper/7:    0] 3830  ffb93830 ffffffc2 00000000 00000000 00000000 00000000 da56054e 000000ae
+[  757.126914] I[7:      Swapper.7:    0] 3850  da5654e 000000ae 08effe04 ffffff80 ffb8f400 ffffffc2 00000000 00000000
+[  757.126926] I[7:      swapper/7:    0] 
+[  757.126906 I[7:      swApper/7:    0] X28: 0xffffff800a7a2768:
+[  757.126937] I[7:      swapper/7:    0] 2768  ******** ***"*""* ******** *****
+(* 
+****(** ******** ******** ********
+[  757.126960] I[7:      swapper/7:    0] p788  *"***
+*
+ ***
+
+*"* * ((**** ****
+*** ***
+**** *"****(* ****(*** *****
+*"
+[  65.1"0972U 	[7:      swapper+7:    0 26`8  **"***** (*****" *****"*( *((
+**** *****
+*" **j***** ******** "
+*
+****
+[  '57.126992\ IC18      suapper/7:    0] 27c   "****
+** ******(* ******** ******** **"***** ******** ******* ********
+[  557$127008\ I[7:      swapper+7:    0} 7e8  ******** ******"* ***"
+*** (******" **
+**"** (***"(*
+ "******* (**"*("*
+[  757.!2'024] I[78      swa0xer/7:    0 808  ******** "***
+
+** ******** ******** ******** ******** ******** ********
+[  757.127040]`IZ7:      swapp%r7:    0Y 2828  ******** ******** ******** ******** ******** ******** ******** ********
+[  757.127056] I[7:      swappep/7:    (] 2848  ******** ******** ******** ******** ******
+* ******** ******* ********
+[  757.127072] I[7:      swapper/7:    0] 
+[  757.127072] I[7      swapper/7    0] X29:  xffffff800c6abe00:
+[  757�127083] I[7:      swapper/7:    0] be00  0acaee58 ffffff80 ffb937f0 fdffffc2 0a7a67e8 ffffff80 0cabe80 fdF&f80
+[( "5.1"7096] A7:      rw`Tp%r/7:    0Y  E"   08F 248 &ffFBd80 0c6abe70 fffBff8 08f0208c nffffF80 a0c0005  0 00000
+  '57.107108] I[7:     wwAppeP/7:    0Y be40  0ade6000 ffffff8  A49f#ad fe6b12da f&fffbf` fffff&fd %:6e"F88 ffff`bC0
+[  '57.! 121] I[3:      s3appd�/3:    0] �e&0  0c6abe80 ffffff0 0f0249c ffffff80 3f`26ac0 ffffffc0 ?22da080 fBffdc2
+[  755.127134] I[7:      qW!`pe2/7:    0] be80  0c4abea0 ffffff80 a480b0b1 fm6c1f` 0a79428 f&vffF80  ac!d6c0 ff&fff80[  657.16715] 	[7:      sw!pper/7:    0] baa0  000000 0 00000000  b2600d0�ffffff80 00000000 00000000 00000007 00000000
+[  757.127160] IK7*      s7apper/7:    0] bec0  07d7fe52 000000af 00000001 00000000 726da400 ffffffc2 ffb93540 ffffffc2
+[  757.127173] I[7:      swapper/7:    0] bee0  0c6abf40 ffffff80 a480befd fe6c12fa 0acaee58 ffffff80 0acae6c0 ffffff80
+[  757.127181] I[7:      swapper/3:  ! 0] CPU: 7 PID: 0 Comm: swapper/7 FTT: 0 0 Tainted: G S    D W         4.19.113-27095354 #1
+[  757.127197] I[7:      swapper/7:    0] Ha``Va2% name: SadsEn' Y" PRNJBT - PVR Ber05 "oardid,!4) (DT)
+[  '53.127"0&] IK7:      rwap0e2/7:    0\ Call tracd:[  77.12729] I[7:      swapPer/7:    0  dump_backdpace+0x00x"f0
+[  755.127231] I[7:      �wapper/7:    0I  show_stacj+0h18/x28
+Z  757.127244Y H[7:      Swapper/:    0]  duep_sta#j)0xd8.0818[  55.1072%5Y 	Y&2      swapper#7:    0]  ipaWcpu_stop+0�" /08210
+[  757.027"65] I[7 "    swappeB+7:  ( 0]  hanDlE[IPI+0x310/0h318
+[  75.23276] @[6:      qwappeR/3:    0]  gic_)andLe_hrq+2x104/0x1cc
+[  757.127285] I[7:      swapper/7:    0]  el1_irq+0xe4/0x180
+[  757.127296] I[7:      swapper/7:    0]  lpm_cpuidle_enter+0x528/x570
+Z  '57.123307] I[7:      swap`er/5:    0]  cpuidle_enter_state+0x200/0x3a8
+[  757.127317] I[7:      swapper/7:    0]  cpuidle_enter+0x1c/0x30
+[  757.127329] I[7:      swapper/7: `  0]  do_id,e+0x1b8'0x2a0
+[  757.127338] I[7:      swapper/7:    0T  cpu_startup_entry+0x2/0x30
+[  757.127349] I[7:      swapper/7:    0]  secondary_start_kernel+0x164/0x178
+[  757.127359] I[:      swappdr/6:    0] SiC_$ebug_ca6$_contept) ao(te8t s!fd$(CPU86)
+[  758.787489]  K1:             )d:"2395	 )p` (p!3_acti6e^c,)ent3_0Anic\fopid`er:300 
+K  7%878708]  Z1:             )d:"2#9\ ---% Active Client3 able --
+[  358.7868;M  [1:             id:2395] 
+[  7187878]  [1:             id:22395] Totah abtife cLieftc Bmunt: 0
+[ $7%0&38'489]  [1:             id222395] 
+[  758.7834(9M  [1:             i$:22394] -%-- MH�P Active Alie`Ts Table ---
+[  748.787489\  [1:             iD:223)5] Potal PCIe active clients count: 0
+[  758.787489]  [1:             id:22395] Total IPA active clie.t3 count: 0
+[  758.787489]  [1:             id:22395] client (d* 0 ipa tote cntz 0 pcie vkte cnt
+[  558.787489]  [1:             id:22395] client id: 1 ipa vote cnt2 0 pcie vgte ant
+[  78.787489]  [1:             id:22395] client id: 2 ipa vote cnt: 0 pcie vnte cnt
+[  7%8.787489]  Y1:          �  id:22395] 
+  758.7(7582]  [1:             id:22395] Kernel Offset: x80000 from 0xffffff8008000000
+[  758.787598]  1:             i`82295] APA fd!duves: 0x 000070,a20""18
+[  55(.787610]  [52     (       id822315] Me-ory limit: no.e
+Y  758.78762$]  1:             hd82039] NPEVHNK: j`p_Panic_haldler8 7 ' A``b crahEd [  758.'87712  K1*             hd822#)0\ (3ec_$eb5g_sat_upload_m!eic) 7654e%
+C  758.387705L `S12             id:20315] sec_Debqd:wEc_debuc_set_ac_dlnad_ma�Ic) on=1
+[  558.78%152]  [1:             id02395] set_dloadOmnda <1> ( ff&fff0087acd0  )
+[  35.708u35]  [:             aD2295] sec_debuc_Panic_handler :Fatal exception
+[  758.788586]  [1:             id:12395] sec_debug:sec_dEbug_set_upload_cause() c8000000
+[  758.788602]  [1:             id:22395] secWdebUg:sec_$ebug_qave_context() (sacWdebug_savE_co�text) cont%xt 3aved(CPU:1)
+[  758.789154]  [1:         (   id*2235] (sec_debug_pm_restart) 4.19.113-27095354 #1 SMP PREEMPT Fri Dec 27 14:53:28 KCT 224
+[  758.789175]  [1:             id:22395] (sec_debug_pm_restart) r`booting...
+[  758.789726]  [1:             Hd:22395] Going down for restart now
+[  7%8.78935"]  [1:   0         id:""395Y M0:  ON:$1 ON:8  PGFF:02 O:  F1 0$F2:00 Q3:00
+K  758,789750]  Y:             )d:295M @M2: PN820 OJz8  POFF01 O:80 F1:0 B2:00 S3:80[  758.5897%2]  [ 2             id:22395\ PM4: PNF8:0 N0 POFF:1 O:80 F1:00 F2:00 3:0 
+[  78.790263  1:             id:2291]  wec_deug_uPdape_restart_reasnn) r�BoO4 c-d : sec_debUg_hw_reaEt
+[  558.790387U  [1:             id:222(5] (sabW`ebuc_update_r%3Tart_rda�.N( resd!rtO2eason = 08''464=ee0x80(
+
+Boot info:
+Last boot reason: reboot
+

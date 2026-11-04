@@ -163,10 +163,17 @@ survive, and `register-dataflow.md` derives them from the verified path:
 | invalid waiter pointer | the word named memory that is not readable | `FAR`/`ESR` |
 | translation or permission fault | the access failed at the MMU rather than by value | `ESR` |
 
-None of the four can be selected from what was preserved. The crash records contain
-the bootloader's summary and per-CPU idle context saves only; the kernel's own oops
-text, the faulting CPU's registers, `FAR` and `ESR` are not readable in any of the
-four 132 KB captures, and `pimem_esr` is the bootloader's own register, `0x0`.
+None of the four can be selected from what the loss captures preserved. Those four
+contain the bootloader's summary and per-CPU idle context saves only; the kernel's
+own oops text, the faulting CPU's registers, `FAR` and `ESR` are not readable in any
+of them, and `pimem_esr` is the bootloader's own register, `0x0`.
+
+That is a statement about those entries, not about every recovery artifact. A sweep
+of all 55 uploads (`enumeration-20261104.md` §5) found one body outside them, `387`,
+that does carry the oops and registers: `x8 = 0xffffffffffffffff`,
+`ESR = 0x96000005`, effective address `0x37`, task `id` on CPU 1, same PC. Its `x21`
+line is corrupted, and it is not one of the three lost runs, so it excludes F1a and
+F1c for *that* panic without deciding the losses.
 
 This is a sharper statement than "the walk died": the recorded PC is inconsistent with
 the image the program intends *unless* the state at that word differed from the intent.
@@ -198,9 +205,9 @@ Not settled:
 | question | why not |
 | --- | --- |
 | which lock (`x21`) | registers unavailable |
-| which pointer (`x8`) and the fault address | registers, `FAR`, `ESR` unavailable |
+| which pointer (`x8`) and the fault address | unavailable in the losses; one upload gives `0xffffffffffffffff` and derived `0x37` |
 | whether the planted page was still mapped and still owned by the payload | no memory snapshot; candidates A–C above |
-| the call path from userspace | no backtrace; the stack in the dump is unreadable |
+| the call path from userspace | no backtrace; the `387` stack dump holds this frame's saved words, not a caller chain |
 | causation by the route | still an inference from the execution record, not from this instruction |
 | occupancy, the 31 identities, delivery, root | untouched by this work |
 
@@ -214,7 +221,7 @@ Not settled:
 | the instruction is disassembled from that verified image | **met** — `f9401d08`, with five instructions either side |
 | it is mapped to the matching vendor source, with surroundings | **met** — `rtmutex_common.h:52-63` inlined at `rtmutex.c:661`, `break #0x800` at `+0x838` |
 | operand interpretation is kept separate from what the register dump establishes | **met** — the dump establishes nothing; §5 is written as a disjunction |
-| a faulting PC/LR or backtrace from the crash record | **not met** — unavailable in all four captures; this is the remaining gap |
+| a faulting PC/LR or backtrace from the crash record | **not met** for the four loss captures; `387` supplies PC/LR and registers but no backtrace |
 
 ## 8. Reproduction
 

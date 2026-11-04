@@ -1,8 +1,9 @@
 # Data flow into the `+0x304` load
 
 Status: static reconstruction from the verified stock image (`symbol-resolution.md`)
-and the pinned tree. No device run, no build, no code change. Nothing here is a
-runtime measurement; every value attributed to the device is unresolved.
+and the pinned tree, plus one recovered register set (§11). No device run, no
+build, no code change. The static derivation is unchanged; of the runtime values,
+one panic at this PC is now measured and the three known losses remain unresolved.
 
 The question this answers is narrow: **what can `x21` and `x8` be at
 `ffffff8008146fa8`**, given the code path that reaches it.
@@ -119,7 +120,8 @@ The registers then read:
 the header and the instruction must agree before either address is printed.
 `0x2258` is the address the load **would** use if both words held their planted
 values; it is not a record that the CPU accessed it, which only the runtime `x8`
-could show, and that is absent.
+could show. That value is absent from the three loss records; one upload outside
+them does carry it, and it did not hold the intended value (§11).
 
 All four addresses lie inside the same 32 KiB page, which is a property of the
 *intended* addresses — not a statement about the values the registers actually
@@ -152,8 +154,14 @@ F1a and F1b are the same statement about *page state*; F1c is a statement about 
 *value's range*; F2 is a statement about *which lock* the walk was on. They are not
 exclusive: F2 plus F1b is possible.
 
-Nothing in the disassembly prefers one. The only thing that can choose is a runtime
-value — `FAR`, `ESR`, or one register — and none was preserved.
+Nothing in the disassembly prefers one. A runtime value chooses between them, and
+one panic now supplies it (§11): `x8 = 0xffffffffffffffff`, `ESR = 0x96000005`,
+effective address `0x37`. That excludes F1a and F1c for that panic and adds a
+measured family:
+
+| family | claim | what it predicts |
+| --- | --- | --- |
+| F3 (measured once) | the word at `lock+0x18` was all-ones | `x8 = 0xffffffffffffffff`; effective address `0x37`; level-1 translation fault, no permission fault |
 
 ## 8. What the verified path does *not* say
 
@@ -170,7 +178,8 @@ Ordered by cost, and none of them proposed as the next run:
 
 1. A crash record with `FAR`/`ESR`. `FAR` is exactly `x8 + 0x38`, so it names the
    family outright: non-canonical (F1a), a mapped kernel address (F1b), a user-range
-   address (F1c).
+   address (F1c). One such record has since been recovered (§11); the gap that
+   remains is a record for one of the three losses.
 2. The probe's own readback (`util.c:4729-4733`) already compares
    `*(fake_lock+0x18)` with `fake_w0`, but only in page-probe mode. A punch run that
    reported the same word after the spray would date the change.
@@ -193,5 +202,39 @@ Three tiers, kept separate:
 | the two planted words sit at `0x1368` and `0x2258` and hold `0x2220` and `0x1350` | **header-derived** |
 | the load's effective address under that graph is `payload_base+0x2258` (`+0xf08`) | **header-derived, not accessed** |
 | both operands, and the intended load, fall inside one `0x8000` page | **header-derived** |
-| which family produced the panic, and which iteration | **runtime-unresolved** |
-| runtime `x21`, `x8`, `FAR`, `ESR`, backtrace | **runtime-unresolved** |
+| the `387` panic held `x8 = 0xffffffffffffffff`, `ESR = 0x96000005`, effective address `0x37`, and the same all-ones word in the saved stack slot | **measured, one upload only** |
+| which family produced each of the three loss panics, and which iteration | **runtime-unresolved** |
+| runtime `x21` in every record, `x8`/`FAR`/`ESR` for the three losses, and a backtrace anywhere | **runtime-unresolved** |
+
+## 11. The one measured register set
+
+`387_20261102_134935_KP` carries the kernel's oops at the same PC, in task `id`
+(pid 14697) on CPU 1, at uptime 20,943.64 s. The block is preserved verbatim as
+`logs/20261104_enumeration/08-kp-387-fault-context.txt`; the scan over all 55
+bodies is `07-kp-scan.tsv`, and `enumeration-20261104.md` §§5–7 record the sweep.
+
+| quantity | value | tier |
+| --- | --- | --- |
+| `pc` / `lr` | `+0x304` / `+0x2d4`, size `0x858` | measured |
+| `x8` | `0xffffffffffffffff` | measured |
+| saved word at `sp` | `0xffffffffffffffff` | measured |
+| `ESR` | `0x96000005`: DABT current EL, translation fault level 1, read | measured |
+| `pstate` | `0x00400085`, `+PAN -UAO` | measured |
+| effective address | `0x37` (`x8 + 0x38`) | derived from a measured register and the image immediate |
+| `x21` | unreadable in this body | unresolved |
+
+What this decides for `387`, and nothing more:
+
+- The word at `lock+0x18` held all-ones. F1a predicted `0x4141414141414141`
+  and F1c a user-range pointer with a permission fault; both are excluded here.
+- `ESR` 0x05 is a translation fault, so the abort is about the address, not about
+  a permission check; PAN being set is not what faulted the access.
+- The stack slot corroborates the register: the `str x8,[sp]` at `+0x300` ran,
+  and the stored value is the same all-ones word.
+- `x21` is unreadable, so whether the lock was `fake_lock` (F2) is still open,
+  and an overwritten planted word (F1b) is not distinguished from a lock that
+  never carried the plant.
+
+`387` is not one of `399`, `400` or `401`: it is an 11-02 upload with no saved host
+run, so none of its values may be written into a statement about the three losses.
+
