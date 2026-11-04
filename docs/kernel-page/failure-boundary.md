@@ -180,7 +180,10 @@ Do all five before interpreting anything.
    device before pulling; do not truncate, rotate or rewrite it on the device. Compare
    those with the host-side size and hash immediately after the pull. If they differ,
    keep both files and record the discrepancy as a finding — do not retry in a way
-   that overwrites either copy.
+   that overwrites either copy. Matching hashes establish that the pulled bytes equal
+   the device-side bytes at the moment of the device-side hash; they do not establish
+   that any earlier `fsync` succeeded, nor that no line was lost before that moment
+   (`util.c:4863-4865` ignores both results, row 31).
 4. **Crash records** (items 3-4), if the shell is permitted to read them.
 5. **Hash and archive** every artifact on the host before any of it is interpreted,
    in the form used by `logs/SHA256SUMS`.
