@@ -11,6 +11,9 @@ External inputs:
 - `--ksrc DIR` (`verify_symbol.py`, `verify_timeline.py`): the matching kernel
   source tree.
 
+Toolchain: `lz4`, `nm` (from `binutils`), and `aarch64-linux-gnu-objdump` (from
+`binutils-aarch64-linux-gnu`) must be on `PATH`.
+
 ```sh
 python3 docs/kernel-page/verify/verify_symbol.py --fw /path/to/firmware-check --ksrc /path/to/s20_kernel_chxl1
 python3 docs/kernel-page/verify/verify_boundary.py
@@ -27,8 +30,9 @@ panic-boot starts, 7 tables`; `problems: 0`; `bad citations: 0`.
 verifiers read. The source tree is not a git checkout, so those file hashes are
 the revision pin.
 
-The workflow downloads the `fw/` and `ksrc/` archives from the URLs in
-repository secrets `KS_FIRMWARE_URL` and `KS_KSRC_URL` (optionally authorized
+The workflow installs the three tools above and checks they resolve before
+fetching the archives. It downloads the `fw/` and `ksrc/` archives from the URLs
+in repository secrets `KS_FIRMWARE_URL` and `KS_KSRC_URL` (optionally authorized
 by `KS_INPUTS_TOKEN`), unpacks them, and runs `sha256sum -c inputs.sha256`
 before the four commands. Pack the archives with:
 
