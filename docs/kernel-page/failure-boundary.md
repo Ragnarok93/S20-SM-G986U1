@@ -164,7 +164,28 @@ Ordered by cost. Every item is a read of state the device already holds.
 | 3 | dropbox `SYSTEM_LAST_KMSG` | `dumpsys dropbox --print <ID>` | shell, may deny | the panic backtrace: `pc`, `lr`, faulting function — the only record that names *where* the kernel died |
 | 4 | pstore | `ls /sys/fs/pstore; cat console-ramoops` | root | same as 3 if the shell is denied; unavailable to this shell today (`lifecycle-matrix.md` §4) |
 | 5 | `logcat -b crash` | `adb logcat -b crash -d` | shell | userspace aborts only; cannot show a kernel fault |
-| 6 | current process state | `adb shell 'grep -la /system/bin/id /proc/[0-9]*/cmdline 2>/dev/null; getprop sys.boot_completed'` | shell | whether a payload survivor exists, read before anything is restarted; a heuristic, because `cmdline` alone cannot show the preload and `/proc/<pid>/environ` is not readable across uids |
+| 6 | current process state | `adb shell 'for p in /proc/[0-9]*; do printf "%s " "$p"; tr "\0" " " < "$p/cmdline" 2>/dev/null; echo; done'; getprop sys.boot_completed` | shell | whether a payload survivor exists. Capture every pid with its full argv, not the matches only: `cmdline` cannot show the preload, `/proc/<pid>/environ` is not readable across uids, and a negative result is not proof of absence |
+
+### 4.1 One session, in this order
+
+The reads are cheap enough to repeat, but a repeated read is not the same as the
+first: a restart, a cleanup or a `kill` destroys the state item 6 is looking for.
+Do all five before interpreting anything.
+
+1. **Boot identity** (item 1), with the host's `date -Is` recorded beside it, so the
+   uptime comparison has a timestamp to stand on.
+2. **Process state** (item 6): every pid with its raw argv, saved verbatim even
+   though most of it is noise.
+3. **The persistent log** (item 2), complete. Record `ls -l` and `sha256sum` on the
+   device before pulling; do not truncate, rotate or rewrite it on the device.
+4. **Crash records** (items 3-4), if the shell is permitted to read them.
+5. **Hash and archive** every artifact on the host before any of it is interpreted,
+   in the form used by `logs/SHA256SUMS`.
+
+No service restart, no process cleanup and no payload run until those five are done.
+`adb shell` reads and `adb pull` restart nothing; restarting the host's adb server or
+re-attaching the USB device is not a device reboot, but rebooting the phone discards
+items 1-2.
 
 Item 1 is the cheapest and is decisive for the 20:02 run, with two bounds. The host
 clock is trustworthy, so `uptime < (now − 20:20:00)` proves a boot after 20:20 —
