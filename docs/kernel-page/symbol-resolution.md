@@ -172,8 +172,9 @@ That is a statement about those entries, not about every recovery artifact. A sw
 of all 55 uploads (`enumeration-20261104.md` §5) found one body outside them, `387`,
 that does carry the oops and registers: `x8 = 0xffffffffffffffff`,
 `ESR = 0x96000005`, effective address `0x37`, task `id` on CPU 1, same PC. Its `x21`
-line is corrupted, and it is not one of the three lost runs, so it excludes F1a and
-F1c for *that* panic without deciding the losses.
+register line is lost and the frame copy is damaged (`register-dataflow.md`
+§11), so it does not name the lock; it is not one of the three lost runs, so it
+excludes F1a and F1c for *that* panic without deciding the losses.
 
 This is a sharper statement than "the walk died": the recorded PC is inconsistent with
 the image the program intends *unless* the state at that word differed from the intent.
@@ -204,7 +205,7 @@ Not settled:
 
 | question | why not |
 | --- | --- |
-| which lock (`x21`) | registers unavailable |
+| which lock (`x21`) | no register value; the one frame copy is damaged (`register-dataflow.md` §11) |
 | which pointer (`x8`) and the fault address | unavailable in the losses; one upload gives `0xffffffffffffffff` and derived `0x37` |
 | whether the planted page was still mapped and still owned by the payload | no memory snapshot; candidates A–C above |
 | the call path from userspace | no backtrace; the `387` stack dump holds this frame's saved words, not a caller chain |

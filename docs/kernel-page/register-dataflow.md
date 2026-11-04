@@ -221,7 +221,7 @@ bodies is `07-kp-scan.tsv`, and `enumeration-20261104.md` §§5–7 record the s
 | `ESR` | `0x96000005`: DABT current EL, translation fault level 1, read | measured |
 | `pstate` | `0x00400085`, `+PAN -UAO` | measured |
 | effective address | `0x37` (`x8 + 0x38`) | derived from a measured register and the image immediate |
-| `x21` | unreadable in this body | unresolved |
+| `x21` | no readable register; the frame slot at `sp+0x68` is printed, but its word is damaged | unresolved |
 
 What this decides for `387`, and nothing more:
 
@@ -234,6 +234,45 @@ What this decides for `387`, and nothing more:
 - `x21` is unreadable, so whether the lock was `fake_lock` (F2) is still open,
   and an overwritten planted word (F1b) is not distinguished from a lock that
   never carried the plant.
+
+### The `x21` slot
+
+The register print loses the `x21`/`x20` line: `x23`/`x22` survives, then `x21`
+is absent and only `x20:` remains. The frame keeps another copy.
+`rt_mutex_adjust_prio_chain` saves the incoming `x21` at `sp+0x68`
+(`stp x22, x21, [sp, #96]` at `+0x1c`), and the caller `rt_mutex_adjust_pi`
+loads `next_lock = waiter->lock` into `x21` at `+0x60`, passes it as `x3` at
+`+0x78`, and calls at `+0x9c`. The callee's `mov x21, x3` at `+0x40` is a
+self-copy, so the saved word is the initial `next_lock`.
+
+At the fault `sp = 0xffffff80283f3cb0`, so the slot is
+`0xffffff80283f3d18`, inside the oops's stack dump (line `3$10`, where `$` is a
+corrupt `d`). The two slots beside it are clean and confirm the map without
+using the register line: `3d20` holds `0xffffffc01159d508` = `task + 0x8c8`
+(the caller's `x20`, its `pi_lock`) and `3d28` holds `0xffffffc01159cc40` =
+`task` (the caller's `x19`).
+
+The slot itself prints `5\x17d083<0 fff&fdc0`: three characters are not hex,
+and the `d` in the high half does not fit the only linear-map shape. It is a
+damaged rendering, not a value: replacing `&` with `f` still leaves
+`fffffdc0`, not the linear-map `ffffffc0`, so the `d` is suspect as well. No
+64-bit `x21` is recoverable from it.
+
+The other copies are outside what was printed. The caller's own
+`str x21, [sp, #16]` would be at `0xffffff80283f3d40`, `0x18` past the last
+dumped word; the exception frame's `x21` is at `0xffffff80283f3c18`, `0x18`
+before the first dumped line (`3c30`). The other three `x21` labels (lines 1524,
+1748, 1905) are idle `swapper` saves on CPUs 4, 7 and 5; the body carries no
+`FAR` label and no `sec_debug_panic_handler` block, the only other `pc :` is the
+idle `lpm_cpuidle_enter`, no `_NP` entry is paired with `387`, and a re-pull
+reproduces the same bytes. The slot-by-slot reasons are preserved in
+`09-kp-387-x21-recovery.md`.
+
+The all-ones root at `sp` (`0xffffffffffffffff`, the `str x8,[sp]` at `+0x300`)
+is consistent with the first iteration: a later iteration re-inserts the waiter
+and `rb_insert_color_cached` would write a node pointer to `rb_leftmost`, not
+all-ones. On that reading the saved initial `next_lock` is the faulting `x21`;
+that is an inference, not a log line.
 
 `387` is not one of `399`, `400` or `401`: it is an 11-02 upload with no saved host
 run, so none of its values may be written into a statement about the three losses.

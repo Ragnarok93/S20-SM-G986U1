@@ -114,12 +114,22 @@ are preserved verbatim as `08-kp-387-fault-context.txt`:
 | `x8` | `0xffffffffffffffff` | read |
 | word stored at `sp` | `0xffffffffffffffff` | read from the stack dump at `0xffffff80283f3cb0` |
 | effective address | `0x37` | derived: `x8 + 0x38` wraps to `0x37`, consistent with the `user pgtable` line and a level-1 translation fault |
-| `x21` | not readable | the register line is corrupted in this body |
+| `x21` | no readable register; the frame slot at `sp+0x68` is printed, but its word is damaged | the register line is lost; the slot is not hex (`09-kp-387-x21-recovery.md`) |
 
 The stack word is independent corroboration: `+0x300` stores `x8` at `sp` before
 the faulting load, and the dumped stack holds the same all-ones value at that
 address. The fault is a translation fault on `0x37`, not a permission fault, and
 not a dereference of the planted `0x41` fill.
+
+The `x21` slot is `0xffffff80283f3d18` (`sp+0x68`). It is printed in the same
+stack dump as `5\x17d083<0 fff&fdc0`, while the two slots beside it print as
+complete pointers:
+`0xffffffc01159d508` = `task+0x8c8` and `0xffffffc01159cc40` = `task`. The
+prologue saves the incoming `x21` there, and the caller loads that word from
+`waiter->lock` and passes it as `x3`; the dump therefore locates the initial
+`next_lock`, but its digits are damaged and no pointer value follows.
+`09-kp-387-x21-recovery.md` records the derivation and every other copy, and
+`register-dataflow.md` §11 carries the same result.
 
 ## 7. What the sweep changes, and what it does not
 
@@ -140,7 +150,12 @@ Not changed:
 - `397` (11-03 07:44) does contain an oops in `sh` at a *different* PC, whose symbol
   line is corrupted. It is not this fault and is preserved but not analysed here;
   it is why the sweep counts `+0x304` fault blocks rather than "fault blocks".
-- `x21` is unreadable even in `387`, so which lock was walked, and therefore F2,
-  remains open.
+- `x21` has no readable register even in `387`. Its frame slot is identified but
+  its printed word is damaged; which lock was walked, and therefore F2, remains
+  open.
 - No punch return, route completion, delivery or root; occupancy and the 31
   identities remain unestablished.
+
+Scope: this is `387`'s record. `387` has no saved host run and is not one of
+`399`, `400` or `401`; none of its values may be written into a statement about
+the three lost runs.
